@@ -16,6 +16,7 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 - Live demo: https://olive8882-1996.github.io/kickoff-lock-agent/
 - Repository: https://github.com/olive8882-1996/kickoff-lock-agent
 - Screenshot: https://olive8882-1996.github.io/kickoff-lock-agent/kickoff-lock-screenshot.png
+- Demo video: https://olive8882-1996.github.io/kickoff-lock-agent/kickoff-lock-demo.mov
 
 ## Data Strategy
 

@@ -21,10 +21,10 @@ Demo mode is clearly labeled. The repo also includes `scripts/seal-with-synapse.
 
 ## Links
 
-- Live demo: TBD
-- Repository: TBD
+- Live demo: https://olive8882-1996.github.io/kickoff-lock-agent/
+- Repository: https://github.com/olive8882-1996/kickoff-lock-agent
 - Demo video: TBD
-- Screenshot: TBD
+- Screenshot: https://olive8882-1996.github.io/kickoff-lock-agent/kickoff-lock-screenshot.png
 - Public X post: TBD
 
 ## Acceptance Checklist

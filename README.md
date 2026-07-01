@@ -11,6 +11,12 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 - Get an explainable score and a shareable proof card.
 - Keep every revealed call in a tournament memory dashboard.
 
+## Links
+
+- Live demo: https://olive8882-1996.github.io/kickoff-lock-agent/
+- Repository: https://github.com/olive8882-1996/kickoff-lock-agent
+- Screenshot: https://olive8882-1996.github.io/kickoff-lock-agent/kickoff-lock-screenshot.png
+
 ## Data Strategy
 
 The app works without API keys.

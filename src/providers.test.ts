@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { lookupFifaRanking } from "./data/fifaRankings";
-import { buildDataCoverage, loadSeedMatches, mergeOddsIntoMatch, normalizeFootballDataMatch, sourceLabel } from "./providers";
+import {
+  buildDataCoverage,
+  buildProviderReadiness,
+  loadSeedMatches,
+  mergeApiFootballEnrichment,
+  mergeOddsIntoMatch,
+  normalizeFootballDataMatch,
+  sourceLabel,
+} from "./providers";
 import type { Match } from "./types";
 
 describe("provider metadata", () => {
@@ -140,5 +148,122 @@ describe("provider metadata", () => {
       },
     });
     expect(coverage.find((item) => item.key === "odds")?.status).toBe("missing");
+  });
+
+  it("summarizes live data readiness without hiding missing enrichment providers", () => {
+    const readiness = buildProviderReadiness([
+      {
+        id: "espn-1",
+        homeTeam: "Spain",
+        awayTeam: "Austria",
+        kickoffAt: "2099-07-02T20:00:00Z",
+        stage: "Round of 16",
+        status: "upcoming",
+        dataSource: "espn",
+        insights: {
+          home: {
+            fifaRank: 2,
+            form: ["FIFA"],
+            lastFiveGoalsFor: 0,
+            lastFiveGoalsAgainst: 0,
+            unavailable: ["Configure injury provider"],
+            probableLineup: ["Lineup not published by this provider"],
+          },
+          away: {
+            fifaRank: 24,
+            form: ["FIFA"],
+            lastFiveGoalsFor: 0,
+            lastFiveGoalsAgainst: 0,
+            unavailable: ["Configure injury provider"],
+            probableLineup: ["Lineup not published by this provider"],
+          },
+          rankingSource: "FIFA/Coca-Cola Men's World Ranking snapshot, 2026-06-11",
+          headToHead: "ESPN matchup",
+          marketLine: "Market data waits for odds enrichment.",
+          oddsSnapshot: "Odds enrichment not loaded.",
+          dataFreshness: "now",
+        },
+      },
+    ]);
+    expect(readiness.find((item) => item.key === "schedule")?.status).toBe("live");
+    expect(readiness.find((item) => item.key === "score")?.status).toBe("configured");
+    expect(readiness.find((item) => item.key === "rankings")?.status).toBe("configured");
+    expect(readiness.find((item) => item.key === "lineups")?.status).toBe("missing");
+    expect(readiness.find((item) => item.key === "injuries")?.status).toBe("missing");
+    expect(readiness.find((item) => item.key === "odds")?.detail).toContain("VITE_ODDS_API_KEY");
+  });
+
+  it("marks API-Football lineups, injuries and odds as live when enrichment payloads return", () => {
+    const enriched = mergeApiFootballEnrichment(
+      {
+        id: "api-football-200",
+        homeTeam: "Spain",
+        awayTeam: "Austria",
+        kickoffAt: "2099-07-02T20:00:00Z",
+        stage: "Round of 16",
+        status: "upcoming",
+        dataSource: "api-football",
+        insights: {
+          home: {
+            fifaRank: 2,
+            form: ["FIFA"],
+            lastFiveGoalsFor: 0,
+            lastFiveGoalsAgainst: 0,
+            unavailable: [],
+            probableLineup: [],
+          },
+          away: {
+            fifaRank: 24,
+            form: ["FIFA"],
+            lastFiveGoalsFor: 0,
+            lastFiveGoalsAgainst: 0,
+            unavailable: [],
+            probableLineup: [],
+          },
+          headToHead: "API matchup",
+          marketLine: "Odds endpoint configured",
+          dataFreshness: "now",
+        },
+      },
+      {
+        lineupsOk: true,
+        injuriesOk: true,
+        oddsOk: true,
+        lineupRows: [
+          { team: { name: "Spain" }, startXI: [{ player: { name: "Unai Simon" } }, { player: { name: "Pedri" } }] },
+          { team: { name: "Austria" }, startXI: [{ player: { name: "Marcel Sabitzer" } }] },
+        ],
+        injuryRows: [
+          { team: { name: "Spain" }, player: { name: "Player A" } },
+          { team: { name: "Austria" }, player: { name: "Player B" } },
+        ],
+        oddsRows: [
+          {
+            bookmakers: [
+              {
+                name: "FixtureBook",
+                bets: [
+                  {
+                    name: "Match Winner",
+                    values: [
+                      { value: "Spain", odd: "1.70" },
+                      { value: "Draw", odd: "3.40" },
+                      { value: "Austria", odd: "4.80" },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    );
+
+    expect(enriched.insights?.home.probableLineup).toContain("Pedri");
+    expect(enriched.insights?.away.unavailable).toContain("Player B");
+    expect(enriched.insights?.oddsSnapshot).toContain("Spain 1.70");
+    expect(enriched.insights?.dataCoverage?.find((item) => item.key === "lineups")?.status).toBe("live");
+    expect(enriched.insights?.dataCoverage?.find((item) => item.key === "injuries")?.status).toBe("live");
+    expect(enriched.insights?.dataCoverage?.find((item) => item.key === "odds")?.status).toBe("live");
   });
 });

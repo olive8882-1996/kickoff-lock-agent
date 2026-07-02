@@ -1,6 +1,6 @@
 import { seedMatches } from "./data/seedMatches";
 import { lookupFifaRanking } from "./data/fifaRankings";
-import type { DataCoverageItem, DataCoverageStatus, DataSource, Match, ProviderResult } from "./types";
+import type { DataCoverageItem, DataCoverageStatus, DataSource, Match, ProviderReadinessItem, ProviderResult } from "./types";
 
 const ESPN_URL =
   "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=40";
@@ -70,6 +70,123 @@ const statusSource = (status: DataCoverageStatus, source: string) => {
   if (status === "missing") return "Not available";
   if (status === "manual") return "Manual input";
   return source;
+};
+
+const statusRank: Record<DataCoverageStatus, number> = {
+  missing: 0,
+  manual: 1,
+  fallback: 2,
+  configured: 3,
+  live: 4,
+};
+
+const bestCoverage = (matches: Match[], key: DataCoverageItem["key"]) => {
+  const items = matches.flatMap((match) => match.insights?.dataCoverage ?? buildDataCoverage(match));
+  return items
+    .filter((item) => item.key === key)
+    .sort((a, b) => statusRank[b.status] - statusRank[a.status])[0];
+};
+
+const envDetail = (key: DataCoverageItem["key"]) => {
+  if (key === "lineups" || key === "injuries") {
+    return API_FOOTBALL_KEY
+      ? "VITE_APIFOOTBALL_KEY configured; run Enrich on API-Football fixtures."
+      : "Configure VITE_APIFOOTBALL_KEY for lineups and injuries.";
+  }
+  if (key === "odds") {
+    if (API_FOOTBALL_KEY || (ODDS_API_KEY && ODDS_API_SPORT_KEY)) {
+      return "Odds enrichment configured through API-Football or The Odds API.";
+    }
+    return "Configure VITE_APIFOOTBALL_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY.";
+  }
+  return "Waiting for configured live provider.";
+};
+
+const providerScoreStatus = (matches: Match[]): ProviderReadinessItem => {
+  const score = bestCoverage(matches, "score");
+  const liveSource = matches.find((match) => match.dataSource !== "seed" && match.dataSource !== "manual");
+  if (score?.status === "live" || score?.status === "fallback") {
+    return {
+      key: "score",
+      label: "Scores",
+      status: score.status,
+      source: score.source,
+      detail: score.detail,
+    };
+  }
+  if (liveSource) {
+    return {
+      key: "score",
+      label: "Scores",
+      status: "configured",
+      source: sourceLabel(liveSource.dataSource),
+      detail: "Live/final score endpoint is active; current upcoming fixtures may still require manual reveal.",
+    };
+  }
+  return {
+    key: "score",
+    label: "Scores",
+    status: "manual",
+    source: "Manual reveal",
+    detail: "No live score provider active for the current schedule.",
+  };
+};
+
+export const buildProviderReadiness = (matches: Match[]): ProviderReadinessItem[] => {
+  const items: ProviderReadinessItem[] = [];
+  const labels: Record<DataCoverageItem["key"], string> = {
+    schedule: "Schedule",
+    score: "Scores",
+    rankings: "Ranking",
+    lineups: "Lineups",
+    injuries: "Injuries",
+    odds: "Odds",
+  };
+
+  for (const key of ["schedule", "rankings", "lineups", "injuries", "odds"] as const) {
+    const coverage = bestCoverage(matches, key);
+    const configured =
+      (key === "lineups" || key === "injuries") && API_FOOTBALL_KEY
+        ? true
+        : key === "odds" && (API_FOOTBALL_KEY || (ODDS_API_KEY && ODDS_API_SPORT_KEY));
+    const enrichmentKey = key === "lineups" || key === "injuries" || key === "odds";
+    const usableCoverage =
+      coverage && (!enrichmentKey || coverage.status !== "fallback" || configured)
+        ? coverage
+        : undefined;
+    items.push({
+      key,
+      label: labels[key],
+      status: usableCoverage?.status && statusRank[usableCoverage.status] >= statusRank.configured
+        ? usableCoverage.status
+        : configured
+          ? "configured"
+          : enrichmentKey
+            ? "missing"
+            : usableCoverage?.status ?? "missing",
+      source:
+        usableCoverage?.status && statusRank[usableCoverage.status] >= statusRank.configured
+          ? usableCoverage.source
+          : configured
+            ? key === "odds"
+              ? "API-Football / The Odds API"
+              : "API-Football"
+            : enrichmentKey
+              ? "Not available"
+              : usableCoverage?.source ?? "Not available",
+      detail:
+        usableCoverage?.status && statusRank[usableCoverage.status] >= statusRank.configured
+          ? usableCoverage.detail
+          : configured
+            ? envDetail(key)
+            : key === "lineups" || key === "injuries" || key === "odds"
+              ? envDetail(key)
+              : usableCoverage?.detail ?? envDetail(key),
+    });
+  }
+
+  items.splice(1, 0, providerScoreStatus(matches));
+  return items;
 };
 
 export const buildDataCoverage = (match: Match): DataCoverageItem[] => {
@@ -449,25 +566,30 @@ const enrichMatchFromOddsApi = async (match: Match): Promise<Match | undefined> 
   return mergeOddsIntoMatch(match, oddsRows);
 };
 
-export const enrichMatchFromApiFootball = async (match: Match): Promise<Match> => {
-  const fixtureId = match.id.startsWith("api-football-")
-    ? match.id.replace("api-football-", "")
-    : "";
-  if (!fixtureId) throw new Error("Select an API-Football fixture to enrich lineups, injuries and odds.");
-  const [lineups, injuries, odds] = await Promise.allSettled([
-    apiFootballJson(`/fixtures/lineups?fixture=${fixtureId}`),
-    apiFootballJson(`/injuries?fixture=${fixtureId}`),
-    apiFootballJson(`/odds?fixture=${fixtureId}`),
-  ]);
-  const lineupRows = lineups.status === "fulfilled" && Array.isArray(lineups.value.response)
-    ? lineups.value.response
-    : [];
-  const injuryRows = injuries.status === "fulfilled" && Array.isArray(injuries.value.response)
-    ? injuries.value.response
-    : [];
-  const oddsRows = odds.status === "fulfilled" && Array.isArray(odds.value.response)
-    ? odds.value.response
-    : [];
+type ApiFootballEnrichmentPayload = {
+  lineupRows: any[];
+  injuryRows: any[];
+  oddsRows: any[];
+  lineupsOk: boolean;
+  injuriesOk: boolean;
+  oddsOk: boolean;
+  lineupsError?: unknown;
+  injuriesError?: unknown;
+};
+
+export const mergeApiFootballEnrichment = (
+  match: Match,
+  {
+    lineupRows,
+    injuryRows,
+    oddsRows,
+    lineupsOk,
+    injuriesOk,
+    oddsOk,
+    lineupsError,
+    injuriesError,
+  }: ApiFootballEnrichmentPayload,
+): Match => {
   const homeLineup = lineupRows.find((row: any) => row.team?.name === match.homeTeam);
   const awayLineup = lineupRows.find((row: any) => row.team?.name === match.awayTeam);
   const homeInjuries = injuryRows
@@ -515,11 +637,42 @@ export const enrichMatchFromApiFootball = async (match: Match): Promise<Match> =
       },
       headToHead: match.insights?.headToHead ?? "H2H endpoint can be called once both team ids are available.",
       marketLine: oddsSnapshot ? `${firstBookmaker?.name ?? "Bookmaker"} · ${firstBet?.name ?? "Odds"} · ${oddsSnapshot}` : "Odds not published for this fixture.",
-      oddsSnapshot: oddsSnapshot ?? "No odds payload returned.",
-      lineupSource: lineups.status === "fulfilled" ? "API-Football lineups endpoint" : `Lineups unavailable: ${lineups.reason}`,
-      injurySource: injuries.status === "fulfilled" ? "API-Football injuries endpoint" : `Injuries unavailable: ${injuries.reason}`,
+      oddsSnapshot: oddsSnapshot ?? (oddsOk ? "No odds payload returned." : "API-Football odds endpoint unavailable."),
+      lineupSource: lineupsOk ? "API-Football lineups endpoint" : `Lineups unavailable: ${lineupsError}`,
+      injurySource: injuriesOk ? "API-Football injuries endpoint" : `Injuries unavailable: ${injuriesError}`,
       dataFreshness: new Date().toISOString(),
     },
+  });
+};
+
+export const enrichMatchFromApiFootball = async (match: Match): Promise<Match> => {
+  const fixtureId = match.id.startsWith("api-football-")
+    ? match.id.replace("api-football-", "")
+    : "";
+  if (!fixtureId) throw new Error("Select an API-Football fixture to enrich lineups, injuries and odds.");
+  const [lineups, injuries, odds] = await Promise.allSettled([
+    apiFootballJson(`/fixtures/lineups?fixture=${fixtureId}`),
+    apiFootballJson(`/injuries?fixture=${fixtureId}`),
+    apiFootballJson(`/odds?fixture=${fixtureId}`),
+  ]);
+  const lineupRows = lineups.status === "fulfilled" && Array.isArray(lineups.value.response)
+    ? lineups.value.response
+    : [];
+  const injuryRows = injuries.status === "fulfilled" && Array.isArray(injuries.value.response)
+    ? injuries.value.response
+    : [];
+  const oddsRows = odds.status === "fulfilled" && Array.isArray(odds.value.response)
+    ? odds.value.response
+    : [];
+  return mergeApiFootballEnrichment(match, {
+    lineupRows,
+    injuryRows,
+    oddsRows,
+    lineupsOk: lineups.status === "fulfilled",
+    injuriesOk: injuries.status === "fulfilled",
+    oddsOk: odds.status === "fulfilled",
+    lineupsError: lineups.status === "rejected" ? lineups.reason : undefined,
+    injuriesError: injuries.status === "rejected" ? injuries.reason : undefined,
   });
 };
 

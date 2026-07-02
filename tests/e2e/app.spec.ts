@@ -4,6 +4,10 @@ test("expanded product workflow is usable", async ({ page }) => {
   await page.goto("?reset=1&e2e=1");
   await expect(page.getByRole("heading", { name: /matches/i })).toBeVisible();
   await expect(page.getByText(/matches loaded/i)).toBeVisible();
+  await expect(page.locator(".provider-readiness")).toContainText(/Live data readiness/i);
+  await expect(page.locator(".provider-readiness")).toContainText(/Schedule/i);
+  await expect(page.locator(".provider-readiness")).toContainText(/Lineups/i);
+  await expect(page.locator(".provider-readiness")).toContainText(/Odds/i);
   await expect(page.getByRole("button", { name: /Account/i }).last()).toBeVisible();
   await expect(page.getByRole("button", { name: /Modes/i }).last()).toBeVisible();
 

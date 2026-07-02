@@ -54,7 +54,7 @@ import {
 import { filecoinSealConfigured, lookupFilecoinProof, runSealJob } from "./filecoinSeal";
 import { createGameModeRun, getModeReadiness } from "./modes";
 import { applyRealProof, createCapsule, stableJson } from "./proof";
-import { buildDataCoverage, enrichMatchWithDataProviders, loadMatchesWithFallback, sourceLabel } from "./providers";
+import { buildDataCoverage, buildProviderReadiness, enrichMatchWithDataProviders, loadMatchesWithFallback, sourceLabel } from "./providers";
 import { scorePrediction } from "./scoring";
 import { downloadDataUrl, generateShareCard } from "./shareCard";
 import type {
@@ -69,6 +69,7 @@ import type {
   Match,
   MemoryRecord,
   PredictionDraft,
+  ProviderReadinessItem,
   PublicProfile,
 } from "./types";
 
@@ -551,6 +552,7 @@ function App() {
         }
       : localPublicProfile);
   const canLock = !!selectedMatch && !selectedRecord?.capsule.locked && lockState?.state !== "closed";
+  const providerReadiness = buildProviderReadiness(matches);
 
   const syncRecordsInBackground = (nextRecords: MemoryRecord[], reason: string) => {
     const state = getCloudState();
@@ -1002,6 +1004,7 @@ function App() {
               <p key={item}>{item}</p>
             ))}
           </div>
+          <ProviderReadiness items={providerReadiness} />
           <div className="filter-row" aria-label="Match filters">
             {(["all", "live", "today", "upcoming"] as const).map((filter) => (
               <button
@@ -1344,6 +1347,25 @@ function LockWindow({
         <span>Venue</span>
         <strong>{match.venue ?? "TBD"}</strong>
       </div>
+    </div>
+  );
+}
+
+function ProviderReadiness({ items }: { items: ProviderReadinessItem[] }) {
+  return (
+    <div className="provider-readiness" aria-label="Live data readiness">
+      <div>
+        <strong>Live data readiness</strong>
+        <span>{items.filter((item) => item.status === "live" || item.status === "configured").length}/{items.length}</span>
+      </div>
+      {items.map((item) => (
+        <article key={item.key} className={`readiness-${item.status}`}>
+          <CheckCircle2 size={15} />
+          <span>{item.label}</span>
+          <b>{item.status}</b>
+          <small>{item.source} · {item.detail}</small>
+        </article>
+      ))}
     </div>
   );
 }

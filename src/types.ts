@@ -23,6 +23,14 @@ export type DataCoverageItem = {
   detail: string;
 };
 
+export type ProviderReadinessItem = {
+  key: DataCoverageItem["key"];
+  label: string;
+  status: DataCoverageStatus;
+  source: string;
+  detail: string;
+};
+
 export type MarketPick = {
   id: "winner" | "total-goals" | "both-score" | "first-goal";
   label: string;

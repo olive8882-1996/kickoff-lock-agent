@@ -11,6 +11,24 @@ const mode: GameMode = {
   reward: "XP",
 };
 
+const calibrationMode: GameMode = {
+  id: "agent-vs-human",
+  title: "Agent vs Human",
+  status: "playable",
+  description: "Calibrate confidence against revealed score.",
+  progress: 50,
+  reward: "Calibration badge",
+};
+
+const upsetMode: GameMode = {
+  id: "upset",
+  title: "Upset Challenge",
+  status: "playable",
+  description: "Seal a bold low-confidence call.",
+  progress: 50,
+  reward: "Bonus XP",
+};
+
 const record = (id: string, score?: number): MemoryRecord => ({
   capsule: {
     id,
@@ -87,8 +105,29 @@ describe("game mode proof runs", () => {
     const run = await createGameModeRun(mode, [record("one", 80), record("two", 70), record("three", 90)]);
     expect(run.modeId).toBe("parlay");
     expect(run.capsuleIds).toEqual(["one", "two", "three"]);
-    expect(run.score).toBe(80);
+    expect(run.score).toBe(100);
+    expect(run.artifact?.kind).toBe("parlay-ticket");
+    expect(run.summary).toContain("Parlay ticket");
     expect(run.payloadHash).toHaveLength(64);
     expect(run.filecoinProof.cid).toMatch(/^bafy-kickoff-/);
+  });
+
+  it("creates an agent calibration artifact from revealed records", async () => {
+    const run = await createGameModeRun(calibrationMode, [record("one", 80), record("two", 40)]);
+    expect(run.artifact?.kind).toBe("agent-calibration");
+    expect(run.score).toBe(80);
+    expect(run.summary).toContain("avg error 20");
+  });
+
+  it("creates an upset ticket with bonus XP for low-confidence hits", async () => {
+    const bold = record("bold", 84);
+    bold.capsule.prediction.confidence = 44;
+    const readiness = getModeReadiness("upset", [bold]);
+    expect(readiness.ready).toBe(true);
+
+    const run = await createGameModeRun(upsetMode, [bold]);
+    expect(run.artifact?.kind).toBe("upset-ticket");
+    expect(run.score).toBe(100);
+    expect(run.summary).toContain("150 bonus XP");
   });
 });

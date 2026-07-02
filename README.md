@@ -83,7 +83,7 @@ Key files:
 - `src/scoring.ts`: explainable scoring engine.
 - `src/cloud.ts`: Supabase auth, profile sync, public proof lookup, and leaderboard queries.
 - `src/bracket.ts`: knockout path builder, bracket readiness rules, and bracket proof run sealing.
-- `src/modes.ts`: bracket/parlay/agent/upset mode proof runs.
+- `src/modes.ts`: bracket/parlay/agent/upset mode proof runs, including parlay tickets, agent calibration reports and upset bonus tickets.
 - `scripts/seal-with-synapse.mjs`: real Synapse/Filecoin adapter.
 - `server/filecoin-seal-api.mjs`: one-click seal API and CID verification endpoints.
 

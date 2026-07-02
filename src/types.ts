@@ -249,11 +249,56 @@ export type GameModeRun = {
   score?: number;
   summary: string;
   requirements: string[];
-  artifact?: {
-    kind: "bracket-path";
-    bracketPath: BracketPath;
-  };
+  artifact?: ModeArtifact;
 };
+
+export type ModeArtifact =
+  | {
+      kind: "bracket-path";
+      bracketPath: BracketPath;
+    }
+  | {
+      kind: "parlay-ticket";
+      legs: Array<{
+        capsuleId: string;
+        matchLabel: string;
+        pick: string;
+        confidence: number;
+        markets: MarketPick[];
+        resultScore?: number;
+        winnerHit?: boolean;
+      }>;
+      settledLegs: number;
+      hitLegs: number;
+    }
+  | {
+      kind: "agent-calibration";
+      samples: Array<{
+        capsuleId: string;
+        matchLabel: string;
+        confidence: number;
+        totalScore: number;
+        winnerHit: boolean;
+        calibrationError: number;
+        review: string[];
+      }>;
+      averageCalibrationError: number;
+    }
+  | {
+      kind: "upset-ticket";
+      picks: Array<{
+        capsuleId: string;
+        matchLabel: string;
+        predictedWinner: string;
+        confidence: number;
+        resultScore?: number;
+        winnerHit?: boolean;
+        multiplier: number;
+      }>;
+      resolvedPicks: number;
+      hitPicks: number;
+      bonusXp: number;
+    };
 
 export type ProviderResult = {
   source: DataSource;

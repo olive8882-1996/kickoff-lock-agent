@@ -1760,8 +1760,15 @@ pre {
 }
 
 .mode-runs strong,
+.mode-runs span,
 .mode-runs code {
   display: block;
+}
+
+.mode-runs span {
+  margin: 4px 0;
+  color: rgba(238, 247, 243, 0.66);
+  font-size: 0.72rem;
 }
 
 .progress-track {

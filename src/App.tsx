@@ -744,7 +744,7 @@ function App() {
     try {
       const run = await createBracketModeRun(bracketPath);
       setModeRuns((current) => [run, ...current.filter((item) => item.id !== run.id)]);
-      setBracketPath(run.artifact?.bracketPath ?? bracketPath);
+      setBracketPath(run.artifact?.kind === "bracket-path" ? run.artifact.bracketPath : bracketPath);
       setNotice("Bracket path sealed as a tournament mode proof.");
     } catch (error) {
       setNotice((error as Error).message);
@@ -2117,6 +2117,7 @@ function ModesDashboard({
                   {runs.slice(0, 2).map((run) => (
                     <div key={run.id}>
                       <strong>{run.status}{run.score !== undefined ? ` · ${run.score}/100` : ""}</strong>
+                      <ModeRunArtifact artifact={run.artifact} />
                       <code>{run.filecoinProof.cid}</code>
                     </div>
                   ))}
@@ -2132,6 +2133,32 @@ function ModesDashboard({
       </div>
     </section>
   );
+}
+
+function ModeRunArtifact({ artifact }: { artifact?: GameModeRun["artifact"] }) {
+  if (!artifact) return <span>Generic mode proof</span>;
+  if (artifact.kind === "parlay-ticket") {
+    return (
+      <span>
+        Parlay ticket · {artifact.legs.length} legs · {artifact.settledLegs} settled · {artifact.hitLegs} hits
+      </span>
+    );
+  }
+  if (artifact.kind === "agent-calibration") {
+    return (
+      <span>
+        Calibration · {artifact.samples.length} samples · avg error {artifact.averageCalibrationError}
+      </span>
+    );
+  }
+  if (artifact.kind === "upset-ticket") {
+    return (
+      <span>
+        Upset ticket · {artifact.picks.length} picks · {artifact.hitPicks}/{artifact.resolvedPicks} hits · {artifact.bonusXp} bonus XP
+      </span>
+    );
+  }
+  return <span>Bracket path · {artifact.bracketPath.picks.length} picks</span>;
 }
 
 function PublicProfileDashboard({

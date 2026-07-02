@@ -33,6 +33,7 @@ describe("bracket path mode", () => {
     expect(run.payloadHash).toHaveLength(64);
     expect(run.filecoinProof.cid).toContain("bafy-kickoff");
     expect(run.artifact?.kind).toBe("bracket-path");
-    expect(run.artifact?.bracketPath.picks).toHaveLength(4);
+    if (run.artifact?.kind !== "bracket-path") throw new Error("Expected bracket path artifact");
+    expect(run.artifact.bracketPath.picks).toHaveLength(4);
   });
 });

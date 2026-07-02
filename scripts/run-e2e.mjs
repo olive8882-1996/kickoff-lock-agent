@@ -41,13 +41,15 @@ const run = (command, args, options = {}) =>
     child.on("error", reject);
   });
 
-const preview = spawn("bunx", ["vite", "preview", "--host", "127.0.0.1", "--port", "4173"], {
-  stdio: "inherit",
-});
+let preview;
 
 try {
+  await run("bun", ["run", "build"]);
+  preview = spawn("bunx", ["vite", "preview", "--host", "127.0.0.1", "--port", "4173"], {
+    stdio: "inherit",
+  });
   await waitForPreview();
   await run("bunx", ["playwright", "test"]);
 } finally {
-  preview.kill("SIGTERM");
+  preview?.kill("SIGTERM");
 }

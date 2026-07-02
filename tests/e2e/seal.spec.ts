@@ -26,4 +26,8 @@ test("mock Filecoin seal flow verifies a real proof end to end", async ({ page }
   await page.getByRole("button", { name: /Query CID/i }).click();
   await expect(page.locator(".cid-lookup")).toContainText(/CID verified by the seal API/i);
   await expect(page.locator(".cid-result")).toContainText(/mock-synapse-provider/i);
+
+  await page.getByLabel("Filecoin CID").fill("bafy-not-registered");
+  await page.getByRole("button", { name: /Query CID/i }).click();
+  await expect(page.locator(".cid-lookup")).toContainText(/No proof metadata found/i);
 });

@@ -132,6 +132,13 @@ export const lookupFilecoinProof = async (cid: string): Promise<FilecoinLookupSt
   const verifyUrl = sealApiUrl("verify", cleanCid);
   try {
     const proofRes = await fetch(proofUrl);
+    if (proofRes.status === 404) {
+      return {
+        status: "missing",
+        message: "No proof metadata found for this CID.",
+        checkedAt: new Date().toISOString(),
+      };
+    }
     if (!proofRes.ok) {
       return { status: "error", message: `Proof lookup returned ${proofRes.status}.` };
     }

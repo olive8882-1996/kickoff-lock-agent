@@ -70,6 +70,20 @@ describe("Filecoin seal workflow", () => {
     expect(result.message).toContain("VITE_FILECOIN_SEAL_API");
   });
 
+  it("reports missing when the seal API has no registered proof for the CID", async () => {
+    vi.stubEnv("VITE_FILECOIN_SEAL_API", "https://seal.example/seal");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ ok: false, proofStatus: "draft" }, 404)),
+    );
+    const { lookupFilecoinProof: lookupConfiguredProof } = await import("./filecoinSeal");
+
+    const result = await lookupConfiguredProof("bafy-unknown");
+
+    expect(result.status).toBe("missing");
+    expect(result.message).toContain("No proof metadata");
+  });
+
   it("runs configured one-click sealing through health, upload and verification polling", async () => {
     vi.stubEnv("VITE_FILECOIN_SEAL_API", "https://seal.example/seal");
     const calls: Array<{ url: string; method: string; body?: string }> = [];

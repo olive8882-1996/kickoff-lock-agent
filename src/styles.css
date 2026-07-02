@@ -1363,9 +1363,37 @@ pre {
   color: #f1c94d;
 }
 
+.leaderboard-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.leaderboard-summary div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(238, 247, 243, 0.1);
+  background: rgba(238, 247, 243, 0.05);
+}
+
+.leaderboard-summary span,
+.leaderboard-metrics span,
+.leaderboard article > div > span {
+  color: rgba(238, 247, 243, 0.62);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.leaderboard-summary strong {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
 .leaderboard article {
   display: grid;
-  grid-template-columns: 48px 1fr auto;
+  grid-template-columns: 48px minmax(0, 0.8fr) minmax(260px, 1.4fr);
   gap: 10px;
   align-items: center;
   padding: 10px;
@@ -1376,6 +1404,31 @@ pre {
 .leaderboard b,
 .leaderboard strong {
   color: #f1c94d;
+}
+
+.leaderboard article > div {
+  min-width: 0;
+}
+
+.leaderboard article > div > strong,
+.leaderboard article > div > span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.leaderboard-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.leaderboard-metrics span {
+  min-height: 28px;
+  padding: 6px 8px;
+  border: 1px solid rgba(238, 247, 243, 0.1);
+  background: rgba(3, 8, 10, 0.52);
+  color: rgba(238, 247, 243, 0.74);
 }
 
 .verify {
@@ -2139,6 +2192,8 @@ pre {
   .score-inputs,
   .match-list,
   .memory-stats,
+  .leaderboard-summary,
+  .leaderboard article,
   .public-profile-stats,
   .lock-window,
   .coverage-grid,
@@ -2182,6 +2237,10 @@ pre {
 
   .profile-records article {
     grid-template-columns: 1fr;
+  }
+
+  .leaderboard-metrics {
+    justify-content: flex-start;
   }
 
   .profile-records button {

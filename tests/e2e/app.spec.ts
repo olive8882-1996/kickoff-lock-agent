@@ -30,6 +30,11 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(lockButton).toBeEnabled();
   await lockButton.click();
 
+  await page.getByRole("button", { name: /Memory/i }).last().click();
+  await expect(page.locator(".leaderboard-summary")).toContainText(/Proof source/i);
+  await expect(page.locator(".leaderboard article")).toContainText(/locks/i);
+  await expect(page.locator(".leaderboard article")).toContainText(/real proofs/i);
+
   await page.getByRole("button", { name: /Account/i }).last().click();
   await page.getByRole("button", { name: /Open public profile/i }).click();
   await expect(page.getByRole("heading", { name: /Kickoff Analyst/i })).toBeVisible();

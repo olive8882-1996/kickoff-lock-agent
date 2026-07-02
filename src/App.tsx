@@ -469,6 +469,7 @@ function App() {
 
   const bootstrapApp = async () => {
     await refreshMatches(false);
+    void refreshLeaderboard("global", loadProfile());
     const params = new URLSearchParams(window.location.search);
     const proofId = params.get("proof");
     const profileId = params.get("profile");
@@ -517,13 +518,18 @@ function App() {
   const bestRecord = [...revealedRecords].sort(
     (a, b) => (b.result?.totalScore ?? 0) - (a.result?.totalScore ?? 0),
   )[0];
+  const localLeaderboard = buildLocalLeaderboard(profile, records);
+  const remoteLeaderboardIds = new Set(globalLeaderboard.map((entry) => entry.id));
   const leaderboardEntries = [
     ...globalLeaderboard,
-    ...buildLocalLeaderboard(profile, records),
+    ...localLeaderboard.filter((entry) => !remoteLeaderboardIds.has(entry.id)),
   ].sort((a, b) => b.xp - a.xp);
 
-  const currentRank = Math.min(99, 1 + Math.floor(records.length * 1.8 + averageScore / 8));
-  const currentXp = records.length * 120 + revealedRecords.reduce((sum, record) => sum + (record.result?.totalScore ?? 0), 0);
+  const localRankIndex = leaderboardEntries.findIndex((entry) => entry.id === profile.id);
+  const currentRank =
+    localRankIndex >= 0 ? localRankIndex + 1 : Math.min(99, 1 + Math.floor(records.length * 1.8 + averageScore / 8));
+  const currentXp = localLeaderboard[0]?.xp ?? 0;
+  const currentStreak = localLeaderboard[0]?.streak ?? 0;
   const routeProfileId = new URLSearchParams(window.location.search).get("profile");
   const localPublicProfile = buildPublicProfile(profile, records);
   const shownPublicProfile =
@@ -1223,8 +1229,10 @@ function App() {
           bestRecord={bestRecord}
           currentRank={currentRank}
           currentXp={currentXp}
+          currentStreak={currentStreak}
           leaderboardEntries={leaderboardEntries}
           leaderboardScope={leaderboardScope}
+          cloudState={cloudState}
           onLeaderboardScope={changeLeaderboardScope}
         />
       )}
@@ -1657,8 +1665,10 @@ function MemoryDashboard({
   bestRecord,
   currentRank,
   currentXp,
+  currentStreak,
   leaderboardEntries,
   leaderboardScope,
+  cloudState,
   onLeaderboardScope,
 }: {
   records: MemoryRecord[];
@@ -1666,15 +1676,13 @@ function MemoryDashboard({
   bestRecord?: MemoryRecord;
   currentRank: number;
   currentXp: number;
+  currentStreak: number;
   leaderboardEntries: LeaderboardEntry[];
   leaderboardScope: LeaderboardScope;
+  cloudState: CloudSyncState;
   onLeaderboardScope: (scope: LeaderboardScope) => void;
 }) {
   const revealed = records.filter((record) => record.result);
-  const streak = records.reduce((run, record) => {
-    if (!record.result) return run;
-    return record.result.breakdown.winner > 0 ? run + 1 : 0;
-  }, 0);
   const leaderboard = leaderboardEntries.slice(0, 8);
   return (
     <section className="memory panel">
@@ -1701,7 +1709,7 @@ function MemoryDashboard({
         <div><strong>{records.length}</strong><span>sealed</span></div>
         <div><strong>{averageScore}</strong><span>average</span></div>
         <div><strong>{bestRecord?.result?.totalScore ?? "--"}</strong><span>best</span></div>
-        <div><strong>{streak}</strong><span>winner streak</span></div>
+        <div><strong>{currentStreak}</strong><span>winner streak</span></div>
         <div><strong>#{currentRank}</strong><span>agent rank</span></div>
         <div><strong>{currentXp}</strong><span>XP</span></div>
       </div>
@@ -1711,7 +1719,9 @@ function MemoryDashboard({
             <p className="eyebrow">Leaderboard</p>
             <h3>{leaderboardScope} proof cards</h3>
           </div>
-          <Medal size={22} />
+          <span className={`pill cloud-${cloudState.status}`}>
+            {cloudState.configured ? cloudState.status : "local preview"}
+          </span>
         </div>
         <div className="scope-switch" aria-label="Leaderboard scope">
           {(["global", "friend", "season"] as const).map((scope) => (
@@ -1724,12 +1734,38 @@ function MemoryDashboard({
             </button>
           ))}
         </div>
-        {leaderboard.length === 0 && <p>No revealed scores yet.</p>}
+        <div className="leaderboard-summary">
+          <div>
+            <span>Scope</span>
+            <strong>{leaderboardScope}</strong>
+          </div>
+          <div>
+            <span>Rows</span>
+            <strong>{leaderboard.length}</strong>
+          </div>
+          <div>
+            <span>Proof source</span>
+            <strong>{cloudState.configured ? "Supabase" : "local"}</strong>
+          </div>
+        </div>
+        {leaderboard.length === 0 && <p>No leaderboard rows yet. Sync a revealed proof to populate this scope.</p>}
         {leaderboard.map((entry, index) => (
           <article key={entry.id}>
-            <b>#{index + 1}</b>
-            <span>{entry.displayName} · {entry.location} · {entry.source}{entry.friendCode ? ` · ${entry.friendCode}` : ""}</span>
-            <strong>{entry.xp} XP</strong>
+            <b>#{entry.rank ?? index + 1}</b>
+            <div>
+              <strong>{entry.displayName}</strong>
+              <span>{entry.location} · {entry.source}{entry.friendCode ? ` · ${entry.friendCode}` : ""}</span>
+            </div>
+            <div className="leaderboard-metrics">
+              <span><strong>{entry.xp}</strong> XP</span>
+              <span>{entry.locks} locks</span>
+              <span>{entry.revealed} revealed</span>
+              <span>{entry.averageScore} avg</span>
+              <span>{entry.bestScore} best</span>
+              <span>{entry.streak} streak</span>
+              <span>{entry.exactHits} exact</span>
+              <span>{entry.verifiedProofs} real proofs</span>
+            </div>
           </article>
         ))}
       </div>

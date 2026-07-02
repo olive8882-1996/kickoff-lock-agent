@@ -106,7 +106,47 @@ describe("local leaderboard", () => {
     expect(entry.displayName).toBe("Tester");
     expect(entry.xp).toBe(208);
     expect(entry.bestScore).toBe(88);
+    expect(entry.revealed).toBe(1);
+    expect(entry.exactHits).toBe(1);
+    expect(entry.verifiedProofs).toBe(0);
+    expect(entry.friendCode).toBe("chengdu");
     expect(entry.source).toBe("local");
+  });
+
+  it("counts winner streak from the latest revealed records", () => {
+    const withResult = (id: string, revealedAt: string, winner: number) =>
+      record(id, {
+        result: {
+          id: `res-${id}`,
+          capsuleId: id,
+          revealedAt,
+          homeScore: 1,
+          awayScore: 0,
+          keyPlayers: [],
+          source: "manual",
+          totalScore: winner > 0 ? 80 : 30,
+          breakdown: {
+            winner,
+            exactScore: 0,
+            goalDifference: 0,
+            markets: 0,
+            keyPlayer: 0,
+            confidence: 0,
+            reasoning: 0,
+          },
+          explanation: [],
+          agentReview: [],
+        },
+      });
+
+    const [entry] = buildLocalLeaderboard(profile, [
+      withResult("old-hit", "2099-01-01T00:00:00.000Z", 24),
+      withResult("middle-miss", "2099-01-02T00:00:00.000Z", 0),
+      withResult("latest-hit", "2099-01-03T00:00:00.000Z", 24),
+    ]);
+
+    expect(entry.streak).toBe(1);
+    expect(entry.revealed).toBe(3);
   });
 
   it("builds a public profile from local records", () => {

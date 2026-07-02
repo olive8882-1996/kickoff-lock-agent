@@ -177,13 +177,18 @@ export type LeaderboardEntry = {
   id: string;
   displayName: string;
   location: string;
+  rank?: number;
   locks: number;
+  revealed: number;
   averageScore: number;
   bestScore: number;
   xp: number;
   streak: number;
+  exactHits: number;
+  verifiedProofs: number;
   seasonKey?: string;
   friendCode?: string;
+  updatedAt?: string;
   source: "local" | LeaderboardScope;
 };
 

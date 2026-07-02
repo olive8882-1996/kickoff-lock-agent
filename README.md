@@ -123,6 +123,26 @@ VITE_ODDS_API_SPORT_KEY=...
 
 Public proof pages can load a capsule from Supabase by `?proof=<capsule-id>` when the record has been synced.
 After a Supabase magic-link sign-in, the app automatically pulls cloud history, merges it with local records, keeps the richest capsule version, and syncs the merged history back to Supabase.
+The `kickoff_leaderboard` view is public-read and supports the app's global, friend-code and season filters. It returns rank, locks, revealed proof count, average score, best score, XP, current winner streak, exact-score hits, verified real Filecoin proofs, and the latest update time. The app can read this view with the anon key, so public leaderboards still render before the viewer signs in.
+
+Simple Supabase leaderboard acceptance query:
+
+```sql
+select
+  rank,
+  display_name,
+  locks,
+  revealed,
+  average_score,
+  best_score,
+  xp,
+  streak,
+  exact_hits,
+  verified_proofs
+from public.kickoff_leaderboard
+order by xp desc
+limit 10;
+```
 
 ## Simple Acceptance Checklist
 
@@ -141,6 +161,10 @@ After a Supabase magic-link sign-in, the app automatically pulls cloud history, 
 13. Real Synapse adapter exists and is documented.
 14. Desktop and mobile layouts work.
 15. Build passes with no blocking console errors.
+16. Supabase magic-link sign-in can sync profile and records across devices.
+17. Public profile links can load synced proof history by `?profile=<user-id>`.
+18. Global, friend and season leaderboards expose rank, XP, revealed count, exact hits and real proof count.
+19. Share images can be generated from locked proof cards.
 
 ## Submission Notes
 

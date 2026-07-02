@@ -48,6 +48,40 @@ const friendCodeFor = (profile: UserProfile) =>
 
 const currentSeasonKey = "world-cup-run";
 
+const scoreRecords = (records: MemoryRecord[]) => {
+  const revealed = records.filter((record) => record.result);
+  const averageScore =
+    revealed.length > 0
+      ? Math.round(revealed.reduce((sum, record) => sum + (record.result?.totalScore ?? 0), 0) / revealed.length)
+      : 0;
+  const bestScore = Math.max(0, ...revealed.map((record) => record.result?.totalScore ?? 0));
+  const exactHits = revealed.filter((record) => (record.result?.breakdown.exactScore ?? 0) > 0).length;
+  const verifiedProofs = records.filter(
+    (record) =>
+      record.capsule.filecoinProof.mode === "real" &&
+      ["retrievable", "verified"].includes(record.capsule.filecoinProof.proofStatus),
+  ).length;
+  const latestRevealed = [...revealed].sort(
+    (a, b) => new Date(b.result?.revealedAt ?? 0).getTime() - new Date(a.result?.revealedAt ?? 0).getTime(),
+  );
+  let streak = 0;
+  for (const record of latestRevealed) {
+    if ((record.result?.breakdown.winner ?? 0) <= 0) break;
+    streak += 1;
+  }
+  const xp = records.length * 120 + revealed.reduce((sum, record) => sum + (record.result?.totalScore ?? 0), 0);
+  return {
+    locks: records.length,
+    revealed: revealed.length,
+    averageScore,
+    bestScore,
+    exactHits,
+    verifiedProofs,
+    streak,
+    xp,
+  };
+};
+
 export const getCloudState = (): CloudSyncState => {
   const session = loadSupabaseSession();
   if (!configured) {
@@ -370,7 +404,7 @@ export const loadLeaderboard = async (
   profile: UserProfile,
 ): Promise<LeaderboardEntry[]> => {
   const session = loadSupabaseSession();
-  if (!configured || !session) return [];
+  if (!configured) return [];
   const params = new URLSearchParams({
     select: "*",
     order: "xp.desc",
@@ -383,17 +417,22 @@ export const loadLeaderboard = async (
   });
   if (!res.ok) throw new Error(`Leaderboard load failed: ${res.status}`);
   const rows = (await res.json()) as any[];
-  return rows.map((row) => ({
+  return rows.map((row, index) => ({
     id: row.id,
     displayName: row.display_name ?? "Unknown analyst",
     location: row.location ?? "Global",
+    rank: Number(row.rank ?? index + 1),
     locks: Number(row.locks ?? 0),
+    revealed: Number(row.revealed ?? 0),
     averageScore: Number(row.average_score ?? 0),
     bestScore: Number(row.best_score ?? 0),
     xp: Number(row.xp ?? 0),
     streak: Number(row.streak ?? 0),
+    exactHits: Number(row.exact_hits ?? 0),
+    verifiedProofs: Number(row.verified_proofs ?? 0),
     seasonKey: row.season_key ?? undefined,
     friendCode: row.friend_code ?? undefined,
+    updatedAt: row.updated_at ?? undefined,
     source: scope,
   }));
 };
@@ -404,27 +443,17 @@ export const buildLocalLeaderboard = (
   profile: UserProfile,
   records: MemoryRecord[],
 ): LeaderboardEntry[] => {
-  const revealed = records.filter((record) => record.result);
-  const averageScore =
-    revealed.length > 0
-      ? Math.round(revealed.reduce((sum, record) => sum + (record.result?.totalScore ?? 0), 0) / revealed.length)
-      : 0;
-  const bestScore = Math.max(0, ...revealed.map((record) => record.result?.totalScore ?? 0));
-  const streak = records.reduce((run, record) => {
-    if (!record.result) return run;
-    return record.result.breakdown.winner > 0 ? run + 1 : 0;
-  }, 0);
-  const xp = records.length * 120 + revealed.reduce((sum, record) => sum + (record.result?.totalScore ?? 0), 0);
+  const stats = scoreRecords(records);
   return [
     {
       id: profile.id,
       displayName: profile.displayName,
       location: profile.location,
-      locks: records.length,
-      averageScore,
-      bestScore,
-      xp,
-      streak,
+      rank: 1,
+      ...stats,
+      friendCode: friendCodeFor(profile),
+      seasonKey: currentSeasonKey,
+      updatedAt: new Date().toISOString(),
       source: "local",
     },
   ];

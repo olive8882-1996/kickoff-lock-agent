@@ -41,6 +41,7 @@ The app works without API keys.
 
 The Odds API can also be configured for H2H odds enrichment on non API-Football fixtures. External APIs are used for match/result convenience and data evidence; the core product mechanic is still the prediction capsule and proof flow.
 Each match now exposes a data coverage panel for schedule, score, rank signal, lineups, injuries and odds, and the match board includes a live data readiness checklist, so missing or fallback intelligence is visible instead of being presented as real live data.
+The match board also shows a provider route audit for API-Football, Football-Data.org, TheSportsDB, ESPN, worldcup26 and seed continuity, including active, fallback, skipped, failed and needs-config states.
 Each fixture also gets a 0-100 intelligence score with a lock-risk label and action plan, so users can tell whether a prediction is backed by live providers, configured enrichment, fallback intelligence, or manual reveal risk.
 The match board also auto-refreshes provider data on a short interval, shows last sync and next auto-sync timestamps, and keeps manual refresh available for live score checks during a match window.
 Rank signal uses a bundled FIFA/Coca-Cola Men's World Ranking snapshot from the 2026-06-11 official update as a baseline for provider feeds that do not return rankings directly. Lineups, injuries and odds remain live/configured enrichment: API-Football can supply fixture lineups, injuries and odds, while The Odds API can enrich H2H market prices for non API-Football fixtures.
@@ -188,6 +189,7 @@ limit 10;
 20. Share actions produce a public proof URL or mode proof URL, CID-aware post text, X/Twitter intent fallback, and native image sharing when the browser supports file shares.
 21. Every selected match shows a 0-100 intelligence score, lock-risk label, and action plan derived from schedule, score, rankings, lineups, injuries, and odds coverage.
 22. Account view shows a cross-device cloud sync audit covering profile, prediction history, mode proofs, public proof links, public profile, and leaderboard backend rows.
+23. Match board shows a provider route audit proving which live/fallback data source is active and which routes need configuration.
 
 ## Submission Notes
 

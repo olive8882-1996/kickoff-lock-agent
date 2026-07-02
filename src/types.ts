@@ -31,6 +31,14 @@ export type ProviderReadinessItem = {
   detail: string;
 };
 
+export type ProviderRouteAuditItem = {
+  key: DataSource;
+  label: string;
+  status: "active" | "fallback" | "failed" | "needs-config" | "skipped";
+  configured: boolean;
+  detail: string;
+};
+
 export type MatchIntelligenceScore = {
   score: number;
   level: "live-ready" | "configured" | "thin" | "manual-risk";
@@ -363,4 +371,5 @@ export type ProviderResult = {
   matches: Match[];
   warning?: string;
   evidence?: string[];
+  routeAudit?: ProviderRouteAuditItem[];
 };

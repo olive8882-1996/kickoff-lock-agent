@@ -96,6 +96,7 @@ import type {
   MemoryRecord,
   PredictionDraft,
   ProviderReadinessItem,
+  ProviderRouteAuditItem,
   PublicProfile,
 } from "./types";
 
@@ -379,6 +380,7 @@ function App() {
   const [providerWarning, setProviderWarning] = useState("");
   const [providerSource, setProviderSource] = useState("loading");
   const [providerEvidence, setProviderEvidence] = useState<string[]>([]);
+  const [providerRouteAudit, setProviderRouteAudit] = useState<ProviderRouteAuditItem[]>([]);
   const [dataRefreshStatus, setDataRefreshStatus] = useState<"idle" | "refreshing" | "error">("idle");
   const [lastDataSyncAt, setLastDataSyncAt] = useState("");
   const [nextDataSyncAt, setNextDataSyncAt] = useState("");
@@ -463,6 +465,7 @@ function App() {
       setProviderSource(sourceLabel(result.source));
       setProviderWarning(result.warning ?? "");
       setProviderEvidence(result.evidence ?? [`${sourceLabel(result.source)} feed loaded`, `${sorted.length} matches available`]);
+      setProviderRouteAudit(result.routeAudit ?? []);
       setSelectedMatchId((current) => current || sorted.find((match) => match.status === "upcoming")?.id || sorted[0]?.id || "");
       setBracketPath((current) => buildBracketPathFromMatches(sorted, current));
       setLastDataSyncAt(syncedAt);
@@ -1203,6 +1206,7 @@ function App() {
               <p key={item}>{item}</p>
             ))}
           </div>
+          <ProviderRouteAudit items={providerRouteAudit} />
           <ProviderReadiness items={providerReadiness} />
           <div className="filter-row" aria-label="Match filters">
             {(["all", "live", "today", "upcoming"] as const).map((filter) => (
@@ -1575,6 +1579,28 @@ function ProviderReadiness({ items }: { items: ProviderReadinessItem[] }) {
           <span>{item.label}</span>
           <b>{item.status}</b>
           <small>{item.source} · {item.detail}</small>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ProviderRouteAudit({ items }: { items: ProviderRouteAuditItem[] }) {
+  if (items.length === 0) return null;
+  const active = items.find((item) => item.status === "active" || item.status === "fallback");
+  return (
+    <div className="provider-route-audit" aria-label="Provider route audit">
+      <div>
+        <strong>Provider route audit</strong>
+        <span>{active ? `${active.label} serving` : "no live route"}</span>
+      </div>
+      {items.map((item) => (
+        <article key={item.key} className={`route-${item.status}`}>
+          <div>
+            <span>{item.label}</span>
+            <b>{item.status}</b>
+          </div>
+          <small>{item.configured ? "configured" : "needs env"} · {item.detail}</small>
         </article>
       ))}
     </div>

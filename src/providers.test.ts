@@ -4,6 +4,7 @@ import {
   buildDataCoverage,
   buildMatchIntelligenceScore,
   buildProviderReadiness,
+  buildProviderRouteAudit,
   loadSeedMatches,
   mergeTheSportsDbEventDetails,
   mergeApiFootballEnrichment,
@@ -255,6 +256,26 @@ describe("provider metadata", () => {
     expect(readiness.find((item) => item.key === "lineups")?.status).toBe("missing");
     expect(readiness.find((item) => item.key === "injuries")?.status).toBe("missing");
     expect(readiness.find((item) => item.key === "odds")?.detail).toContain("VITE_ODDS_API_KEY");
+  });
+
+  it("audits provider fallback route with missing config and active free source", () => {
+    const audit = buildProviderRouteAudit("thesportsdb", [
+      "API-Football: VITE_APIFOOTBALL_KEY is not configured",
+      "Football-Data.org: VITE_FOOTBALL_DATA_TOKEN is not configured",
+    ]);
+
+    expect(audit.find((item) => item.key === "api-football")?.status).toBe("needs-config");
+    expect(audit.find((item) => item.key === "football-data")?.status).toBe("needs-config");
+    expect(audit.find((item) => item.key === "thesportsdb")?.status).toBe("active");
+    expect(audit.find((item) => item.key === "espn")?.status).toBe("skipped");
+  });
+
+  it("audits forced fallback as offline seed route", () => {
+    const audit = buildProviderRouteAudit("seed", ["Forced API failure enabled for fallback testing."], true);
+
+    expect(audit.find((item) => item.key === "api-football")?.status).toBe("failed");
+    expect(audit.find((item) => item.key === "espn")?.detail).toContain("Forced fallback");
+    expect(audit.find((item) => item.key === "seed")?.status).toBe("fallback");
   });
 
   it("marks API-Football lineups, injuries and odds as live when enrichment payloads return", () => {

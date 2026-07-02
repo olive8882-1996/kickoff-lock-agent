@@ -8,6 +8,7 @@ import type {
   MatchIntelligenceScore,
   ProviderReadinessItem,
   ProviderResult,
+  ProviderRouteAuditItem,
 } from "./types";
 
 const ESPN_URL =
@@ -25,6 +26,50 @@ const THESPORTSDB_HOST = `https://www.thesportsdb.com/api/v1/json/${THESPORTSDB_
 const ODDS_API_KEY = import.meta.env.VITE_ODDS_API_KEY as string | undefined;
 const ODDS_API_SPORT_KEY = import.meta.env.VITE_ODDS_API_SPORT_KEY as string | undefined;
 const ODDS_API_HOST = "https://api.the-odds-api.com/v4";
+
+const providerRouteConfig: Array<{
+  key: DataSource;
+  label: string;
+  configured: boolean;
+  detail: string;
+}> = [
+  {
+    key: "api-football",
+    label: "API-Football",
+    configured: Boolean(API_FOOTBALL_KEY),
+    detail: "Fixtures plus lineups, injuries and odds when plan supports enrichment.",
+  },
+  {
+    key: "football-data",
+    label: "Football-Data.org",
+    configured: Boolean(FOOTBALL_DATA_TOKEN),
+    detail: `Competition ${FOOTBALL_DATA_COMPETITION} fixtures, scores, venue and team metadata.`,
+  },
+  {
+    key: "thesportsdb",
+    label: "TheSportsDB",
+    configured: Boolean(THESPORTSDB_KEY),
+    detail: `Free v1 route ${THESPORTSDB_LEAGUE_ID}/${THESPORTSDB_SEASON} for schedule, score and event details.`,
+  },
+  {
+    key: "espn",
+    label: "ESPN",
+    configured: true,
+    detail: "Public FIFA World Cup scoreboard fallback.",
+  },
+  {
+    key: "worldcup26",
+    label: "worldcup26",
+    configured: true,
+    detail: "Public games fallback route.",
+  },
+  {
+    key: "seed",
+    label: "Seed continuity",
+    configured: true,
+    detail: "Bundled offline schedule and manual result safety net.",
+  },
+];
 
 const timeoutFetch = async (
   url: string,
@@ -987,37 +1032,98 @@ const withSeedUpcoming = (result: ProviderResult): ProviderResult => {
   };
 };
 
+const errorForRoute = (errors: string[], label: string) =>
+  errors.find((error) => error.toLowerCase().startsWith(`${label.toLowerCase()}:`));
+
+export const buildProviderRouteAudit = (
+  activeSource: DataSource,
+  errors: string[] = [],
+  forceFailure = false,
+): ProviderRouteAuditItem[] => {
+  const activeIndex = providerRouteConfig.findIndex((route) => route.key === activeSource);
+  return providerRouteConfig.map((route, index) => {
+    const routeError = errorForRoute(errors, route.label) ?? (route.key === "worldcup26" ? errorForRoute(errors, "worldcup26") : undefined);
+    if (route.key === activeSource) {
+      return {
+        key: route.key,
+        label: route.label,
+        configured: route.configured,
+        status: route.key === "seed" ? "fallback" : "active",
+        detail: route.key === "seed" ? "Offline seed data is serving the board." : route.detail,
+      };
+    }
+    if (forceFailure && route.key !== "seed") {
+      return {
+        key: route.key,
+        label: route.label,
+        configured: route.configured,
+        status: "failed",
+        detail: "Forced fallback test skipped live provider attempts.",
+      };
+    }
+    if (routeError) {
+      const missingConfig = /VITE_|not configured/i.test(routeError);
+      return {
+        key: route.key,
+        label: route.label,
+        configured: route.configured,
+        status: missingConfig ? "needs-config" : "failed",
+        detail: routeError.includes(":") ? routeError.slice(routeError.indexOf(":") + 1).trim() : routeError,
+      };
+    }
+    return {
+      key: route.key,
+      label: route.label,
+      configured: route.configured,
+      status: activeIndex >= 0 && index > activeIndex ? "skipped" : "failed",
+      detail:
+        activeIndex >= 0 && index > activeIndex
+          ? `Not needed after ${providerRouteConfig[activeIndex].label} returned matches.`
+          : route.detail,
+    };
+  });
+};
+
+const withRouteAudit = (
+  result: ProviderResult,
+  errors: string[],
+  forceFailure = false,
+): ProviderResult => ({
+  ...result,
+  routeAudit: buildProviderRouteAudit(result.source, errors, forceFailure),
+});
+
 export const loadMatchesWithFallback = async (
   forceFailure: boolean,
 ): Promise<ProviderResult> => {
   const errors: string[] = [];
   if (!forceFailure) {
     try {
-      return withSeedUpcoming(await loadFromApiFootball());
+      return withRouteAudit(withSeedUpcoming(await loadFromApiFootball()), errors);
     } catch (error) {
       errors.push(`API-Football: ${(error as Error).message}`);
     }
     try {
-      return withSeedUpcoming(await loadFromFootballData());
+      return withRouteAudit(withSeedUpcoming(await loadFromFootballData()), errors);
     } catch (error) {
       errors.push(`Football-Data.org: ${(error as Error).message}`);
     }
     try {
-      return withSeedUpcoming(await loadFromTheSportsDb());
+      return withRouteAudit(withSeedUpcoming(await loadFromTheSportsDb()), errors);
     } catch (error) {
       errors.push(`TheSportsDB: ${(error as Error).message}`);
     }
     try {
-      return withSeedUpcoming(await loadFromEspn());
+      return withRouteAudit(withSeedUpcoming(await loadFromEspn()), errors);
     } catch (error) {
       errors.push(`ESPN: ${(error as Error).message}`);
     }
     try {
       const result = withSeedUpcoming(await loadFromWorldcup26());
-      return {
+      return withRouteAudit({
         ...result,
         warning: `ESPN unavailable, using worldcup26 fallback. ${errors.join(" ")}`,
-      };
+      }, errors);
     } catch (error) {
       errors.push(`worldcup26: ${(error as Error).message}`);
     }
@@ -1025,7 +1131,7 @@ export const loadMatchesWithFallback = async (
     errors.push("Forced API failure enabled for fallback testing.");
   }
   const seed = loadSeedMatches();
-  return { ...seed, warning: errors.join(" ") || seed.warning };
+  return withRouteAudit({ ...seed, warning: errors.join(" ") || seed.warning }, errors, forceFailure);
 };
 
 export const sourceLabel = (source: DataSource) => {

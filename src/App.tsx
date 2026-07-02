@@ -65,10 +65,13 @@ import { buildDataCoverage, buildProviderReadiness, enrichMatchWithDataProviders
 import { scorePrediction } from "./scoring";
 import {
   buildProofShareText,
+  buildModeProofShareText,
+  buildModeXIntentUrl,
   buildXIntentUrl,
   canNativeShareFiles,
   dataUrlToFile,
   downloadDataUrl,
+  generateModeShareCard,
   generateShareCard,
 } from "./shareCard";
 import type {
@@ -392,6 +395,7 @@ function App() {
   const [proofJson, setProofJson] = useState("");
   const [shareImageUrl, setShareImageUrl] = useState("");
   const [publicShareImageUrl, setPublicShareImageUrl] = useState("");
+  const [publicModeShareImageUrl, setPublicModeShareImageUrl] = useState("");
   const [publicRecord, setPublicRecord] = useState<MemoryRecord | undefined>();
   const [publicProofStatus, setPublicProofStatus] = useState("");
   const [publicModeRun, setPublicModeRun] = useState<GameModeRun | undefined>();
@@ -907,6 +911,16 @@ function App() {
     await generateShareImageForRecord(selectedRecord, { download: true });
   };
 
+  const generateShareImageForModeRun = async (
+    run: GameModeRun,
+    options: { download?: boolean; publicPreview?: boolean } = {},
+  ) => {
+    const dataUrl = await generateModeShareCard(run, { proofUrl: modeRunUrl(run.id) });
+    if (options.publicPreview) setPublicModeShareImageUrl(dataUrl);
+    if (options.download) downloadDataUrl(dataUrl, `${run.id}-mode-share-card.png`);
+    setNotice("Mode proof share image generated.");
+  };
+
   const shareRecordToTwitter = async (record: MemoryRecord) => {
     const publicUrl = proofUrl(record.capsule.id);
     const text = buildProofShareText(record, publicUrl);
@@ -933,6 +947,34 @@ function App() {
     }
     window.open(buildXIntentUrl(record, publicUrl), "_blank", "noopener,noreferrer");
     setNotice("X share window opened with the public proof URL.");
+  };
+
+  const shareModeRunToTwitter = async (run: GameModeRun) => {
+    const publicUrl = modeRunUrl(run.id);
+    const text = buildModeProofShareText(run, publicUrl);
+    try {
+      if ("share" in navigator && "File" in window) {
+        const dataUrl = await generateModeShareCard(run, { proofUrl: publicUrl });
+        const file = await dataUrlToFile(dataUrl, `${run.id}-mode-proof-card.png`);
+        if (canNativeShareFiles([file])) {
+          await navigator.share({
+            title: "Kickoff Lock mode proof card",
+            text,
+            url: publicUrl,
+            files: [file],
+          });
+          setNotice("Share sheet opened with mode proof image.");
+          return;
+        }
+      }
+    } catch (error) {
+      if ((error as Error).name === "AbortError") {
+        setNotice("Share cancelled.");
+        return;
+      }
+    }
+    window.open(buildModeXIntentUrl(run, publicUrl), "_blank", "noopener,noreferrer");
+    setNotice("X share window opened with the public mode proof URL.");
   };
 
   const shareToTwitter = () => {
@@ -1407,8 +1449,11 @@ function App() {
           publicModeRun={publicModeRun}
           publicModeStatus={publicModeStatus}
           shareImageUrl={publicShareImageUrl}
+          modeShareImageUrl={publicModeShareImageUrl}
           onShareImage={(record) => void generateShareImageForRecord(record, { publicPreview: true })}
           onTwitter={shareRecordToTwitter}
+          onModeShareImage={(run) => void generateShareImageForModeRun(run, { publicPreview: true })}
+          onModeTwitter={shareModeRunToTwitter}
           matches={matches}
           cidLookupInput={cidLookupInput}
           cidLookupState={cidLookupState}
@@ -2053,8 +2098,11 @@ function VerifyDashboard({
   publicModeRun,
   publicModeStatus,
   shareImageUrl,
+  modeShareImageUrl,
   onShareImage,
   onTwitter,
+  onModeShareImage,
+  onModeTwitter,
   matches,
   cidLookupInput,
   cidLookupState,
@@ -2068,8 +2116,11 @@ function VerifyDashboard({
   publicModeRun?: GameModeRun;
   publicModeStatus: string;
   shareImageUrl: string;
+  modeShareImageUrl: string;
   onShareImage: (record: MemoryRecord) => void;
   onTwitter: (record: MemoryRecord) => void;
+  onModeShareImage: (run: GameModeRun) => void;
+  onModeTwitter: (run: GameModeRun) => void;
   matches: Match[];
   cidLookupInput: string;
   cidLookupState: FilecoinLookupState;
@@ -2168,6 +2219,14 @@ function VerifyDashboard({
               <code>{modeRun.payloadHash}</code>
             </div>
           </div>
+          <div className="proof-hero-actions">
+            <button onClick={() => onModeShareImage(modeRun)}>
+              <ImageDown size={16} /> Generate mode share image
+            </button>
+            <button onClick={() => onModeTwitter(modeRun)}>
+              <Users size={16} /> Share mode proof to X
+            </button>
+          </div>
         </div>
       )}
       {modeRun && (
@@ -2198,6 +2257,20 @@ function VerifyDashboard({
             <h3>Mode payload</h3>
             <pre>{stableJson({ modeRun })}</pre>
           </div>
+          {modeShareImageUrl && (
+            <div className="verify-card public-share-card">
+              <div className="panel-head">
+                <div>
+                  <p className="eyebrow">Public mode proof card</p>
+                  <h3>Mode share image</h3>
+                </div>
+                <a href={modeShareImageUrl} download={`${modeRun.id}-public-mode-proof.png`}>
+                  <Download size={16} /> Download
+                </a>
+              </div>
+              <img src={modeShareImageUrl} alt="Generated public mode proof share card" />
+            </div>
+          )}
         </div>
       )}
       {record && (

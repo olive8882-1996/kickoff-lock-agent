@@ -1,4 +1,4 @@
-import type { MemoryRecord } from "./types";
+import type { GameModeRun, MemoryRecord } from "./types";
 
 export type ShareCardPayload = {
   title: string;
@@ -39,6 +39,30 @@ export const buildShareCardPayload = (record: MemoryRecord, proofUrl: string): S
   };
 };
 
+const modeLabel = (run: GameModeRun) =>
+  ({
+    bracket: "BRACKET",
+    parlay: "PARLAY",
+    "agent-vs-human": "AGENT VS HUMAN",
+    upset: "UPSET",
+  })[run.modeId];
+
+export const buildModeRunShareCardPayload = (run: GameModeRun, proofUrl: string): ShareCardPayload => ({
+  title: "KICKOFF LOCK MODES",
+  subtitle: "TOURNAMENT MODE PROOF",
+  matchLabel: run.title.toUpperCase(),
+  prediction: modeLabel(run),
+  actual: run.status.toUpperCase(),
+  score: run.score !== undefined ? `${run.score}/100` : "PENDING",
+  confidence: `${run.capsuleIds.length} LOCK${run.capsuleIds.length === 1 ? "" : "S"} LINKED`,
+  proofMode: `${run.filecoinProof.mode.toUpperCase()} PROOF`,
+  proofStatus: run.filecoinProof.proofStatus.toUpperCase(),
+  cid: run.filecoinProof.cid,
+  hash: run.payloadHash,
+  proofUrl,
+  footer: "PUBLIC MODE PROOF · FILECOIN-STYLE TOURNAMENT MEMORY · WORLD CUP PREDICTION GAME",
+});
+
 export const buildProofShareText = (record: MemoryRecord, proofUrl = "") => {
   const { capsule, result } = record;
   const scoreText = result
@@ -55,9 +79,30 @@ export const buildProofShareText = (record: MemoryRecord, proofUrl = "") => {
     .join("\n");
 };
 
+export const buildModeProofShareText = (run: GameModeRun, proofUrl = "") => {
+  const scoreText = run.score !== undefined ? `Score ${run.score}/100` : `Status ${run.status}`;
+  const proofLabel = run.filecoinProof.mode === "real" ? "real Filecoin proof" : "demo proof";
+  return [
+    `I sealed a World Cup ${run.title} mode proof on Kickoff Lock Agent.`,
+    `${scoreText} · ${run.capsuleIds.length} linked lock${run.capsuleIds.length === 1 ? "" : "s"}`,
+    `${proofLabel}: ${run.filecoinProof.cid}`,
+    proofUrl ? `Verify: ${proofUrl}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+};
+
 export const buildXIntentUrl = (record: MemoryRecord, proofUrl: string) => {
   const url = new URL("https://twitter.com/intent/tweet");
   url.searchParams.set("text", buildProofShareText(record));
+  url.searchParams.set("url", proofUrl);
+  url.searchParams.set("hashtags", "KickoffLock,Filecoin,WorldCup");
+  return url.toString();
+};
+
+export const buildModeXIntentUrl = (run: GameModeRun, proofUrl: string) => {
+  const url = new URL("https://twitter.com/intent/tweet");
+  url.searchParams.set("text", buildModeProofShareText(run));
   url.searchParams.set("url", proofUrl);
   url.searchParams.set("hashtags", "KickoffLock,Filecoin,WorldCup");
   return url.toString();
@@ -128,6 +173,19 @@ const drawWrappedText = (
   lines.slice(0, maxLines).forEach((line, index) => ctx.fillText(line, x, y + index * lineHeight));
 };
 
+const setFittedFont = (
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  options: { weight: number; maxSize: number; minSize: number; family: string },
+) => {
+  let size = options.maxSize;
+  do {
+    ctx.font = `${options.weight} ${size}px ${options.family}`;
+    size -= 2;
+  } while (size >= options.minSize && ctx.measureText(text).width > maxWidth);
+};
+
 const drawProofPattern = (ctx: CanvasRenderingContext2D, hash: string, x: number, y: number, size: number) => {
   const cells = 9;
   const gap = 3;
@@ -144,9 +202,9 @@ const drawProofPattern = (ctx: CanvasRenderingContext2D, hash: string, x: number
   }
 };
 
-export const generateShareCard = async (
-  record: MemoryRecord,
-  options: { proofUrl?: string; assetBaseUrl?: string } = {},
+const generateShareCardFromPayload = async (
+  payload: ShareCardPayload,
+  options: { assetBaseUrl?: string } = {},
 ): Promise<string> => {
   const canvas = document.createElement("canvas");
   canvas.width = 1200;
@@ -154,7 +212,6 @@ export const generateShareCard = async (
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas is unavailable.");
 
-  const payload = buildShareCardPayload(record, options.proofUrl ?? "");
   const assetBaseUrl = options.assetBaseUrl ?? `${import.meta.env.BASE_URL}assets/`;
   const [stadium, icon] = await Promise.all([
     loadImage(`${assetBaseUrl}stadium-hero.jpg`),
@@ -213,7 +270,12 @@ export const generateShareCard = async (
   drawWrappedText(ctx, payload.matchLabel, 104, 248, 600, 58, 2);
 
   ctx.fillStyle = "#eef7f3";
-  ctx.font = "900 112px Inter, Arial, sans-serif";
+  setFittedFont(ctx, payload.prediction, 600, {
+    weight: 900,
+    maxSize: 112,
+    minSize: 58,
+    family: "Inter, Arial, sans-serif",
+  });
   ctx.fillText(payload.prediction, 104, 390);
 
   ctx.fillStyle = "rgba(238, 247, 243, 0.72)";
@@ -253,6 +315,18 @@ export const generateShareCard = async (
 
   return canvas.toDataURL("image/png");
 };
+
+export const generateShareCard = async (
+  record: MemoryRecord,
+  options: { proofUrl?: string; assetBaseUrl?: string } = {},
+): Promise<string> =>
+  generateShareCardFromPayload(buildShareCardPayload(record, options.proofUrl ?? ""), options);
+
+export const generateModeShareCard = async (
+  run: GameModeRun,
+  options: { proofUrl?: string; assetBaseUrl?: string } = {},
+): Promise<string> =>
+  generateShareCardFromPayload(buildModeRunShareCardPayload(run, options.proofUrl ?? ""), options);
 
 export const downloadDataUrl = (dataUrl: string, fileName: string) => {
   const link = document.createElement("a");

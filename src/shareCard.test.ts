@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { buildProofShareText, buildShareCardPayload, buildXIntentUrl, canNativeShareFiles } from "./shareCard";
-import type { MemoryRecord } from "./types";
+import {
+  buildModeProofShareText,
+  buildModeRunShareCardPayload,
+  buildModeXIntentUrl,
+  buildProofShareText,
+  buildShareCardPayload,
+  buildXIntentUrl,
+  canNativeShareFiles,
+} from "./shareCard";
+import type { GameModeRun, MemoryRecord } from "./types";
 
 const record: MemoryRecord = {
   capsule: {
@@ -56,6 +64,27 @@ const record: MemoryRecord = {
   },
 };
 
+const modeRun: GameModeRun = {
+  id: "mode-share",
+  modeId: "parlay",
+  title: "Three-lock parlay",
+  createdAt: "2099-07-01T12:00:00.000Z",
+  capsuleIds: ["cap-a", "cap-b", "cap-c"],
+  payloadHash: "def456".repeat(11),
+  filecoinProof: {
+    mode: "real",
+    cid: "bafy-mode-share-proof",
+    pieceCid: "baga-mode-share-piece",
+    provider: "synapse",
+    dataSetId: "mode-dataset",
+    proofStatus: "verified",
+  },
+  status: "scored",
+  score: 82,
+  summary: "Parlay hit two of three settled legs.",
+  requirements: ["At least three locks", "All picks sealed before kickoff"],
+};
+
 describe("share card payload", () => {
   it("carries proof, score and public verification fields for social images", () => {
     const payload = buildShareCardPayload(record, "https://example.com/kickoff-lock-agent/?proof=cap-share");
@@ -98,6 +127,36 @@ describe("share card payload", () => {
     expect(intent.searchParams.get("url")).toBe("https://example.com/kickoff-lock-agent/?proof=cap-share");
     expect(intent.searchParams.get("text")).toContain("bafy-share-proof");
     expect(intent.searchParams.get("hashtags")).toBe("KickoffLock,Filecoin,WorldCup");
+  });
+
+  it("carries mode proof fields for public mode share cards", () => {
+    const payload = buildModeRunShareCardPayload(modeRun, "https://example.com/kickoff-lock-agent/?mode=mode-share");
+
+    expect(payload.matchLabel).toBe("THREE-LOCK PARLAY");
+    expect(payload.prediction).toBe("PARLAY");
+    expect(payload.actual).toBe("SCORED");
+    expect(payload.score).toBe("82/100");
+    expect(payload.confidence).toBe("3 LOCKS LINKED");
+    expect(payload.proofMode).toBe("REAL PROOF");
+    expect(payload.proofStatus).toBe("VERIFIED");
+    expect(payload.cid).toBe("bafy-mode-share-proof");
+    expect(payload.hash).toContain("def456");
+    expect(payload.proofUrl).toContain("?mode=mode-share");
+  });
+
+  it("builds public mode proof share text and X intent URL", () => {
+    const proofUrl = "https://example.com/kickoff-lock-agent/?mode=mode-share";
+    const text = buildModeProofShareText(modeRun, proofUrl);
+    const intent = new URL(buildModeXIntentUrl(modeRun, proofUrl));
+
+    expect(text).toContain("Three-lock parlay");
+    expect(text).toContain("Score 82/100");
+    expect(text).toContain("3 linked locks");
+    expect(text).toContain("bafy-mode-share-proof");
+    expect(text).toContain(`Verify: ${proofUrl}`);
+    expect(intent.origin).toBe("https://twitter.com");
+    expect(intent.searchParams.get("url")).toBe(proofUrl);
+    expect(intent.searchParams.get("text")).toContain("bafy-mode-share-proof");
   });
 
   it("detects native file sharing support before trying to share an image", () => {

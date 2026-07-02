@@ -12,7 +12,7 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 - Keep every revealed call in a tournament memory dashboard.
 - Sign in with Supabase Google OAuth or magic links to sync profile, prediction history, public proof links, and global/friend/season leaderboards.
 - Build a 4-pick knockout path in the bracket builder, then seal it as its own proof run.
-- Create additional mode proof runs for parlays, Agent vs Human calibration, and upset challenges.
+- Create additional mode proof runs for parlays, Agent vs Human calibration, and upset challenges, each with a public verifier and mode share image.
 
 ## Links
 
@@ -180,8 +180,8 @@ limit 10;
 16. Supabase Google OAuth or magic-link sign-in can sync profile, prediction records and mode proof runs across devices, with pending local items visible until cloud acknowledgement.
 17. Public profile links can load synced proof history and tournament mode proof runs by `?profile=<user-id>`, and each mode run has a verifier page by `?mode=<mode-run-id>`.
 18. Global, friend and season leaderboards expose rank, XP, revealed count, mode proof count, exact hits and real proof count, with backend readiness shown separately from local fallback.
-19. Share images can be generated from locked proof cards and include match, score, proof pattern, CID and public verifier URL.
-20. Share actions produce a public proof URL, CID-aware post text, X/Twitter intent fallback, and native image sharing when the browser supports file shares.
+19. Share images can be generated from locked proof cards and tournament mode proofs, including score/status, proof pattern, CID and public verifier URL.
+20. Share actions produce a public proof URL or mode proof URL, CID-aware post text, X/Twitter intent fallback, and native image sharing when the browser supports file shares.
 
 ## Submission Notes
 

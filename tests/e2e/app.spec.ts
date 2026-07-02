@@ -72,6 +72,9 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /Mode proof verification/i })).toBeVisible();
   await expect(page.locator(".proof-facts")).toContainText(/Mode proof facts/i);
   await expect(page.locator(".locked-payload")).toContainText(/modeRun/i);
+  await page.getByRole("button", { name: /Generate mode share image/i }).click();
+  await expect(page.getByRole("heading", { name: /Mode share image/i })).toBeVisible();
+  await expect(page.locator(".public-share-card img")).toHaveAttribute("src", /data:image\/png;base64,/);
 
   await page.getByRole("button", { name: /Auto seal to Filecoin/i }).click();
   await expect(page.getByText(/Auto seal status/i)).toBeVisible();

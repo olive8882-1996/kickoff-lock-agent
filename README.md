@@ -13,6 +13,7 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 - Sign in with Supabase Google OAuth or magic links to sync profile, prediction history, public proof links, and global/friend/season leaderboards.
 - Build a 4-pick knockout path in the bracket builder, then seal it as its own proof run.
 - Create additional mode proof runs for parlays, Agent vs Human calibration, and upset challenges, each with a public verifier and mode share image.
+- Use the Account production acceptance radar to see which competition-grade areas are verified, ready, partial, or blocked in the current environment.
 
 ## Links
 
@@ -98,6 +99,7 @@ Key files:
 - `src/cloud.ts`: Supabase auth, profile sync, prediction history sync, mode proof run sync, public proof/profile lookup, and leaderboard queries.
 - `src/bracket.ts`: knockout path builder, bracket readiness rules, and bracket proof run sealing.
 - `src/modes.ts`: bracket/parlay/agent/upset mode proof runs, including parlay tickets, agent calibration reports and upset bonus tickets.
+- `src/readiness.ts`: production acceptance radar for real account sync, live data, Filecoin sealing, sharing, leaderboards, modes, and automated tests.
 - `scripts/seal-with-synapse.mjs`: real Synapse/Filecoin adapter.
 - `server/filecoin-seal-api.mjs`: one-click seal API and CID verification endpoints.
 
@@ -142,6 +144,7 @@ VITE_ODDS_API_SPORT_KEY=...
 Public proof pages can load a capsule from Supabase by `?proof=<capsule-id>` when the record has been synced. Tournament mode proofs can also be opened by `?mode=<mode-run-id>`, including bracket paths, parlays, calibration reports and upset tickets.
 After a Supabase Google OAuth or magic-link sign-in, the app stores the Supabase session, refreshes expired access tokens when a refresh token is available, automatically pulls cloud history, merges it with local prediction records and local mode proof runs, keeps the richest version, and syncs the merged history back to Supabase. The Account view includes a cloud acceptance checklist for env configuration, auth session, refresh token, cloud records, mode proof runs, pending sync coverage and public profile readiness.
 The Account view also includes a cross-device cloud sync audit for profile, prediction history, mode proof history, public proof links, public profile and leaderboard backend evidence, so local-only fallback state is visible before claiming cloud readiness.
+The Account view also includes a production acceptance radar. It deliberately keeps demo/local states visible by scoring real account sync, realtime data enrichment, production Filecoin sealing, public share cards, leaderboard backend rows, sealed mode runs and automated test evidence separately.
 Tournament mode proof runs are stored in `kickoff_mode_runs`, so bracket paths, parlay tickets, Agent vs Human calibration reports and upset challenges can appear on the public profile across devices instead of staying in localStorage.
 The `kickoff_leaderboard` view is public-read and supports the app's global, friend-code and season filters. It returns rank, locks, revealed proof count, mode proof count, average score, best score, XP, current winner streak, exact-score hits, verified real Filecoin proofs, and the latest update time. It aggregates both `kickoff_records` and `kickoff_mode_runs`, so bracket paths, parlays, Agent vs Human reports and upset challenges contribute to ranking instead of only appearing on the public profile. The app can read this view with the anon key, so public leaderboards still render before the viewer signs in. The Memory dashboard also shows a leaderboard backend readiness checklist so Supabase rows are not confused with the local fallback row.
 
@@ -191,6 +194,7 @@ limit 10;
 22. Account view shows a cross-device cloud sync audit covering profile, prediction history, mode proofs, public proof links, public profile, and leaderboard backend rows.
 23. Match board shows a provider route audit proving which live/fallback data source is active and which routes need configuration.
 24. Auto seal verifies that the seal API proof metadata payload hash matches the exact uploaded stable capsule JSON before attaching the real proof.
+25. Account view shows a production acceptance radar that exposes incomplete real-environment evidence instead of treating local/demo state as final.
 
 ## Submission Notes
 

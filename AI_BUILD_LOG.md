@@ -27,11 +27,16 @@ Demo mode is intentionally explicit so judges can distinguish product simulation
 
 The tournament modes were expanded beyond status cards with a knockout path builder. The builder creates four editable advancement picks from live/upcoming matches, saves the draft locally, and seals the full bracket path into a standalone mode proof run with hash and CID.
 
+The Account area now includes a production acceptance radar. It is intentionally strict: demo/local profile state, seed data, mock Filecoin seals, local leaderboard rows and ungenerated share cards stay visible as partial or blocked until real external evidence is present.
+
 ## Debugging Plan
 
 The final app should be checked through:
 
 - `bun run build`
+- `bun run test`
+- `bun run test:e2e`
+- `bun run test:e2e:seal`
 - desktop browser flow
 - mobile browser flow
 - forced fallback mode

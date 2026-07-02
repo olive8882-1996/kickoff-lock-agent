@@ -70,6 +70,7 @@ import {
   loadMatchesWithFallback,
   sourceLabel,
 } from "./providers";
+import { buildProductionReadiness, summarizeProductionReadiness } from "./readiness";
 import { scorePrediction } from "./scoring";
 import {
   buildProofShareText,
@@ -103,6 +104,9 @@ import type {
 const STORAGE_KEY = "kickoff-lock-agent-records-v1";
 const MODE_RUNS_KEY = "kickoff-lock-agent-mode-runs-v1";
 const BRACKET_PATH_KEY = "kickoff-lock-agent-bracket-path-v1";
+
+const queryParams = () => new URLSearchParams(window.location.search);
+const e2eMode = () => queryParams().has("e2e");
 
 const gameModes: GameMode[] = [
   {
@@ -190,9 +194,14 @@ const defaultDraft: PredictionDraft = {
 
 const loadRecords = (): MemoryRecord[] => {
   try {
-    if (new URLSearchParams(window.location.search).get("reset") === "1") {
+    const params = queryParams();
+    if (params.get("reset") === "1") {
       localStorage.removeItem(STORAGE_KEY);
-      window.history.replaceState({}, "", window.location.pathname);
+      localStorage.removeItem(MODE_RUNS_KEY);
+      localStorage.removeItem(BRACKET_PATH_KEY);
+      params.delete("reset");
+      const nextQuery = params.toString();
+      window.history.replaceState({}, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`);
       return [];
     }
     return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]") as MemoryRecord[];
@@ -375,6 +384,20 @@ const formatCountdown = (seconds: number) => {
   return `${hours}h ${minutes}m`;
 };
 
+const stabilizeE2eMatches = (matches: Match[]) => {
+  if (!e2eMode()) return matches;
+  const base = Date.now() + 90 * 60 * 1000;
+  let upcomingIndex = 0;
+  return matches.map((match) => {
+    if (match.status !== "upcoming") return match;
+    upcomingIndex += 1;
+    return {
+      ...match,
+      kickoffAt: new Date(base + upcomingIndex * 45 * 60 * 1000).toISOString(),
+    };
+  });
+};
+
 function App() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [providerWarning, setProviderWarning] = useState("");
@@ -457,7 +480,7 @@ function App() {
     if (providerSource === "loading") setProviderSource("loading");
     try {
       const result = await loadMatchesWithFallback(forced);
-      const sorted = result.matches
+      const sorted = stabilizeE2eMatches(result.matches)
         .filter((match) => match.kickoffAt)
         .sort((a, b) => new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime());
       const syncedAt = new Date().toISOString();
@@ -1508,7 +1531,12 @@ function App() {
           email={accountEmail}
           records={records}
           modeRuns={modeRuns}
+          gameModes={gameModes}
+          providerReadiness={providerReadiness}
+          providerRouteAudit={providerRouteAudit}
           leaderboardEntries={globalLeaderboard}
+          sealEndpointConfigured={filecoinSealConfigured}
+          shareImageReady={Boolean(shareImageUrl || publicShareImageUrl || publicModeShareImageUrl)}
           onEmail={setAccountEmail}
           onProfile={updateProfile}
           onMagicLink={requestMagicLink}
@@ -2790,7 +2818,12 @@ function AccountDashboard({
   email,
   records,
   modeRuns,
+  gameModes,
+  providerReadiness,
+  providerRouteAudit,
   leaderboardEntries,
+  sealEndpointConfigured,
+  shareImageReady,
   onEmail,
   onProfile,
   onMagicLink,
@@ -2807,7 +2840,12 @@ function AccountDashboard({
   email: string;
   records: MemoryRecord[];
   modeRuns: GameModeRun[];
+  gameModes: GameMode[];
+  providerReadiness: ProviderReadinessItem[];
+  providerRouteAudit: ProviderRouteAuditItem[];
   leaderboardEntries: LeaderboardEntry[];
+  sealEndpointConfigured: boolean;
+  shareImageReady: boolean;
   onEmail: (value: string) => void;
   onProfile: (patch: Partial<ReturnType<typeof loadProfile>>) => void;
   onMagicLink: () => void;
@@ -2822,6 +2860,19 @@ function AccountDashboard({
   const syncCoverage = buildCloudSyncCoverage(cloudState, records, modeRuns);
   const syncAudit = buildCloudSyncAudit(cloudState, profile, records, modeRuns, leaderboardEntries);
   const auditPassed = syncAudit.filter((item) => item.status === "passed").length;
+  const productionReadiness = buildProductionReadiness({
+    cloudState,
+    profile,
+    records,
+    modeRuns,
+    gameModes,
+    providerReadiness,
+    providerRouteAudit,
+    leaderboardEntries,
+    sealEndpointConfigured,
+    shareImageReady,
+  });
+  const productionSummary = summarizeProductionReadiness(productionReadiness);
   const cloudChecks = [
     {
       label: "Supabase env",
@@ -2990,6 +3041,59 @@ function AccountDashboard({
             <code>kickoff_leaderboard</code>
           </div>
         </div>
+      </div>
+      <ProductionReadinessPanel items={productionReadiness} summary={productionSummary} />
+    </section>
+  );
+}
+
+function ProductionReadinessPanel({
+  items,
+  summary,
+}: {
+  items: ReturnType<typeof buildProductionReadiness>;
+  summary: ReturnType<typeof summarizeProductionReadiness>;
+}) {
+  return (
+    <section className="production-readiness" aria-label="Production acceptance">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Production acceptance</p>
+          <h3>真实成品验收雷达</h3>
+        </div>
+        <span className="pill">{summary.score}% ready</span>
+      </div>
+      <div className="production-summary">
+        <div>
+          <span>Verified</span>
+          <strong>{summary.verified}</strong>
+        </div>
+        <div>
+          <span>Ready</span>
+          <strong>{summary.ready}</strong>
+        </div>
+        <div>
+          <span>Blocked</span>
+          <strong>{summary.blocked}</strong>
+        </div>
+        <div>
+          <span>Total</span>
+          <strong>{summary.total}</strong>
+        </div>
+      </div>
+      <div className="production-grid">
+        {items.map((item) => (
+          <article key={item.key} className={`production-${item.level}`}>
+            <div>
+              <CheckCircle2 size={17} />
+              <strong>{item.label}</strong>
+              <span>{item.level}</span>
+            </div>
+            <progress value={item.passed} max={item.total} />
+            <small>{item.passed}/{item.total} · {item.evidence}</small>
+            <p>{item.nextAction}</p>
+          </article>
+        ))}
       </div>
     </section>
   );

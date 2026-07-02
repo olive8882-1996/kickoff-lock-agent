@@ -34,6 +34,10 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Cloud sync audit")).toContainText(/Prediction history/i);
   await expect(page.getByLabel("Cloud sync audit")).toContainText(/Public proof links/i);
   await expect(page.getByLabel("Cloud sync audit")).toContainText(/Leaderboard backend/i);
+  await expect(page.getByLabel("Production acceptance")).toContainText(/真实成品验收雷达/i);
+  await expect(page.getByLabel("Production acceptance")).toContainText(/真实账号系统/i);
+  await expect(page.getByLabel("Production acceptance")).toContainText(/真实 Filecoin 自动封存/i);
+  await expect(page.getByLabel("Production acceptance")).toContainText(/排行榜后端/i);
   await expect(page.locator(".cloud-status-grid")).toContainText(/Pending sync/i);
   await expect(page.getByRole("button", { name: /Continue with Google/i })).toBeVisible();
   await expect(page.getByText(/Pull cloud history/i)).toBeVisible();

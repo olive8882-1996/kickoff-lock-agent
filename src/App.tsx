@@ -26,6 +26,12 @@ import type {
 
 const STORAGE_KEY = "kickoff-lock-agent-records-v1";
 
+const assetUrl = (fileName: string) => `${import.meta.env.BASE_URL}assets/${fileName}`;
+
+const imageLayer = (fileName: string, overlay: string) => ({
+  backgroundImage: `${overlay}, url("${assetUrl(fileName)}")`,
+});
+
 const defaultDraft: PredictionDraft = {
   homeScore: 2,
   awayScore: 1,
@@ -226,27 +232,38 @@ function App() {
 
   return (
     <main className="shell">
-      <section className="hero">
-        <div>
-          <p className="eyebrow">World Cup proof-of-prediction agent</p>
+      <section
+        className="hero"
+        style={imageLayer(
+          "stadium-hero.jpg",
+          "linear-gradient(90deg, rgba(3, 14, 14, 0.92) 0%, rgba(3, 14, 14, 0.72) 48%, rgba(3, 14, 14, 0.24) 100%)",
+        )}
+      >
+        <div className="hero-copy-block">
           <h1>Kickoff Lock Agent</h1>
           <p className="hero-copy">
-            Seal your prediction before kickoff, reveal it after the final whistle, and keep a
-            Filecoin-backed memory capsule for every bold call.
+            A World Cup-style matchday console for sealing bold predictions before kickoff,
+            revealing them after the final whistle, and preserving every call as a verifiable
+            Filecoin memory capsule.
           </p>
+          <div className="hero-signals" aria-label="Core workflow">
+            <span><ShieldCheck size={18} /> Lock before kickoff</span>
+            <span><Clock3 size={18} /> Reveal after final whistle</span>
+            <span><FileCheck2 size={18} /> Keep the proof card</span>
+          </div>
         </div>
         <div className="hero-panel">
           <div>
-            <span className="metric">{records.length}</span>
             <span className="label">sealed capsules</span>
+            <span className="metric">{records.length}</span>
           </div>
           <div>
-            <span className="metric">{averageScore}</span>
             <span className="label">avg score</span>
+            <span className="metric">{averageScore}</span>
           </div>
           <div>
-            <span className="metric">{providerSource}</span>
             <span className="label">match source</span>
+            <span className="metric source-metric">{providerSource}</span>
           </div>
         </div>
       </section>
@@ -297,6 +314,10 @@ function App() {
                 <button
                   key={match.id}
                   className={`match-card ${selectedMatchId === match.id ? "selected" : ""}`}
+                  style={imageLayer(
+                    "match-pitch.jpg",
+                    "linear-gradient(90deg, rgba(3, 14, 14, 0.9) 0%, rgba(3, 14, 14, 0.72) 56%, rgba(3, 14, 14, 0.38) 100%)",
+                  )}
                   onClick={() => {
                     setSelectedMatchId(match.id);
                     setView("predict");
@@ -314,9 +335,28 @@ function App() {
           </div>
         </aside>
 
-        <section className="panel flow-panel">
+        <section
+          className="panel flow-panel"
+          style={imageLayer(
+            "agent-desk.jpg",
+            "linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.92) 44%, rgba(255, 255, 255, 0.98) 100%)",
+          )}
+        >
           {selectedMatch ? (
             <>
+              <div
+                className="match-spotlight"
+                style={imageLayer(
+                  "match-pitch.jpg",
+                  "linear-gradient(90deg, rgba(3, 14, 14, 0.88) 0%, rgba(3, 14, 14, 0.56) 58%, rgba(3, 14, 14, 0.2) 100%)",
+                )}
+              >
+                <div>
+                  <span>{selectedMatch.stage}</span>
+                  <strong>{matchLabel(selectedMatch)}</strong>
+                </div>
+                <b>{formatDate(selectedMatch.kickoffAt)}</b>
+              </div>
               <div className="panel-head">
                 <div>
                   <p className="eyebrow">Selected match</p>
@@ -426,7 +466,13 @@ function App() {
           )}
         </section>
 
-        <aside className="panel proof-panel">
+        <aside
+          className="panel proof-panel"
+          style={imageLayer(
+            "proof-ticket.jpg",
+            "linear-gradient(180deg, rgba(3, 14, 14, 0.94) 0%, rgba(3, 14, 14, 0.88) 100%)",
+          )}
+        >
           {selectedRecord ? (
             <ProofPanel
               record={selectedRecord}
@@ -595,6 +641,18 @@ function MemoryDashboard({
   const revealed = records.filter((record) => record.result);
   return (
     <section className="memory panel">
+      <div
+        className="memory-hero"
+        style={imageLayer(
+          "memory-wall.jpg",
+          "linear-gradient(90deg, rgba(3, 14, 14, 0.86) 0%, rgba(3, 14, 14, 0.62) 55%, rgba(3, 14, 14, 0.18) 100%)",
+        )}
+      >
+        <div>
+          <span>Tournament memory</span>
+          <strong>Every locked call becomes part of the run.</strong>
+        </div>
+      </div>
       <div className="panel-head">
         <div>
           <p className="eyebrow">Tournament memory</p>

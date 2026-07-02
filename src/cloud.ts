@@ -41,6 +41,21 @@ const headers = (session?: SupabaseSession) => ({
 
 const restUrl = (path: string) => `${supabaseUrl}/rest/v1/${path}`;
 
+const authRedirectTo = () =>
+  import.meta.env.VITE_SUPABASE_REDIRECT_URL ?? window.location.origin + import.meta.env.BASE_URL;
+
+export const buildSupabaseOAuthUrl = (
+  provider: "google",
+  redirectTo: string,
+  baseUrl = supabaseUrl,
+) => {
+  if (!baseUrl) throw new Error("Supabase is not configured.");
+  const url = new URL(`${baseUrl}/auth/v1/authorize`);
+  url.searchParams.set("provider", provider);
+  url.searchParams.set("redirect_to", redirectTo);
+  return url.toString();
+};
+
 export const isSupabaseSessionExpired = (
   session: SupabaseSession | undefined,
   skewSeconds = 60,
@@ -265,7 +280,7 @@ export const signOutCloud = async () => {
 
 export const sendMagicLink = async (email: string) => {
   if (!configured) throw new Error("Supabase is not configured.");
-  const redirectTo = import.meta.env.VITE_SUPABASE_REDIRECT_URL ?? window.location.origin + import.meta.env.BASE_URL;
+  const redirectTo = authRedirectTo();
   const res = await fetch(`${supabaseUrl}/auth/v1/otp`, {
     method: "POST",
     headers: headers(),
@@ -276,6 +291,11 @@ export const sendMagicLink = async (email: string) => {
     }),
   });
   if (!res.ok) throw new Error(`Magic link failed: ${res.status}`);
+};
+
+export const startGoogleSignIn = () => {
+  if (!configured) throw new Error("Supabase is not configured.");
+  window.location.assign(buildSupabaseOAuthUrl("google", authRedirectTo()));
 };
 
 export const syncRecordsToCloud = async (profile: UserProfile, records: MemoryRecord[]) => {

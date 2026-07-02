@@ -51,6 +51,7 @@ import {
   saveProfile,
   sendMagicLink,
   signOutCloud,
+  startGoogleSignIn,
   syncModeRunsToCloud,
   syncRecordsToCloud,
   syncProfileToCloud,
@@ -772,6 +773,14 @@ function App() {
     }
   };
 
+  const requestGoogleSignIn = () => {
+    try {
+      startGoogleSignIn();
+    } catch (error) {
+      setNotice((error as Error).message);
+    }
+  };
+
   const updateProfile = (patch: Partial<typeof profile>) => {
     const next = { ...profile, ...patch };
     setProfile(next);
@@ -1409,6 +1418,7 @@ function App() {
           onEmail={setAccountEmail}
           onProfile={updateProfile}
           onMagicLink={requestMagicLink}
+          onGoogleSignIn={requestGoogleSignIn}
           onSync={syncToCloud}
           onPull={pullCloudHistory}
           onSaveProfile={saveCloudProfile}
@@ -2484,6 +2494,7 @@ function AccountDashboard({
   onEmail,
   onProfile,
   onMagicLink,
+  onGoogleSignIn,
   onSync,
   onPull,
   onSaveProfile,
@@ -2499,6 +2510,7 @@ function AccountDashboard({
   onEmail: (value: string) => void;
   onProfile: (patch: Partial<ReturnType<typeof loadProfile>>) => void;
   onMagicLink: () => void;
+  onGoogleSignIn: () => void;
   onSync: () => void;
   onPull: () => void;
   onSaveProfile: () => void;
@@ -2520,7 +2532,7 @@ function AccountDashboard({
     {
       label: "Refresh token",
       passed: Boolean(cloudState.refreshable),
-      detail: cloudState.refreshable ? "auto refresh ready" : "magic link required",
+      detail: cloudState.refreshable ? "auto refresh ready" : "OAuth or magic link required",
     },
     {
       label: "Cloud records",
@@ -2611,6 +2623,9 @@ function AccountDashboard({
             <input value={email} onChange={(event) => onEmail(event.target.value)} />
           </label>
           <div className="actions">
+            <button onClick={onGoogleSignIn}>
+              <UserCircle2 size={18} /> Continue with Google
+            </button>
             <button onClick={onMagicLink}>
               <Link2 size={18} /> Send magic link
             </button>

@@ -5,6 +5,7 @@ import {
   buildLeaderboardReadiness,
   buildLocalLeaderboard,
   buildPublicProfile,
+  buildSupabaseOAuthUrl,
   consumeSupabaseHash,
   isSupabaseSessionExpired,
   loadSupabaseSession,
@@ -125,6 +126,21 @@ describe("local leaderboard", () => {
     expect(saved?.refresh_token).toBe("refresh-abc");
     expect(saved?.expires_at).toBeGreaterThan(Math.floor(Date.now() / 1000));
     expect(fakeWindow.location.hash).toBe("");
+  });
+
+  it("builds a Supabase Google OAuth authorize URL with redirect target", () => {
+    const url = new URL(
+      buildSupabaseOAuthUrl(
+        "google",
+        "https://example.com/kickoff-lock-agent/",
+        "https://project.supabase.co",
+      ),
+    );
+
+    expect(url.origin).toBe("https://project.supabase.co");
+    expect(url.pathname).toBe("/auth/v1/authorize");
+    expect(url.searchParams.get("provider")).toBe("google");
+    expect(url.searchParams.get("redirect_to")).toBe("https://example.com/kickoff-lock-agent/");
   });
 
   it("builds an XP entry from local records", () => {

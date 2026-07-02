@@ -1,6 +1,7 @@
 import type {
   CloudSyncState,
   CloudSyncAuditItem,
+  CloudSyncVerification,
   LeaderboardEntry,
   LeaderboardReadinessItem,
   LeaderboardScope,
@@ -458,7 +459,7 @@ export const loadModeRunsFromCloud = async (profile: UserProfile): Promise<GameM
   return rows.map((row) => row.mode_run as GameModeRun).filter(Boolean);
 };
 
-export const loadPublicRecord = async (capsuleId: string): Promise<MemoryRecord | undefined> => {
+export const loadPublicRecord = async (capsuleId: string, anonymous = false): Promise<MemoryRecord | undefined> => {
   if (!configured || !capsuleId) return undefined;
   const params = new URLSearchParams({
     select: "capsule,result,seal_job",
@@ -466,7 +467,7 @@ export const loadPublicRecord = async (capsuleId: string): Promise<MemoryRecord 
     limit: "1",
   });
   const res = await fetch(restUrl(`kickoff_records?${params.toString()}`), {
-    headers: headers(loadSupabaseSession()),
+    headers: headers(anonymous ? undefined : loadSupabaseSession()),
   });
   if (!res.ok) throw new Error(`Public proof load failed: ${res.status}`);
   const [row] = (await res.json()) as any[];
@@ -478,7 +479,7 @@ export const loadPublicRecord = async (capsuleId: string): Promise<MemoryRecord 
   };
 };
 
-export const loadPublicModeRun = async (runId: string): Promise<GameModeRun | undefined> => {
+export const loadPublicModeRun = async (runId: string, anonymous = false): Promise<GameModeRun | undefined> => {
   if (!configured || !runId) return undefined;
   const params = new URLSearchParams({
     select: "mode_run",
@@ -486,7 +487,7 @@ export const loadPublicModeRun = async (runId: string): Promise<GameModeRun | un
     limit: "1",
   });
   const res = await fetch(restUrl(`kickoff_mode_runs?${params.toString()}`), {
-    headers: headers(loadSupabaseSession()),
+    headers: headers(anonymous ? undefined : loadSupabaseSession()),
   });
   if (!res.ok) throw new Error(`Public mode proof load failed: ${res.status}`);
   const [row] = (await res.json()) as any[];
@@ -551,7 +552,7 @@ const buildPublicProfileFromRows = (profileRow: any, recordRows: any[], modeRunR
   };
 };
 
-export const loadPublicProfile = async (profileId: string): Promise<PublicProfile | undefined> => {
+export const loadPublicProfile = async (profileId: string, anonymous = false): Promise<PublicProfile | undefined> => {
   if (!configured || !profileId) return undefined;
   const profileParams = new URLSearchParams({
     select: "*",
@@ -559,7 +560,7 @@ export const loadPublicProfile = async (profileId: string): Promise<PublicProfil
     limit: "1",
   });
   const profileRes = await fetch(restUrl(`kickoff_profiles?${profileParams.toString()}`), {
-    headers: headers(loadSupabaseSession()),
+    headers: headers(anonymous ? undefined : loadSupabaseSession()),
   });
   if (!profileRes.ok) throw new Error(`Public profile load failed: ${profileRes.status}`);
   const [profileRow] = (await profileRes.json()) as any[];
@@ -572,7 +573,7 @@ export const loadPublicProfile = async (profileId: string): Promise<PublicProfil
     limit: "30",
   });
   const recordsRes = await fetch(restUrl(`kickoff_records?${recordParams.toString()}`), {
-    headers: headers(loadSupabaseSession()),
+    headers: headers(anonymous ? undefined : loadSupabaseSession()),
   });
   if (!recordsRes.ok) throw new Error(`Public profile records load failed: ${recordsRes.status}`);
   const recordRows = (await recordsRes.json()) as any[];
@@ -584,11 +585,68 @@ export const loadPublicProfile = async (profileId: string): Promise<PublicProfil
     limit: "30",
   });
   const modeRunsRes = await fetch(restUrl(`kickoff_mode_runs?${modeRunParams.toString()}`), {
-    headers: headers(loadSupabaseSession()),
+    headers: headers(anonymous ? undefined : loadSupabaseSession()),
   });
   if (!modeRunsRes.ok) throw new Error(`Public profile mode proof load failed: ${modeRunsRes.status}`);
   const modeRunRows = (await modeRunsRes.json()) as any[];
   return buildPublicProfileFromRows(profileRow, recordRows, modeRunRows);
+};
+
+export const verifyCloudSyncReadback = async (
+  profile: UserProfile,
+  records: MemoryRecord[],
+  modeRuns: GameModeRun[],
+): Promise<CloudSyncVerification> => {
+  if (!configured || !loadSupabaseSession()) {
+    return {
+      checkedAt: new Date().toISOString(),
+      profile: false,
+      records: 0,
+      modeRuns: 0,
+      publicProofs: 0,
+      publicProfile: false,
+      expectedRecords: records.length,
+      expectedModeRuns: modeRuns.length,
+      message: "Cloud read-back skipped. Supabase session is not available.",
+    };
+  }
+
+  const [remoteRecords, remoteModeRuns, publicProfile, publicRecords, publicModeRuns] = await Promise.all([
+    loadRecordsFromCloud(profile),
+    loadModeRunsFromCloud(profile),
+    loadPublicProfile(profile.id, true).catch(() => undefined),
+    Promise.all(records.map((record) => loadPublicRecord(record.capsule.id, true).catch(() => undefined))),
+    Promise.all(modeRuns.map((run) => loadPublicModeRun(run.id, true).catch(() => undefined))),
+  ]);
+
+  const expectedRecordIds = new Set(records.map((record) => record.capsule.id));
+  const expectedModeRunIds = new Set(modeRuns.map((run) => run.id));
+  const verifiedRecords = remoteRecords.filter((record) => expectedRecordIds.has(record.capsule.id)).length;
+  const verifiedModeRuns = remoteModeRuns.filter((run) => expectedModeRunIds.has(run.id)).length;
+  const publicProofs =
+    publicRecords.filter(Boolean).length +
+    publicModeRuns.filter(Boolean).length;
+  const publicProfileReady = Boolean(publicProfile?.id === profile.id);
+  const expectedLinks = records.length + modeRuns.length;
+  const fullyVerified =
+    verifiedRecords >= records.length &&
+    verifiedModeRuns >= modeRuns.length &&
+    publicProofs >= expectedLinks &&
+    publicProfileReady;
+
+  return {
+    checkedAt: new Date().toISOString(),
+    profile: publicProfileReady,
+    records: verifiedRecords,
+    modeRuns: verifiedModeRuns,
+    publicProofs,
+    publicProfile: publicProfileReady,
+    expectedRecords: records.length,
+    expectedModeRuns: modeRuns.length,
+    message: fullyVerified
+      ? `Cloud read-back verified ${verifiedRecords} records, ${verifiedModeRuns} mode runs and ${publicProofs} public links.`
+      : `Cloud read-back incomplete: ${verifiedRecords}/${records.length} records, ${verifiedModeRuns}/${modeRuns.length} modes, ${publicProofs}/${expectedLinks} public links.`,
+  };
 };
 
 export const loadLeaderboard = async (
@@ -658,7 +716,14 @@ export const buildCloudSyncCoverage = (
   modeRuns: GameModeRun[],
 ) => {
   const localItems = records.length + modeRuns.length;
-  const canSync = cloudState.configured && cloudState.authenticated;
+  const verification = cloudState.verification;
+  const readbackPassed = Boolean(
+    verification &&
+      verification.records >= records.length &&
+      verification.modeRuns >= modeRuns.length &&
+      verification.publicProofs >= localItems &&
+      verification.publicProfile,
+  );
   if (localItems === 0) {
     return {
       passed: false,
@@ -680,11 +745,11 @@ export const buildCloudSyncCoverage = (
       detail: `${localItems} local item${localItems === 1 ? "" : "s"} waiting for sign-in`,
     };
   }
-  if (cloudState.status === "synced") {
+  if (readbackPassed) {
     return {
       passed: true,
       pendingItems: 0,
-      detail: `${localItems} local item${localItems === 1 ? "" : "s"} acknowledged by cloud`,
+      detail: `${localItems} item${localItems === 1 ? "" : "s"} verified by cloud read-back`,
     };
   }
   if (cloudState.status === "syncing") {
@@ -696,7 +761,9 @@ export const buildCloudSyncCoverage = (
   }
   return {
     passed: false,
-    pendingItems: localItems,
+    pendingItems: verification
+      ? Math.max(0, localItems - verification.records - verification.modeRuns)
+      : localItems,
     detail:
       cloudState.status === "error"
         ? `${localItems} local item${localItems === 1 ? "" : "s"} need sync retry`
@@ -716,58 +783,63 @@ export const buildCloudSyncAudit = (
 ): CloudSyncAuditItem[] => {
   const configured = cloudState.configured;
   const signedIn = cloudState.authenticated;
-  const synced = cloudState.status === "synced";
   const cloudProfile = profile.cloudMode === "supabase" && !profile.id.startsWith("local-");
   const remoteLeaderboardRows = leaderboardEntries.filter((entry) => entry.source !== "local").length;
   const leaderboardScopes = new Set(leaderboardEntries.filter((entry) => entry.source !== "local").map((entry) => entry.source));
   const totalProofLinks = records.length + modeRuns.length;
+  const verification = cloudState.verification;
+  const verifiedProfile = Boolean(verification?.profile);
+  const verifiedRecords = verification?.records ?? 0;
+  const verifiedModeRuns = verification?.modeRuns ?? 0;
+  const verifiedPublicProofs = verification?.publicProofs ?? 0;
+  const verifiedPublicProfile = Boolean(verification?.publicProfile);
   const blockingDetail = configured ? "sign in required" : "Supabase env missing";
 
   return [
     {
       key: "profile",
       label: "Cloud profile",
-      status: auditStatus(!configured, signedIn && cloudProfile),
-      synced: signedIn && cloudProfile ? 1 : 0,
+      status: auditStatus(!configured, signedIn && cloudProfile && verifiedProfile),
+      synced: signedIn && cloudProfile && verifiedProfile ? 1 : 0,
       total: 1,
-      detail: cloudProfile ? `profile id ${profile.id}` : blockingDetail,
-      action: cloudProfile ? "Profile can sync across devices." : "Sign in and save profile.",
+      detail: verifiedProfile ? `read-back profile id ${profile.id}` : cloudProfile ? `profile id ${profile.id}` : blockingDetail,
+      action: verifiedProfile ? "Profile was read back from Supabase." : cloudProfile ? "Run Sync to verify the cloud profile." : "Sign in and save profile.",
     },
     {
       key: "records",
       label: "Prediction history",
-      status: auditStatus(!configured || !signedIn, synced && records.length > 0),
-      synced: synced ? records.length : 0,
+      status: auditStatus(!configured || !signedIn, records.length > 0 && verifiedRecords >= records.length),
+      synced: verifiedRecords,
       total: records.length,
-      detail: records.length > 0 ? `${records.length} local capsule${records.length === 1 ? "" : "s"}` : "no local capsules",
-      action: synced ? "Records acknowledged by cloud." : "Run Sync after locking predictions.",
+      detail: records.length > 0 ? `${verifiedRecords}/${records.length} capsules read back` : "no local capsules",
+      action: verifiedRecords >= records.length && records.length > 0 ? "Records verified by cloud read-back." : "Run Sync after locking predictions.",
     },
     {
       key: "modeRuns",
       label: "Mode proof history",
-      status: auditStatus(!configured || !signedIn, synced && modeRuns.length > 0),
-      synced: synced ? modeRuns.length : 0,
+      status: auditStatus(!configured || !signedIn, modeRuns.length > 0 && verifiedModeRuns >= modeRuns.length),
+      synced: verifiedModeRuns,
       total: modeRuns.length,
-      detail: modeRuns.length > 0 ? `${modeRuns.length} local mode proof${modeRuns.length === 1 ? "" : "s"}` : "no mode proofs",
-      action: synced ? "Mode proofs acknowledged by cloud." : "Create a mode proof and sync.",
+      detail: modeRuns.length > 0 ? `${verifiedModeRuns}/${modeRuns.length} mode proofs read back` : "no mode proofs",
+      action: verifiedModeRuns >= modeRuns.length && modeRuns.length > 0 ? "Mode proofs verified by cloud read-back." : "Create a mode proof and sync.",
     },
     {
       key: "publicProofs",
       label: "Public proof links",
-      status: auditStatus(!configured || !signedIn, synced && totalProofLinks > 0),
-      synced: synced ? totalProofLinks : 0,
+      status: auditStatus(!configured || !signedIn, totalProofLinks > 0 && verifiedPublicProofs >= totalProofLinks),
+      synced: verifiedPublicProofs,
       total: totalProofLinks,
-      detail: totalProofLinks > 0 ? `${totalProofLinks} proof link${totalProofLinks === 1 ? "" : "s"} can be published` : "no proof links",
-      action: synced ? "Proof and mode URLs can resolve from another device." : "Sync history before sharing public links.",
+      detail: totalProofLinks > 0 ? `${verifiedPublicProofs}/${totalProofLinks} public links read anonymously` : "no proof links",
+      action: verifiedPublicProofs >= totalProofLinks && totalProofLinks > 0 ? "Proof and mode URLs resolve without the local session." : "Sync history before sharing public links.",
     },
     {
       key: "publicProfile",
       label: "Public profile",
-      status: auditStatus(!configured, cloudProfile && synced),
-      synced: cloudProfile && synced ? 1 : 0,
+      status: auditStatus(!configured, cloudProfile && verifiedPublicProfile),
+      synced: cloudProfile && verifiedPublicProfile ? 1 : 0,
       total: 1,
-      detail: cloudProfile ? `?profile=${profile.id}` : "local preview only",
-      action: cloudProfile && synced ? "Profile page can load synced archives." : "Sync cloud history to publish the profile.",
+      detail: verifiedPublicProfile ? `anonymous ?profile=${profile.id}` : cloudProfile ? `?profile=${profile.id}` : "local preview only",
+      action: verifiedPublicProfile ? "Profile page can load synced archives anonymously." : "Sync cloud history to publish the profile.",
     },
     {
       key: "leaderboard",

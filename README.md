@@ -11,6 +11,7 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 - Get an explainable score and a generated 1200x675 social proof image with stadium artwork, CID, hash, proof status, and public verifier URL.
 - Keep every revealed call in a tournament memory dashboard.
 - Sign in with Supabase Google OAuth or magic links to sync profile, prediction history, public proof links, and global/friend/season leaderboards.
+- Verify cloud sync by reading profile, records, mode proof runs, public proof links, and public profile pages back from Supabase instead of trusting write-only success.
 - Build a 4-pick knockout path in the bracket builder, then seal it as its own proof run.
 - Create additional mode proof runs for parlays, Agent vs Human calibration, and upset challenges, each with a public verifier and mode share image.
 - Use the Account production acceptance radar to see which competition-grade areas are verified, ready, partial, or blocked in the current environment.
@@ -28,6 +29,7 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 - Browser favicon: `public/assets/kickoff-lock-icon-32.png`
 - PWA icon set: `public/assets/kickoff-lock-icon-192.png` and `public/assets/kickoff-lock-icon-512.png`
 - Apple touch icon: `public/assets/kickoff-lock-apple-touch.png`
+- The generated trophy-lock logo is used in the hero lockup, public proof masthead, share-card renderer, browser favicon, Open Graph/Twitter preview image, and PWA manifest.
 
 ## Data Strategy
 
@@ -96,7 +98,7 @@ Key files:
 - `src/proof.ts`: capsule hash, demo proof, real proof import.
 - `src/providers.ts`: API-Football, Football-Data.org, TheSportsDB, ESPN, The Odds API, worldcup26 and seed fallback.
 - `src/scoring.ts`: explainable scoring engine.
-- `src/cloud.ts`: Supabase auth, profile sync, prediction history sync, mode proof run sync, public proof/profile lookup, and leaderboard queries.
+- `src/cloud.ts`: Supabase auth, profile sync, prediction history sync, mode proof run sync, authenticated and anonymous read-back verification, public proof/profile lookup, and leaderboard queries.
 - `src/bracket.ts`: knockout path builder, bracket readiness rules, and bracket proof run sealing.
 - `src/modes.ts`: bracket/parlay/agent/upset mode proof runs, including parlay tickets, agent calibration reports and upset bonus tickets.
 - `src/readiness.ts`: production acceptance radar for real account sync, live data, Filecoin sealing, sharing, leaderboards, modes, and automated tests.

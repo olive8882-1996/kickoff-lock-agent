@@ -58,6 +58,7 @@ import {
   syncModeRunsToCloud,
   syncRecordsToCloud,
   syncProfileToCloud,
+  verifyCloudSyncReadback,
 } from "./cloud";
 import { filecoinSealConfigured, lookupFilecoinProof, runSealJob } from "./filecoinSeal";
 import { createGameModeRun, getModeReadiness } from "./modes";
@@ -526,6 +527,32 @@ function App() {
     }
   };
 
+  const finishCloudSyncWithReadback = async (
+    nextProfile: typeof profile,
+    nextRecords: MemoryRecord[],
+    nextModeRuns: GameModeRun[],
+    prefix: string,
+  ) => {
+    await refreshAllLeaderboards(nextProfile);
+    const verification = await verifyCloudSyncReadback(nextProfile, nextRecords, nextModeRuns);
+    const expectedLinks = nextRecords.length + nextModeRuns.length;
+    const readbackPassed =
+      verification.profile &&
+      verification.records >= nextRecords.length &&
+      verification.modeRuns >= nextModeRuns.length &&
+      verification.publicProofs >= expectedLinks &&
+      verification.publicProfile;
+    setCloudState({
+      ...getCloudState(),
+      status: readbackPassed ? "synced" : "error",
+      message: `${prefix} ${verification.message}`,
+      lastSyncedAt: verification.checkedAt,
+      verification,
+    });
+    setNotice(`${prefix} ${verification.message}`);
+    return verification;
+  };
+
   const fetchPublicProof = async (capsuleId: string) => {
     setPublicProofStatus("Loading public proof from cloud...");
     try {
@@ -575,22 +602,15 @@ function App() {
     const mergedModeRuns = mergeModeRuns(localModeRuns, remoteModeRuns);
     setRecords(merged);
     setModeRuns(mergedModeRuns);
-    const [recordSync, modeSync] = await Promise.all([
+    await Promise.all([
       syncRecordsToCloud(nextProfile, merged),
       syncModeRunsToCloud(nextProfile, mergedModeRuns),
     ]);
-    await refreshAllLeaderboards(nextProfile);
     const message =
       remoteRecords.length > 0 || remoteModeRuns.length > 0
         ? `${reason} merged ${remoteRecords.length} cloud records and ${remoteModeRuns.length} mode proof runs.`
         : `${reason} no cloud history found; local records and mode runs are ready to sync.`;
-    setCloudState({
-      ...getCloudState(),
-      status: recordSync.status === "synced" && modeSync.status === "synced" ? "synced" : "offline",
-      message: `${message} ${recordSync.message} ${modeSync.message}`,
-      lastSyncedAt: new Date().toISOString(),
-    });
-    setNotice(message);
+    await finishCloudSyncWithReadback(nextProfile, merged, mergedModeRuns, message);
     return merged;
   };
 
@@ -692,15 +712,8 @@ function App() {
     if (!state.configured || !state.authenticated) return;
     setCloudState({ ...state, status: "syncing", message: `${reason} Syncing cloud history...` });
     void syncRecordsToCloud(profile, nextRecords)
-      .then(async (result) => {
-        await refreshAllLeaderboards(profile);
-        setCloudState({
-          ...getCloudState(),
-          status: result.status === "synced" ? "synced" : "offline",
-          message: result.message,
-          lastSyncedAt: new Date().toISOString(),
-        });
-        setNotice(`${reason} ${result.message}`);
+      .then(async () => {
+        await finishCloudSyncWithReadback(profile, nextRecords, modeRuns, reason);
       })
       .catch((error) => {
         setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
@@ -713,15 +726,8 @@ function App() {
     if (!state.configured || !state.authenticated) return;
     setCloudState({ ...state, status: "syncing", message: `${reason} Syncing mode proofs...` });
     void syncModeRunsToCloud(profile, nextModeRuns)
-      .then(async (result) => {
-        await refreshAllLeaderboards(profile);
-        setCloudState({
-          ...getCloudState(),
-          status: result.status === "synced" ? "synced" : "offline",
-          message: result.message,
-          lastSyncedAt: new Date().toISOString(),
-        });
-        setNotice(`${reason} ${result.message}`);
+      .then(async () => {
+        await finishCloudSyncWithReadback(profile, records, nextModeRuns, reason);
       })
       .catch((error) => {
         setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
@@ -801,18 +807,11 @@ function App() {
   const syncToCloud = async () => {
     setCloudState({ ...getCloudState(), status: "syncing", message: "Syncing records to cloud..." });
     try {
-      const [recordSync, modeSync] = await Promise.all([
+      await Promise.all([
         syncRecordsToCloud(profile, records),
         syncModeRunsToCloud(profile, modeRuns),
       ]);
-      await refreshAllLeaderboards(profile);
-      setCloudState({
-        ...getCloudState(),
-        status: recordSync.status === "synced" && modeSync.status === "synced" ? "synced" : "offline",
-        message: `${recordSync.message} ${modeSync.message}`,
-        lastSyncedAt: new Date().toISOString(),
-      });
-      setNotice(`${recordSync.message} ${modeSync.message}`);
+      await finishCloudSyncWithReadback(profile, records, modeRuns, "Manual sync completed.");
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
       setNotice((error as Error).message);
@@ -834,14 +833,12 @@ function App() {
         syncRecordsToCloud(profile, merged),
         syncModeRunsToCloud(profile, mergedModeRuns),
       ]);
-      await refreshAllLeaderboards(profile);
-      setCloudState({
-        ...getCloudState(),
-        status: "synced",
-        message: `Pulled ${remoteRecords.length} cloud records and ${remoteModeRuns.length} mode proof runs.`,
-        lastSyncedAt: new Date().toISOString(),
-      });
-      setNotice(`Pulled ${remoteRecords.length} cloud records and ${remoteModeRuns.length} mode proof runs.`);
+      await finishCloudSyncWithReadback(
+        profile,
+        merged,
+        mergedModeRuns,
+        `Pulled ${remoteRecords.length} cloud records and ${remoteModeRuns.length} mode proof runs.`,
+      );
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
       setNotice((error as Error).message);
@@ -876,9 +873,7 @@ function App() {
     setCloudState({ ...getCloudState(), status: "syncing", message: "Saving cloud profile..." });
     try {
       await syncProfileToCloud(profile);
-      setCloudState({ ...getCloudState(), status: "synced", message: "Cloud profile saved.", lastSyncedAt: new Date().toISOString() });
-      setNotice("Cloud profile saved.");
-      void refreshAllLeaderboards(profile);
+      await finishCloudSyncWithReadback(profile, records, modeRuns, "Cloud profile saved.");
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
       setNotice((error as Error).message);
@@ -2880,6 +2875,7 @@ function AccountDashboard({
   const syncCoverage = buildCloudSyncCoverage(cloudState, records, modeRuns);
   const syncAudit = buildCloudSyncAudit(cloudState, profile, records, modeRuns, leaderboardEntries);
   const auditPassed = syncAudit.filter((item) => item.status === "passed").length;
+  const verification = cloudState.verification;
   const productionReadiness = buildProductionReadiness({
     cloudState,
     profile,
@@ -2911,13 +2907,17 @@ function AccountDashboard({
     },
     {
       label: "Cloud records",
-      passed: cloudState.authenticated && records.length > 0,
-      detail: records.length > 0 ? `${records.length} local record${records.length === 1 ? "" : "s"} ready` : "lock a prediction first",
+      passed: cloudState.authenticated && records.length > 0 && (verification?.records ?? 0) >= records.length,
+      detail: records.length > 0
+        ? `${verification?.records ?? 0}/${records.length} record${records.length === 1 ? "" : "s"} read back`
+        : "lock a prediction first",
     },
     {
       label: "Mode proofs",
-      passed: cloudState.authenticated && modeRuns.length > 0,
-      detail: modeRuns.length > 0 ? `${modeRuns.length} mode proof${modeRuns.length === 1 ? "" : "s"} ready` : "create a mode proof first",
+      passed: cloudState.authenticated && modeRuns.length > 0 && (verification?.modeRuns ?? 0) >= modeRuns.length,
+      detail: modeRuns.length > 0
+        ? `${verification?.modeRuns ?? 0}/${modeRuns.length} mode proof${modeRuns.length === 1 ? "" : "s"} read back`
+        : "create a mode proof first",
     },
     {
       label: "Sync coverage",
@@ -2926,8 +2926,8 @@ function AccountDashboard({
     },
     {
       label: "Public profile",
-      passed: profile.cloudMode === "supabase" && !profile.id.startsWith("local-"),
-      detail: profile.cloudMode === "supabase" ? profile.id : "local preview only",
+      passed: Boolean(verification?.publicProfile),
+      detail: verification?.publicProfile ? `anonymous ${profile.id}` : profile.cloudMode === "supabase" ? profile.id : "local preview only",
     },
   ];
   return (
@@ -2983,6 +2983,10 @@ function AccountDashboard({
             <div>
               <span>Pending sync</span>
               <strong>{syncCoverage.pendingItems}</strong>
+            </div>
+            <div>
+              <span>Read-back</span>
+              <strong>{verification ? `${verification.records + verification.modeRuns}/${records.length + modeRuns.length}` : "not checked"}</strong>
             </div>
             <div>
               <span>Last synced</span>

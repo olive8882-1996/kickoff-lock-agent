@@ -168,13 +168,39 @@ describe("local leaderboard", () => {
       mode: "supabase",
       status: "synced",
       message: "synced",
+      verification: {
+        checkedAt: "2099-01-01T00:00:00.000Z",
+        profile: true,
+        records: 1,
+        modeRuns: 1,
+        publicProofs: 2,
+        publicProfile: true,
+        expectedRecords: 1,
+        expectedModeRuns: 1,
+        message: "Cloud read-back verified.",
+      },
     };
 
     const coverage = buildCloudSyncCoverage(cloudState, [record("cap-synced")], [modeRun("mode-synced")]);
 
     expect(coverage.passed).toBe(true);
     expect(coverage.pendingItems).toBe(0);
-    expect(coverage.detail).toContain("acknowledged by cloud");
+    expect(coverage.detail).toContain("verified by cloud read-back");
+  });
+
+  it("does not mark sync coverage passed when Supabase write is not read back", () => {
+    const cloudState: CloudSyncState = {
+      configured: true,
+      authenticated: true,
+      mode: "supabase",
+      status: "synced",
+      message: "synced",
+    };
+
+    const coverage = buildCloudSyncCoverage(cloudState, [record("cap-unverified")], [modeRun("mode-unverified")]);
+
+    expect(coverage.passed).toBe(false);
+    expect(coverage.detail).toContain("pending cloud acknowledgement");
   });
 
   it("audits cloud account coverage before sign-in", () => {
@@ -202,6 +228,17 @@ describe("local leaderboard", () => {
       mode: "supabase",
       status: "synced",
       message: "synced",
+      verification: {
+        checkedAt: "2099-01-01T00:00:00.000Z",
+        profile: true,
+        records: 1,
+        modeRuns: 1,
+        publicProofs: 2,
+        publicProfile: true,
+        expectedRecords: 1,
+        expectedModeRuns: 1,
+        message: "Cloud read-back verified.",
+      },
     };
     const cloudProfile = { ...profile, id: "user-123", cloudMode: "supabase" as const };
     const remoteEntry: LeaderboardEntry = {
@@ -227,6 +264,23 @@ describe("local leaderboard", () => {
     expect(audit.find((item) => item.key === "modeRuns")?.synced).toBe(1);
     expect(audit.find((item) => item.key === "publicProfile")?.detail).toContain("?profile=user-123");
     expect(audit.find((item) => item.key === "leaderboard")?.detail).toContain("1 remote");
+  });
+
+  it("keeps cloud audit pending when synced state lacks read-back proof", () => {
+    const cloudState: CloudSyncState = {
+      configured: true,
+      authenticated: true,
+      mode: "supabase",
+      status: "synced",
+      message: "synced",
+    };
+    const cloudProfile = { ...profile, id: "user-123", cloudMode: "supabase" as const };
+    const audit = buildCloudSyncAudit(cloudState, cloudProfile, [record("cap-pending-readback")], [modeRun("mode-pending-readback")]);
+
+    expect(audit.find((item) => item.key === "profile")?.status).toBe("pending");
+    expect(audit.find((item) => item.key === "records")?.status).toBe("pending");
+    expect(audit.find((item) => item.key === "modeRuns")?.status).toBe("pending");
+    expect(audit.find((item) => item.key === "publicProofs")?.detail).toContain("0/2 public links");
   });
 
   it("builds an XP entry from local records", () => {

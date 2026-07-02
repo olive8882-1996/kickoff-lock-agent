@@ -31,6 +31,10 @@ The Account area now includes a production acceptance radar. It is intentionally
 
 Leaderboard backend validation was tightened so global, friend-code and season rows are fetched and cached separately. A single remote leaderboard response no longer counts as evidence for all scopes.
 
+Cloud account validation now requires read-back proof. After profile/history/mode sync, the app reads the Supabase rows back with the user session, checks anonymous public proof URLs, and checks the public profile page before marking account acceptance as synced.
+
+The generated Kickoff Lock trophy-lock logo was added as the shared brand asset for the hero lockup, proof pages, social card rendering, favicon, Open Graph/Twitter image, Apple touch icon, and PWA icon set.
+
 ## Debugging Plan
 
 The final app should be checked through:

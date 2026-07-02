@@ -76,12 +76,21 @@ export const buildProductionReadiness = ({
 }: ProductionReadinessInput): ProductionReadinessItem[] => {
   const cloudProfile = profile.cloudMode === "supabase" && !profile.id.startsWith("local-");
   const cloudItems = records.length + modeRuns.length;
+  const verification = cloudState.verification;
+  const readbackVerified = Boolean(
+    verification &&
+      verification.profile &&
+      verification.records >= records.length &&
+      verification.modeRuns >= modeRuns.length &&
+      verification.publicProofs >= cloudItems &&
+      verification.publicProfile,
+  );
   const accountChecks = [
     cloudState.configured,
     cloudState.authenticated,
     cloudProfile,
     cloudItems > 0,
-    cloudState.status === "synced",
+    readbackVerified,
   ];
   const accountPassed = count(accountChecks);
 
@@ -166,11 +175,11 @@ export const buildProductionReadiness = ({
       passed: accountPassed,
       total: accountChecks.length,
       evidence: cloudProfile
-        ? `${profile.email} · ${cloudState.status} · ${cloudItems} cloud item candidates`
+        ? `${profile.email} · ${verification ? verification.message : `${cloudState.status} · ${cloudItems} cloud item candidates`}`
         : cloudState.configured
           ? "Supabase configured, but sign-in/sync evidence is still missing"
           : "Supabase env missing; app is using local profile",
-      nextAction: accountPassed === accountChecks.length ? "Cloud account acceptance is satisfied." : "Sign in, sync history, then open the public profile from another device.",
+      nextAction: accountPassed === accountChecks.length ? "Cloud account acceptance is satisfied." : "Sign in, sync history, then verify Supabase read-back from another device.",
     },
     {
       key: "data",

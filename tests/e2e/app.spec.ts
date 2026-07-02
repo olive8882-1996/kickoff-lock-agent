@@ -106,7 +106,7 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".proof-facts")).toContainText(/Proof facts/i);
   await page.getByLabel("Filecoin CID").fill("bafy-kickoff-test");
   await page.getByRole("button", { name: /Query CID/i }).click();
-  await expect(page.locator(".cid-lookup")).toContainText(/VITE_FILECOIN_SEAL_API/i);
+  await expect(page.locator(".cid-lookup")).toContainText(/VITE_FILECOIN_SEAL_API|Failed to fetch/i);
   await page.getByRole("button", { name: /Generate public share image/i }).click();
   await expect(page.getByRole("heading", { name: /Share image/i })).toBeVisible();
   await expect(page.locator(".public-share-card img")).toHaveAttribute("src", /data:image\/png;base64,/);

@@ -220,6 +220,19 @@ export type CloudSyncState = {
   sessionExpiresAt?: string;
   sessionExpired?: boolean;
   refreshable?: boolean;
+  verification?: CloudSyncVerification;
+};
+
+export type CloudSyncVerification = {
+  checkedAt: string;
+  profile: boolean;
+  records: number;
+  modeRuns: number;
+  publicProofs: number;
+  publicProfile: boolean;
+  expectedRecords: number;
+  expectedModeRuns: number;
+  message: string;
 };
 
 export type LeaderboardScope = "global" | "friend" | "season";

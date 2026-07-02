@@ -1,4 +1,11 @@
-import type { CloudSyncState, LeaderboardEntry, LeaderboardScope, MemoryRecord, UserProfile } from "./types";
+import type {
+  CloudSyncState,
+  LeaderboardEntry,
+  LeaderboardScope,
+  MemoryRecord,
+  PublicProfile,
+  UserProfile,
+} from "./types";
 
 const PROFILE_KEY = "kickoff-lock-agent-profile-v1";
 const SESSION_KEY = "kickoff-lock-agent-supabase-session-v1";
@@ -250,6 +257,83 @@ export const loadPublicRecord = async (capsuleId: string): Promise<MemoryRecord 
     result: row.result ?? undefined,
     sealJob: row.seal_job ?? undefined,
   };
+};
+
+export const buildPublicProfile = (profile: UserProfile, records: MemoryRecord[]): PublicProfile => {
+  const revealed = records.filter((record) => record.result);
+  const averageScore =
+    revealed.length > 0
+      ? Math.round(revealed.reduce((sum, record) => sum + (record.result?.totalScore ?? 0), 0) / revealed.length)
+      : 0;
+  const bestScore = Math.max(0, ...revealed.map((record) => record.result?.totalScore ?? 0));
+  const xp = records.length * 120 + revealed.reduce((sum, record) => sum + (record.result?.totalScore ?? 0), 0);
+
+  return {
+    id: profile.id,
+    email: profile.email,
+    displayName: profile.displayName,
+    location: profile.location,
+    avatarUrl: profile.avatarUrl,
+    friendCode: friendCodeFor(profile),
+    records,
+    locks: records.length,
+    revealed: revealed.length,
+    averageScore,
+    bestScore,
+    xp,
+  };
+};
+
+const buildPublicProfileFromRows = (profileRow: any, recordRows: any[]): PublicProfile => {
+  const records = recordRows.map((row) => ({
+    capsule: row.capsule,
+    result: row.result ?? undefined,
+    sealJob: row.seal_job ?? undefined,
+  })) as MemoryRecord[];
+  const publicProfile = buildPublicProfile(
+    {
+      id: profileRow.id,
+      email: profileRow.email ?? "",
+      displayName: profileRow.display_name ?? "Unknown analyst",
+      location: profileRow.location ?? "Global",
+      avatarUrl: profileRow.avatar_url ?? undefined,
+      createdAt: profileRow.updated_at ?? new Date().toISOString(),
+      cloudMode: "supabase",
+    },
+    records,
+  );
+  return {
+    ...publicProfile,
+    friendCode: profileRow.friend_code ?? publicProfile.friendCode,
+  };
+};
+
+export const loadPublicProfile = async (profileId: string): Promise<PublicProfile | undefined> => {
+  if (!configured || !profileId) return undefined;
+  const profileParams = new URLSearchParams({
+    select: "*",
+    id: `eq.${profileId}`,
+    limit: "1",
+  });
+  const profileRes = await fetch(restUrl(`kickoff_profiles?${profileParams.toString()}`), {
+    headers: headers(loadSupabaseSession()),
+  });
+  if (!profileRes.ok) throw new Error(`Public profile load failed: ${profileRes.status}`);
+  const [profileRow] = (await profileRes.json()) as any[];
+  if (!profileRow) return undefined;
+
+  const recordParams = new URLSearchParams({
+    select: "capsule,result,seal_job,updated_at",
+    user_id: `eq.${profileId}`,
+    order: "updated_at.desc",
+    limit: "30",
+  });
+  const recordsRes = await fetch(restUrl(`kickoff_records?${recordParams.toString()}`), {
+    headers: headers(loadSupabaseSession()),
+  });
+  if (!recordsRes.ok) throw new Error(`Public profile records load failed: ${recordsRes.status}`);
+  const recordRows = (await recordsRes.json()) as any[];
+  return buildPublicProfileFromRows(profileRow, recordRows);
 };
 
 export const loadLeaderboard = async (

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLocalLeaderboard } from "./cloud";
+import { buildLocalLeaderboard, buildPublicProfile } from "./cloud";
 import type { MemoryRecord, UserProfile } from "./types";
 
 const profile: UserProfile = {
@@ -73,5 +73,72 @@ describe("local leaderboard", () => {
     expect(entry.xp).toBe(208);
     expect(entry.bestScore).toBe(88);
     expect(entry.source).toBe("local");
+  });
+
+  it("builds a public profile from local records", () => {
+    const records: MemoryRecord[] = [
+      {
+        capsule: {
+          id: "cap-2",
+          matchId: "m2",
+          matchLabel: "C vs D",
+          kickoffAt: "2099-01-02T00:00:00.000Z",
+          createdAt: "2099-01-01T00:00:00.000Z",
+          sealedAt: "2099-01-01T00:00:00.000Z",
+          locked: true,
+          lateLock: false,
+          payloadHash: "c".repeat(64),
+          filecoinProof: {
+            mode: "demo",
+            cid: "bafy-public",
+            pieceCid: "piece-public",
+            provider: "demo",
+            dataSetId: "set-public",
+            proofStatus: "verified",
+          },
+          prediction: {
+            homeScore: 2,
+            awayScore: 1,
+            winner: "C",
+            keyPlayers: [],
+            confidence: 70,
+            style: "analysis",
+            reasoning: "Reasoning",
+            agentSummary: "Summary",
+            markets: [],
+          },
+        },
+        result: {
+          id: "res-2",
+          capsuleId: "cap-2",
+          revealedAt: "2099-01-02T02:00:00.000Z",
+          homeScore: 2,
+          awayScore: 1,
+          keyPlayers: [],
+          source: "manual",
+          totalScore: 92,
+          breakdown: {
+            winner: 24,
+            exactScore: 24,
+            goalDifference: 12,
+            markets: 0,
+            keyPlayer: 0,
+            confidence: 10,
+            reasoning: 5,
+          },
+          explanation: [],
+          agentReview: [],
+        },
+      },
+    ];
+
+    const publicProfile = buildPublicProfile(profile, records);
+    expect(publicProfile.displayName).toBe("Tester");
+    expect(publicProfile.friendCode).toBe("chengdu");
+    expect(publicProfile.locks).toBe(1);
+    expect(publicProfile.revealed).toBe(1);
+    expect(publicProfile.averageScore).toBe(92);
+    expect(publicProfile.bestScore).toBe(92);
+    expect(publicProfile.xp).toBe(212);
   });
 });

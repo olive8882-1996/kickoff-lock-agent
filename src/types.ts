@@ -2,7 +2,7 @@ export type DataSource = "espn" | "worldcup26" | "api-football" | "thesportsdb" 
 
 export type MatchStatus = "upcoming" | "live" | "finished";
 
-export type AppView = "matches" | "predict" | "memory" | "verify" | "account" | "modes";
+export type AppView = "matches" | "predict" | "memory" | "verify" | "account" | "modes" | "profile";
 
 export type TeamInsight = {
   fifaRank: number;
@@ -167,6 +167,21 @@ export type LeaderboardEntry = {
   seasonKey?: string;
   friendCode?: string;
   source: "local" | LeaderboardScope;
+};
+
+export type PublicProfile = {
+  id: string;
+  email?: string;
+  displayName: string;
+  location: string;
+  avatarUrl?: string;
+  friendCode?: string;
+  records: MemoryRecord[];
+  locks: number;
+  revealed: number;
+  averageScore: number;
+  bestScore: number;
+  xp: number;
 };
 
 export type GameMode = {

@@ -23,6 +23,12 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(lockButton).toBeEnabled();
   await lockButton.click();
 
+  await page.getByRole("button", { name: /Account/i }).last().click();
+  await page.getByRole("button", { name: /Open public profile/i }).click();
+  await expect(page.getByRole("heading", { name: /Kickoff Analyst/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Latest proof capsules/i })).toBeVisible();
+  await expect(page.locator(".profile-records")).toContainText(/Prediction/i);
+
   await page.getByRole("button", { name: /Auto seal to Filecoin/i }).click();
   await expect(page.getByText(/Auto seal status/i)).toBeVisible();
   await expect(page.getByText(/needs-config/i).first()).toBeVisible();

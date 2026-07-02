@@ -28,12 +28,14 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+  buildPublicProfile,
   buildLocalLeaderboard,
   consumeSupabaseHash,
   getCloudState,
   hydrateProfileFromAuth,
   loadLeaderboard,
   loadProfile,
+  loadPublicProfile,
   loadPublicRecord,
   loadRecordsFromCloud,
   saveProfile,
@@ -58,6 +60,7 @@ import type {
   Match,
   MemoryRecord,
   PredictionDraft,
+  PublicProfile,
 } from "./types";
 
 const STORAGE_KEY = "kickoff-lock-agent-records-v1";
@@ -190,6 +193,13 @@ const proofUrl = (capsuleId: string) => {
   const url = new URL(window.location.href);
   url.search = "";
   url.searchParams.set("proof", capsuleId);
+  return url.toString();
+};
+
+const profileUrl = (profileId: string) => {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.searchParams.set("profile", profileId);
   return url.toString();
 };
 
@@ -333,6 +343,8 @@ function App() {
   const [publicShareImageUrl, setPublicShareImageUrl] = useState("");
   const [publicRecord, setPublicRecord] = useState<MemoryRecord | undefined>();
   const [publicProofStatus, setPublicProofStatus] = useState("");
+  const [publicProfile, setPublicProfile] = useState<PublicProfile | undefined>();
+  const [publicProfileStatus, setPublicProfileStatus] = useState("");
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -385,12 +397,28 @@ function App() {
     }
   };
 
+  const fetchPublicProfile = async (profileId: string) => {
+    setPublicProfileStatus("Loading public profile from cloud...");
+    try {
+      const nextProfile = await loadPublicProfile(profileId);
+      setPublicProfile(nextProfile);
+      setPublicProfileStatus(nextProfile ? "Cloud profile loaded." : "No cloud profile found for this link.");
+    } catch (error) {
+      setPublicProfileStatus((error as Error).message);
+    }
+  };
+
   const bootstrapApp = async () => {
     await refreshMatches(false);
-    const proofId = new URLSearchParams(window.location.search).get("proof");
+    const params = new URLSearchParams(window.location.search);
+    const proofId = params.get("proof");
+    const profileId = params.get("profile");
     if (proofId) {
       setView("verify");
       void fetchPublicProof(proofId);
+    } else if (profileId) {
+      setView("profile");
+      void fetchPublicProfile(profileId);
     }
     const session = consumeSupabaseHash();
     setCloudState(getCloudState());
@@ -438,6 +466,26 @@ function App() {
 
   const currentRank = Math.min(99, 1 + Math.floor(records.length * 1.8 + averageScore / 8));
   const currentXp = records.length * 120 + revealedRecords.reduce((sum, record) => sum + (record.result?.totalScore ?? 0), 0);
+  const routeProfileId = new URLSearchParams(window.location.search).get("profile");
+  const localPublicProfile = buildPublicProfile(profile, records);
+  const shownPublicProfile =
+    publicProfile ??
+    (routeProfileId && routeProfileId !== profile.id
+      ? {
+          ...localPublicProfile,
+          id: routeProfileId,
+          email: undefined,
+          displayName: "Profile unavailable",
+          location: "Cloud profile",
+          friendCode: "not-loaded",
+          records: [],
+          locks: 0,
+          revealed: 0,
+          averageScore: 0,
+          bestScore: 0,
+          xp: 0,
+        }
+      : localPublicProfile);
   const canLock = !!selectedMatch && !selectedRecord?.capsule.locked && lockState?.state !== "closed";
 
   const syncRecordsInBackground = (nextRecords: MemoryRecord[], reason: string) => {
@@ -674,6 +722,18 @@ function App() {
     setView("verify");
   };
 
+  const openPublicProfile = () => {
+    setPublicProfile(undefined);
+    setPublicProfileStatus("Local public profile preview. Sync cloud history to make this link resolvable from another device.");
+    window.history.replaceState({}, "", `?profile=${profile.id}`);
+    setView("profile");
+  };
+
+  const copyProfileLink = async (profileId = profile.id) => {
+    const copied = await copyToClipboard(profileUrl(profileId));
+    setNotice(copied ? "Public profile link copied." : "Clipboard blocked. Public profile link is visible on the profile page.");
+  };
+
   const updateMarket = (index: number, patch: Partial<PredictionDraft["markets"][number]>) => {
     const nextMarkets = shownDraft.markets.map((market, itemIndex) =>
       itemIndex === index ? { ...market, ...patch } : market,
@@ -721,6 +781,10 @@ function App() {
         <button className={view === "modes" ? "active" : ""} onClick={() => setView("modes")} title="Game modes">
           <Flame size={20} />
           <span>Modes</span>
+        </button>
+        <button className={view === "profile" ? "active" : ""} onClick={openPublicProfile} title="Public profile">
+          <Medal size={20} />
+          <span>Profile</span>
         </button>
         <button className={view === "account" ? "active" : ""} onClick={() => setView("account")} title="Account">
           <UserCircle2 size={20} />
@@ -798,6 +862,9 @@ function App() {
         </button>
         <button className={view === "modes" ? "active" : ""} onClick={() => setView("modes")}>
           <Flame size={18} /> Modes
+        </button>
+        <button className={view === "profile" ? "active" : ""} onClick={openPublicProfile}>
+          <Medal size={18} /> Profile
         </button>
         <button className={view === "account" ? "active" : ""} onClick={() => setView("account")}>
           <UserCircle2 size={18} /> Account
@@ -1101,6 +1168,19 @@ function App() {
         />
       )}
 
+      {view === "profile" && (
+        <PublicProfileDashboard
+          profile={shownPublicProfile}
+          status={publicProfileStatus}
+          onCopyProfileLink={copyProfileLink}
+          onOpenProof={(capsuleId) => {
+            window.history.replaceState({}, "", `?proof=${capsuleId}`);
+            setView("verify");
+            void fetchPublicProof(capsuleId);
+          }}
+        />
+      )}
+
       {view === "account" && (
         <AccountDashboard
           profile={profile}
@@ -1114,6 +1194,8 @@ function App() {
           onPull={pullCloudHistory}
           onSaveProfile={saveCloudProfile}
           onSignOut={signOut}
+          onOpenProfile={openPublicProfile}
+          onCopyProfileLink={() => copyProfileLink()}
         />
       )}
     </main>
@@ -1752,6 +1834,82 @@ function ModesDashboard({
   );
 }
 
+function PublicProfileDashboard({
+  profile,
+  status,
+  onCopyProfileLink,
+  onOpenProof,
+}: {
+  profile: PublicProfile;
+  status: string;
+  onCopyProfileLink: (profileId: string) => void;
+  onOpenProof: (capsuleId: string) => void;
+}) {
+  const latestRecords = profile.records.slice(0, 12);
+  return (
+    <section className="public-profile panel">
+      <div
+        className="public-profile-hero"
+        style={imageLayer(
+          "stadium-hero.jpg",
+          "linear-gradient(90deg, rgba(3, 14, 14, 0.9) 0%, rgba(3, 14, 14, 0.62) 58%, rgba(210, 55, 46, 0.24) 100%)",
+        )}
+      >
+        <div className="public-profile-identity">
+          {profile.avatarUrl ? <img className="avatar large" src={profile.avatarUrl} alt="" /> : <UserCircle2 size={54} />}
+          <div>
+            <p className="eyebrow">Public prediction profile</p>
+            <h2>{profile.displayName}</h2>
+            <span>{profile.location} · {profile.friendCode ?? "global"}</span>
+          </div>
+        </div>
+        <div className="profile-actions">
+          <button onClick={() => onCopyProfileLink(profile.id)}>
+            <Link2 size={16} /> Copy profile link
+          </button>
+        </div>
+      </div>
+      {status && <div className="warning">{status}</div>}
+      <div className="public-profile-stats">
+        <div><strong>{profile.locks}</strong><span>locked predictions</span></div>
+        <div><strong>{profile.revealed}</strong><span>revealed</span></div>
+        <div><strong>{profile.averageScore}</strong><span>average score</span></div>
+        <div><strong>{profile.bestScore}</strong><span>best score</span></div>
+        <div><strong>{profile.xp}</strong><span>XP</span></div>
+      </div>
+      <div className="profile-proof-url">
+        <b>Profile URL</b>
+        <code>{profileUrl(profile.id)}</code>
+      </div>
+      <div className="profile-records">
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">Public archive</p>
+            <h3>Latest proof capsules</h3>
+          </div>
+          <span className="pill">{latestRecords.length} shown</span>
+        </div>
+        {latestRecords.length === 0 && <p>No public records yet. Lock a prediction, then sync cloud history.</p>}
+        {latestRecords.map((record) => (
+          <article key={record.capsule.id}>
+            <div>
+              <strong>{record.capsule.matchLabel}</strong>
+              <span>
+                Prediction {record.capsule.prediction.homeScore}-{record.capsule.prediction.awayScore}
+                {record.result ? ` · Score ${record.result.totalScore}/100` : " · reveal pending"}
+              </span>
+              <code>{record.capsule.filecoinProof.cid}</code>
+            </div>
+            <button onClick={() => onOpenProof(record.capsule.id)}>
+              <ShieldCheck size={16} /> Verify
+            </button>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function AccountDashboard({
   profile,
   cloudState,
@@ -1764,6 +1922,8 @@ function AccountDashboard({
   onPull,
   onSaveProfile,
   onSignOut,
+  onOpenProfile,
+  onCopyProfileLink,
 }: {
   profile: ReturnType<typeof loadProfile>;
   cloudState: CloudSyncState;
@@ -1776,6 +1936,8 @@ function AccountDashboard({
   onPull: () => void;
   onSaveProfile: () => void;
   onSignOut: () => void;
+  onOpenProfile: () => void;
+  onCopyProfileLink: () => void;
 }) {
   return (
     <section className="account panel">
@@ -1829,6 +1991,12 @@ function AccountDashboard({
             </button>
             <button onClick={onSignOut}>
               <ShieldCheck size={18} /> Sign out
+            </button>
+            <button onClick={onOpenProfile}>
+              <Medal size={18} /> Open public profile
+            </button>
+            <button onClick={onCopyProfileLink}>
+              <Link2 size={18} /> Copy profile link
             </button>
           </div>
           <div className="schema-note">

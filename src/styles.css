@@ -92,7 +92,7 @@ h3 {
   left: max(0px, calc((100vw - 1680px) / 2));
   width: 92px;
   display: grid;
-  grid-template-rows: auto repeat(7, auto) 1fr repeat(2, auto);
+  grid-template-rows: auto repeat(8, auto) 1fr repeat(2, auto);
   gap: 4px;
   padding: 18px 10px;
   border-right: 1px solid rgba(238, 247, 243, 0.12);
@@ -329,6 +329,7 @@ h3 {
 
 .tabs button,
 .actions button,
+.profile-actions button,
 .proof-panel button,
 .reveal-box button {
   display: inline-flex;
@@ -1284,7 +1285,8 @@ pre {
 }
 
 .modes,
-.account {
+.account,
+.public-profile {
   margin-top: 16px;
   border: 1px solid rgba(238, 247, 243, 0.13);
 }
@@ -1414,6 +1416,136 @@ pre {
   color: rgba(238, 247, 243, 0.62);
   font-size: 0.78rem;
   font-weight: 850;
+  text-transform: uppercase;
+}
+
+.public-profile {
+  display: grid;
+  gap: 16px;
+}
+
+.public-profile-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  min-height: 210px;
+  padding: 20px;
+  border: 1px solid rgba(238, 247, 243, 0.14);
+  background: rgba(3, 14, 14, 0.86);
+  background-size: cover;
+  background-position: center;
+}
+
+.public-profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.public-profile-identity h2 {
+  max-width: 720px;
+  margin-bottom: 8px;
+  color: #fff;
+  font-size: clamp(2rem, 5vw, 4.2rem);
+  line-height: 0.95;
+  overflow-wrap: anywhere;
+}
+
+.public-profile-identity h2::before {
+  display: none;
+}
+
+.public-profile-identity span {
+  color: rgba(238, 247, 243, 0.72);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.avatar.large {
+  width: 72px;
+  height: 72px;
+  flex: 0 0 auto;
+}
+
+.profile-actions {
+  flex: 0 0 auto;
+}
+
+.public-profile-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.public-profile-stats div,
+.profile-proof-url,
+.profile-records article {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(238, 247, 243, 0.12);
+  background: rgba(238, 247, 243, 0.07);
+}
+
+.public-profile-stats strong {
+  display: block;
+  color: #f1c94d;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  line-height: 1;
+}
+
+.public-profile-stats span,
+.profile-proof-url b,
+.profile-records span {
+  color: rgba(238, 247, 243, 0.62);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.profile-proof-url {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-records {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-records article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.profile-records strong,
+.profile-records span,
+.profile-records code {
+  display: block;
+  margin-top: 4px;
+}
+
+.profile-records strong {
+  color: #eef7f3;
+  text-transform: uppercase;
+}
+
+.profile-records button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 9px 12px;
+  border: 1px solid rgba(241, 201, 77, 0.26);
+  border-radius: 4px;
+  background: rgba(241, 201, 77, 0.1);
+  color: #f1c94d;
+  font-size: 0.78rem;
+  font-weight: 950;
   text-transform: uppercase;
 }
 
@@ -1581,6 +1713,7 @@ pre {
   .score-inputs,
   .match-list,
   .memory-stats,
+  .public-profile-stats,
   .lock-window,
   .intel-grid,
   .market-grid,
@@ -1606,8 +1739,18 @@ pre {
   .match-spotlight,
   .proof-card-top,
   .versus,
+  .public-profile-hero,
+  .public-profile-identity,
   .actions {
     flex-direction: column;
+  }
+
+  .profile-records article {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-records button {
+    width: 100%;
   }
 
   .tabs button {

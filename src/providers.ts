@@ -1,6 +1,14 @@
 import { seedMatches } from "./data/seedMatches";
 import { lookupFifaRanking } from "./data/fifaRankings";
-import type { DataCoverageItem, DataCoverageStatus, DataSource, Match, ProviderReadinessItem, ProviderResult } from "./types";
+import type {
+  DataCoverageItem,
+  DataCoverageStatus,
+  DataSource,
+  Match,
+  MatchIntelligenceScore,
+  ProviderReadinessItem,
+  ProviderResult,
+} from "./types";
 
 const ESPN_URL =
   "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=40";
@@ -112,6 +120,32 @@ const statusRank: Record<DataCoverageStatus, number> = {
   fallback: 2,
   configured: 3,
   live: 4,
+};
+
+const coverageWeights: Record<DataCoverageItem["key"], number> = {
+  schedule: 18,
+  score: 18,
+  rankings: 16,
+  lineups: 16,
+  injuries: 16,
+  odds: 16,
+};
+
+const coverageScore: Record<DataCoverageStatus, number> = {
+  live: 1,
+  configured: 0.78,
+  fallback: 0.52,
+  manual: 0.34,
+  missing: 0,
+};
+
+const coverageSuggestion: Record<DataCoverageItem["key"], string> = {
+  schedule: "Load a live schedule provider before treating this as production match data.",
+  score: "Keep live score polling active or expect manual reveal for this fixture.",
+  rankings: "Attach a ranking source so the agent can explain relative team strength.",
+  lineups: "Run enrichment close to kickoff or configure API-Football lineups.",
+  injuries: "Configure injury enrichment so unavailable players are not treated as speculation.",
+  odds: "Configure API-Football odds or The Odds API before using market picks as live signals.",
 };
 
 const bestCoverage = (matches: Match[], key: DataCoverageItem["key"]) => {
@@ -293,6 +327,53 @@ export const buildDataCoverage = (match: Match): DataCoverageItem[] => {
       detail: match.insights?.oddsSnapshot ?? match.insights?.marketLine ?? "No odds feed attached",
     },
   ];
+};
+
+export const buildMatchIntelligenceScore = (match: Match): MatchIntelligenceScore => {
+  const coverage = match.insights?.dataCoverage ?? buildDataCoverage(match);
+  const byKey = new Map(coverage.map((item) => [item.key, item]));
+  const total = Object.entries(coverageWeights).reduce((sum, [key, weight]) => {
+    const item = byKey.get(key as DataCoverageItem["key"]);
+    return sum + weight * coverageScore[item?.status ?? "missing"];
+  }, 0);
+  const score = Math.round(total);
+  const missing = coverage
+    .filter((item) => item.status === "missing" || item.status === "manual")
+    .map((item) => item.key);
+  const suggestions = missing.map((key) => coverageSuggestion[key]).slice(0, 3);
+  const liveOrConfigured = coverage.filter((item) => item.status === "live" || item.status === "configured").length;
+  const level: MatchIntelligenceScore["level"] =
+    score >= 84 && missing.length === 0
+      ? "live-ready"
+      : score >= 68 && liveOrConfigured >= 4
+        ? "configured"
+        : score >= 45
+          ? "thin"
+          : "manual-risk";
+  const label =
+    level === "live-ready"
+      ? "Live-ready"
+      : level === "configured"
+        ? "Configured"
+        : level === "thin"
+          ? "Thin intel"
+          : "Manual risk";
+  const detail =
+    level === "live-ready"
+      ? "Schedule, score and enrichment signals are strong enough for a production lock."
+      : level === "configured"
+        ? "Core match data is usable, with some enrichment still provider-dependent."
+        : level === "thin"
+          ? "The capsule can be locked, but several intelligence layers are fallback or manual."
+          : "Use as a demo or manual workflow until live data providers are configured.";
+  return {
+    score,
+    level,
+    label,
+    detail,
+    missing,
+    suggestions: suggestions.length > 0 ? suggestions : ["Data layers are sufficiently covered for this fixture."],
+  };
 };
 
 const applyRankingBaseline = (match: Match): Match => {

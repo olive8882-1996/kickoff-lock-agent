@@ -31,6 +31,15 @@ export type ProviderReadinessItem = {
   detail: string;
 };
 
+export type MatchIntelligenceScore = {
+  score: number;
+  level: "live-ready" | "configured" | "thin" | "manual-risk";
+  label: string;
+  detail: string;
+  missing: DataCoverageItem["key"][];
+  suggestions: string[];
+};
+
 export type MarketPick = {
   id: "winner" | "total-goals" | "both-score" | "first-goal";
   label: string;

@@ -8,6 +8,7 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".provider-readiness")).toContainText(/Schedule/i);
   await expect(page.locator(".provider-readiness")).toContainText(/Lineups/i);
   await expect(page.locator(".provider-readiness")).toContainText(/Odds/i);
+  await expect(page.locator(".match-card").first()).toContainText(/Intel/i);
   await expect(page.getByLabel("Live data sync status")).toContainText(/Last sync/i);
   await expect(page.getByLabel("Live data sync status")).toContainText(/Next auto/i);
   const mainNav = page.getByRole("navigation", { name: "Main views" });
@@ -44,6 +45,8 @@ test("expanded product workflow is usable", async ({ page }) => {
   await upcoming.click();
   await expect(page.locator(".coverage-grid")).toContainText(/Schedule/i);
   await expect(page.locator(".coverage-grid")).toContainText(/Rank signal/i);
+  await expect(page.getByLabel("Match intelligence score")).toContainText(/Intelligence score/i);
+  await expect(page.getByLabel("Intelligence action plan")).toContainText(/Action plan/i);
   await expect(page.locator(".intel-notes")).toContainText(/Ranking/i);
   await expect(page.locator(".intel-notes")).toContainText(/2026-06-11/i);
   await expect(page.locator(".coverage-grid")).toContainText(/Lineups/i);

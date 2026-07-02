@@ -61,7 +61,14 @@ import {
 import { filecoinSealConfigured, lookupFilecoinProof, runSealJob } from "./filecoinSeal";
 import { createGameModeRun, getModeReadiness } from "./modes";
 import { applyRealProof, createCapsule, stableJson } from "./proof";
-import { buildDataCoverage, buildProviderReadiness, enrichMatchWithDataProviders, loadMatchesWithFallback, sourceLabel } from "./providers";
+import {
+  buildDataCoverage,
+  buildMatchIntelligenceScore,
+  buildProviderReadiness,
+  enrichMatchWithDataProviders,
+  loadMatchesWithFallback,
+  sourceLabel,
+} from "./providers";
 import { scorePrediction } from "./scoring";
 import {
   buildProofShareText,
@@ -1212,6 +1219,7 @@ function App() {
             {filteredMatches.map((match) => {
               const record = records.find((item) => item.capsule.matchId === match.id);
               const state = statusText(match, record);
+              const intelScore = buildMatchIntelligenceScore(match);
               return (
                 <button
                   key={match.id}
@@ -1230,7 +1238,7 @@ function App() {
                   <span className={`status ${state}`}>{state}</span>
                   <strong>{matchLabel(match)}</strong>
                   <span>{match.stage} · {formatDate(match.kickoffAt)}</span>
-                  <span className="source">{sourceLabel(match.dataSource)}</span>
+                  <span className="source">{sourceLabel(match.dataSource)} · Intel {intelScore.score}</span>
                 </button>
               );
             })}
@@ -1574,6 +1582,7 @@ function ProviderReadiness({ items }: { items: ProviderReadinessItem[] }) {
 function MatchIntelligence({ match, onEnrich }: { match: Match; onEnrich: () => void }) {
   const insights = match.insights;
   const dataCoverage = insights?.dataCoverage ?? buildDataCoverage(match);
+  const intelScore = buildMatchIntelligenceScore(match);
   return (
     <div className="intel-panel">
       <div className="intel-head">
@@ -1586,6 +1595,16 @@ function MatchIntelligence({ match, onEnrich }: { match: Match; onEnrich: () => 
           <button onClick={onEnrich}>
             <Radar size={15} /> Enrich
           </button>
+        </div>
+      </div>
+      <div className={`intel-score intel-${intelScore.level}`} aria-label="Match intelligence score">
+        <div>
+          <span>Intelligence score</span>
+          <strong>{intelScore.score}/100</strong>
+        </div>
+        <div>
+          <span>{intelScore.label}</span>
+          <p>{intelScore.detail}</p>
         </div>
       </div>
       <div className="coverage-grid" aria-label="Data coverage">
@@ -1625,6 +1644,12 @@ function MatchIntelligence({ match, onEnrich }: { match: Match; onEnrich: () => 
             <p><b>Odds</b>{insights.oddsSnapshot ?? "Waiting for odds source"}</p>
             <p><b>Lineup</b>{insights.lineupSource ?? "Fallback lineup pack"}</p>
             <p><b>Injury</b>{insights.injurySource ?? "Fallback injury pack"}</p>
+          </div>
+          <div className="intel-actions-needed" aria-label="Intelligence action plan">
+            <strong>Action plan</strong>
+            {intelScore.suggestions.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
           </div>
         </>
       ) : (

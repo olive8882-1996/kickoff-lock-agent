@@ -672,6 +672,10 @@ h3 {
 
 .source {
   grid-column: 3;
+  max-width: 150px;
+  white-space: normal;
+  line-height: 1.25;
+  text-align: center;
   background: rgba(238, 247, 243, 0.14);
   color: rgba(238, 247, 243, 0.82);
 }
@@ -820,6 +824,56 @@ h3 {
   text-transform: uppercase;
 }
 
+.intel-score {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.5fr) minmax(0, 1.5fr);
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid rgba(238, 247, 243, 0.14);
+  background: rgba(238, 247, 243, 0.06);
+}
+
+.intel-score > div {
+  display: grid;
+  gap: 4px;
+}
+
+.intel-score span {
+  color: rgba(238, 247, 243, 0.66);
+  font-size: 0.68rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.intel-score strong {
+  color: #eef7f3;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.intel-score p {
+  margin: 0;
+  color: rgba(238, 247, 243, 0.68);
+  font-size: 0.76rem;
+}
+
+.intel-live-ready {
+  border-color: rgba(79, 211, 109, 0.34);
+}
+
+.intel-configured {
+  border-color: rgba(26, 166, 255, 0.34);
+}
+
+.intel-thin {
+  border-color: rgba(241, 201, 77, 0.34);
+}
+
+.intel-manual-risk {
+  border-color: rgba(255, 77, 64, 0.34);
+}
+
 .coverage-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -960,6 +1014,26 @@ h3 {
 .intel-notes b {
   flex: 0 0 58px;
   color: #22b9ff;
+}
+
+.intel-actions-needed {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(241, 201, 77, 0.22);
+  background: rgba(241, 201, 77, 0.08);
+}
+
+.intel-actions-needed strong {
+  color: #f1c94d;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.intel-actions-needed span {
+  color: rgba(238, 247, 243, 0.72);
+  font-size: 0.74rem;
 }
 
 .team-tile,
@@ -2450,6 +2524,7 @@ pre {
   .seal-steps article,
   .public-profile-stats,
   .lock-window,
+  .intel-score,
   .coverage-grid,
   .intel-grid,
   .market-grid,

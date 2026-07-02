@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { lookupFifaRanking } from "./data/fifaRankings";
 import {
   buildDataCoverage,
+  buildMatchIntelligenceScore,
   buildProviderReadiness,
   loadSeedMatches,
   mergeTheSportsDbEventDetails,
@@ -160,7 +161,7 @@ describe("provider metadata", () => {
   });
 
   it("marks missing live scores as manual reveal coverage", () => {
-    const coverage = buildDataCoverage({
+    const match: Match = {
       id: "espn-2",
       homeTeam: "Brazil",
       awayTeam: "Japan",
@@ -168,10 +169,14 @@ describe("provider metadata", () => {
       stage: "Round of 16",
       status: "upcoming",
       dataSource: "espn",
-    });
+    };
+    const coverage = buildDataCoverage(match);
+    const score = buildMatchIntelligenceScore(match);
     expect(coverage.find((item) => item.key === "schedule")?.status).toBe("live");
     expect(coverage.find((item) => item.key === "score")?.status).toBe("manual");
     expect(coverage.find((item) => item.key === "lineups")?.status).toBe("missing");
+    expect(score.level).toBe("manual-risk");
+    expect(score.suggestions.join(" ")).toContain("live score polling");
   });
 
   it("does not label placeholder odds text as live odds", () => {
@@ -260,8 +265,10 @@ describe("provider metadata", () => {
         awayTeam: "Austria",
         kickoffAt: "2099-07-02T20:00:00Z",
         stage: "Round of 16",
-        status: "upcoming",
+        status: "live",
         dataSource: "api-football",
+        homeScore: 2,
+        awayScore: 1,
         insights: {
           home: {
             fifaRank: 2,
@@ -324,5 +331,27 @@ describe("provider metadata", () => {
     expect(enriched.insights?.dataCoverage?.find((item) => item.key === "lineups")?.status).toBe("live");
     expect(enriched.insights?.dataCoverage?.find((item) => item.key === "injuries")?.status).toBe("live");
     expect(enriched.insights?.dataCoverage?.find((item) => item.key === "odds")?.status).toBe("live");
+    expect(buildMatchIntelligenceScore(enriched).level).toBe("live-ready");
+  });
+
+  it("scores configured but incomplete intelligence without hiding enrichment gaps", () => {
+    const match = normalizeFootballDataMatch({
+      id: 101,
+      utcDate: "2099-07-01T20:00:00Z",
+      status: "FINISHED",
+      stage: "GROUP_STAGE",
+      venue: "Arena",
+      homeTeam: { name: "Spain", shortName: "Spain" },
+      awayTeam: { name: "Austria", shortName: "Austria" },
+      score: { fullTime: { home: 1, away: 1 } },
+    });
+    const score = buildMatchIntelligenceScore(match);
+
+    expect(score.score).toBeGreaterThan(40);
+    expect(score.score).toBeLessThan(80);
+    expect(score.level).toBe("thin");
+    expect(score.missing).toContain("lineups");
+    expect(score.missing).toContain("odds");
+    expect(score.suggestions.join(" ")).toContain("API-Football lineups");
   });
 });

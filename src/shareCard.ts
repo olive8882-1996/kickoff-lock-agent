@@ -16,6 +16,10 @@ export type ShareCardPayload = {
   footer: string;
 };
 
+type ShareNavigator = Navigator & {
+  canShare?: (data: ShareData) => boolean;
+};
+
 export const buildShareCardPayload = (record: MemoryRecord, proofUrl: string): ShareCardPayload => {
   const { capsule, result } = record;
   return {
@@ -33,6 +37,30 @@ export const buildShareCardPayload = (record: MemoryRecord, proofUrl: string): S
     proofUrl,
     footer: "PUBLIC PROOF CARD · FILECOIN-STYLE CAPSULE · WORLD CUP PREDICTION MEMORY",
   };
+};
+
+export const buildProofShareText = (record: MemoryRecord, proofUrl = "") => {
+  const { capsule, result } = record;
+  const scoreText = result
+    ? `Actual ${result.homeScore}-${result.awayScore} · scored ${result.totalScore}/100`
+    : "Reveal pending";
+  const proofLabel = capsule.filecoinProof.mode === "real" ? "real Filecoin proof" : "demo proof";
+  return [
+    `I locked ${capsule.matchLabel} before kickoff: ${capsule.prediction.homeScore}-${capsule.prediction.awayScore}.`,
+    scoreText,
+    `${proofLabel}: ${capsule.filecoinProof.cid}`,
+    proofUrl ? `Verify: ${proofUrl}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+};
+
+export const buildXIntentUrl = (record: MemoryRecord, proofUrl: string) => {
+  const url = new URL("https://twitter.com/intent/tweet");
+  url.searchParams.set("text", buildProofShareText(record));
+  url.searchParams.set("url", proofUrl);
+  url.searchParams.set("hashtags", "KickoffLock,Filecoin,WorldCup");
+  return url.toString();
 };
 
 const loadImage = (src: string) =>
@@ -234,3 +262,12 @@ export const downloadDataUrl = (dataUrl: string, fileName: string) => {
   link.click();
   link.remove();
 };
+
+export const dataUrlToFile = async (dataUrl: string, fileName: string) => {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  return new File([blob], fileName, { type: blob.type || "image/png" });
+};
+
+export const canNativeShareFiles = (files: File[], nav: ShareNavigator = navigator as ShareNavigator) =>
+  Boolean(typeof nav.share === "function" && nav.canShare?.({ files }));

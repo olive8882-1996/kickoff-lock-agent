@@ -60,7 +60,14 @@ import { createGameModeRun, getModeReadiness } from "./modes";
 import { applyRealProof, createCapsule, stableJson } from "./proof";
 import { buildDataCoverage, buildProviderReadiness, enrichMatchWithDataProviders, loadMatchesWithFallback, sourceLabel } from "./providers";
 import { scorePrediction } from "./scoring";
-import { downloadDataUrl, generateShareCard } from "./shareCard";
+import {
+  buildProofShareText,
+  buildXIntentUrl,
+  canNativeShareFiles,
+  dataUrlToFile,
+  downloadDataUrl,
+  generateShareCard,
+} from "./shareCard";
 import type {
   AppView,
   BracketPath,
@@ -674,8 +681,7 @@ function App() {
 
   const copyShareText = async () => {
     if (!selectedRecord) return;
-    const result = selectedRecord.result;
-    const text = `Kickoff Lock Agent sealed my ${selectedRecord.capsule.matchLabel} prediction before kickoff.\nPrediction: ${selectedRecord.capsule.prediction.homeScore}-${selectedRecord.capsule.prediction.awayScore}${result ? `\nActual: ${result.homeScore}-${result.awayScore}\nScore: ${result.totalScore}/100` : ""}\nCID: ${selectedRecord.capsule.filecoinProof.cid}\n\n@Filecoin @FilecoinTLDR`;
+    const text = buildProofShareText(selectedRecord, proofUrl(selectedRecord.capsule.id));
     const copied = await copyToClipboard(text);
     setNotice(copied ? "Share text copied." : "Clipboard blocked. Share text is still visible in the proof payload.");
   };
@@ -839,16 +845,37 @@ function App() {
     await generateShareImageForRecord(selectedRecord, { download: true });
   };
 
-  const shareRecordToTwitter = (record: MemoryRecord) => {
-    const result = record.result;
-    const text = `I locked ${record.capsule.matchLabel} before kickoff: ${record.capsule.prediction.homeScore}-${record.capsule.prediction.awayScore}${result ? ` · scored ${result.totalScore}/100` : ""}. Proof: ${record.capsule.filecoinProof.cid}`;
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(proofUrl(record.capsule.id))}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+  const shareRecordToTwitter = async (record: MemoryRecord) => {
+    const publicUrl = proofUrl(record.capsule.id);
+    const text = buildProofShareText(record, publicUrl);
+    try {
+      if ("share" in navigator && "File" in window) {
+        const dataUrl = await generateShareCard(record, { proofUrl: publicUrl });
+        const file = await dataUrlToFile(dataUrl, `${record.capsule.id}-proof-card.png`);
+        if (canNativeShareFiles([file])) {
+          await navigator.share({
+            title: "Kickoff Lock proof card",
+            text,
+            url: publicUrl,
+            files: [file],
+          });
+          setNotice("Share sheet opened with proof image.");
+          return;
+        }
+      }
+    } catch (error) {
+      if ((error as Error).name === "AbortError") {
+        setNotice("Share cancelled.");
+        return;
+      }
+    }
+    window.open(buildXIntentUrl(record, publicUrl), "_blank", "noopener,noreferrer");
+    setNotice("X share window opened with the public proof URL.");
   };
 
   const shareToTwitter = () => {
     if (!selectedRecord) return;
-    shareRecordToTwitter(selectedRecord);
+    void shareRecordToTwitter(selectedRecord);
   };
 
   const queryFilecoinCid = async () => {

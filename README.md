@@ -177,6 +177,7 @@ limit 10;
 17. Public profile links can load synced proof history and tournament mode proof runs by `?profile=<user-id>`.
 18. Global, friend and season leaderboards expose rank, XP, revealed count, mode proof count, exact hits and real proof count, with backend readiness shown separately from local fallback.
 19. Share images can be generated from locked proof cards and include match, score, proof pattern, CID and public verifier URL.
+20. Share actions produce a public proof URL, CID-aware post text, X/Twitter intent fallback, and native image sharing when the browser supports file shares.
 
 ## Submission Notes
 

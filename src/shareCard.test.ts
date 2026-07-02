@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildShareCardPayload } from "./shareCard";
+import { buildProofShareText, buildShareCardPayload, buildXIntentUrl, canNativeShareFiles } from "./shareCard";
 import type { MemoryRecord } from "./types";
 
 const record: MemoryRecord = {
@@ -78,5 +78,32 @@ describe("share card payload", () => {
     expect(payload.actual).toBe("PENDING");
     expect(payload.score).toBe("PENDING");
     expect(payload.proofUrl).toContain("proof=cap-share");
+  });
+
+  it("builds public proof share text with score, CID and verifier URL", () => {
+    const text = buildProofShareText(record, "https://example.com/kickoff-lock-agent/?proof=cap-share");
+
+    expect(text).toContain("Spain vs Austria");
+    expect(text).toContain("Actual 2-1");
+    expect(text).toContain("scored 76/100");
+    expect(text).toContain("bafy-share-proof");
+    expect(text).toContain("Verify: https://example.com/kickoff-lock-agent/?proof=cap-share");
+  });
+
+  it("builds an X intent URL that carries the public proof URL and hashtags", () => {
+    const intent = new URL(buildXIntentUrl(record, "https://example.com/kickoff-lock-agent/?proof=cap-share"));
+
+    expect(intent.origin).toBe("https://twitter.com");
+    expect(intent.pathname).toBe("/intent/tweet");
+    expect(intent.searchParams.get("url")).toBe("https://example.com/kickoff-lock-agent/?proof=cap-share");
+    expect(intent.searchParams.get("text")).toContain("bafy-share-proof");
+    expect(intent.searchParams.get("hashtags")).toBe("KickoffLock,Filecoin,WorldCup");
+  });
+
+  it("detects native file sharing support before trying to share an image", () => {
+    const files = [{} as File];
+
+    expect(canNativeShareFiles(files, { share: async () => undefined, canShare: () => true } as Navigator)).toBe(true);
+    expect(canNativeShareFiles(files, { share: async () => undefined, canShare: () => false } as Navigator)).toBe(false);
   });
 });

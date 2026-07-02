@@ -1,6 +1,7 @@
 import type {
   CloudSyncState,
   LeaderboardEntry,
+  LeaderboardReadinessItem,
   LeaderboardScope,
   MemoryRecord,
   PublicProfile,
@@ -505,6 +506,46 @@ export const buildLocalLeaderboard = (
       seasonKey: currentSeasonKey,
       updatedAt: new Date().toISOString(),
       source: "local",
+    },
+  ];
+};
+
+export const buildLeaderboardReadiness = (
+  cloudState: CloudSyncState,
+  remoteEntries: LeaderboardEntry[],
+  profile: UserProfile,
+): LeaderboardReadinessItem[] => {
+  const remoteRows = remoteEntries.filter((entry) => entry.source !== "local");
+  const scopes: LeaderboardScope[] = ["global", "friend", "season"];
+  return [
+    {
+      key: "view",
+      label: "Supabase view",
+      passed: cloudState.configured,
+      detail: cloudState.configured ? "kickoff_leaderboard is configured for public reads" : "local preview only",
+    },
+    ...scopes.map((scope) => {
+      const scopeDetail =
+        scope === "friend"
+          ? `friend_code filter ready · ${friendCodeFor(profile)}`
+          : scope === "season"
+            ? `season_key filter ready · ${currentSeasonKey}`
+            : "global xp ranking ready";
+      return {
+        key: scope,
+        label: `${scope} scope`,
+        passed: cloudState.configured,
+        detail: cloudState.configured ? scopeDetail : "requires Supabase env vars",
+      } satisfies LeaderboardReadinessItem;
+    }),
+    {
+      key: "remoteRows",
+      label: "Remote rows",
+      passed: remoteRows.length > 0,
+      detail:
+        remoteRows.length > 0
+          ? `${remoteRows.length} Supabase leaderboard rows loaded`
+          : "showing local fallback row until cloud leaderboard returns data",
     },
   ];
 };

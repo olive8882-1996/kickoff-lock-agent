@@ -36,6 +36,7 @@ import {
 import {
   buildPublicProfile,
   buildLocalLeaderboard,
+  buildLeaderboardReadiness,
   consumeSupabaseHash,
   getCloudState,
   hydrateProfileFromAuth,
@@ -65,6 +66,7 @@ import type {
   GameMode,
   GameModeRun,
   LeaderboardEntry,
+  LeaderboardReadinessItem,
   LeaderboardScope,
   Match,
   MemoryRecord,
@@ -525,6 +527,7 @@ function App() {
     ...globalLeaderboard,
     ...localLeaderboard.filter((entry) => !remoteLeaderboardIds.has(entry.id)),
   ].sort((a, b) => b.xp - a.xp);
+  const leaderboardReadiness = buildLeaderboardReadiness(cloudState, globalLeaderboard, profile);
 
   const localRankIndex = leaderboardEntries.findIndex((entry) => entry.id === profile.id);
   const currentRank =
@@ -1242,6 +1245,7 @@ function App() {
           currentXp={currentXp}
           currentStreak={currentStreak}
           leaderboardEntries={leaderboardEntries}
+          leaderboardReadiness={leaderboardReadiness}
           leaderboardScope={leaderboardScope}
           cloudState={cloudState}
           onLeaderboardScope={changeLeaderboardScope}
@@ -1756,6 +1760,7 @@ function MemoryDashboard({
   currentXp,
   currentStreak,
   leaderboardEntries,
+  leaderboardReadiness,
   leaderboardScope,
   cloudState,
   onLeaderboardScope,
@@ -1767,6 +1772,7 @@ function MemoryDashboard({
   currentXp: number;
   currentStreak: number;
   leaderboardEntries: LeaderboardEntry[];
+  leaderboardReadiness: LeaderboardReadinessItem[];
   leaderboardScope: LeaderboardScope;
   cloudState: CloudSyncState;
   onLeaderboardScope: (scope: LeaderboardScope) => void;
@@ -1836,6 +1842,15 @@ function MemoryDashboard({
             <span>Proof source</span>
             <strong>{cloudState.configured ? "Supabase" : "local"}</strong>
           </div>
+        </div>
+        <div className="leaderboard-readiness" aria-label="Leaderboard backend readiness">
+          {leaderboardReadiness.map((item) => (
+            <div key={item.key} className={item.passed ? "passed" : ""}>
+              <CheckCircle2 size={15} />
+              <span>{item.label}</span>
+              <strong>{item.detail}</strong>
+            </div>
+          ))}
         </div>
         {leaderboard.length === 0 && <p>No leaderboard rows yet. Sync a revealed proof to populate this scope.</p>}
         {leaderboard.map((entry, index) => (

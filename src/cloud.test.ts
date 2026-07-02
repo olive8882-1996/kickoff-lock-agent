@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildLocalLeaderboard, buildPublicProfile, consumeSupabaseHash, isSupabaseSessionExpired, loadSupabaseSession, mergeMemoryRecords } from "./cloud";
-import type { MemoryRecord, UserProfile } from "./types";
+import { buildLeaderboardReadiness, buildLocalLeaderboard, buildPublicProfile, consumeSupabaseHash, isSupabaseSessionExpired, loadSupabaseSession, mergeMemoryRecords } from "./cloud";
+import type { CloudSyncState, LeaderboardEntry, MemoryRecord, UserProfile } from "./types";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -160,6 +160,56 @@ describe("local leaderboard", () => {
     expect(entry.verifiedProofs).toBe(0);
     expect(entry.friendCode).toBe("chengdu");
     expect(entry.source).toBe("local");
+  });
+
+  it("shows leaderboard backend readiness separately from local fallback rows", () => {
+    const cloudState: CloudSyncState = {
+      configured: true,
+      authenticated: false,
+      mode: "supabase",
+      status: "ready",
+      message: "ready",
+    };
+    const remoteEntry: LeaderboardEntry = {
+      id: "remote-user",
+      displayName: "Remote",
+      location: "Chengdu",
+      locks: 2,
+      revealed: 1,
+      averageScore: 80,
+      bestScore: 80,
+      xp: 320,
+      streak: 1,
+      exactHits: 0,
+      verifiedProofs: 1,
+      source: "global",
+    };
+
+    const readiness = buildLeaderboardReadiness(cloudState, [remoteEntry], profile);
+
+    expect(readiness.find((item) => item.key === "view")?.passed).toBe(true);
+    expect(readiness.find((item) => item.key === "global")?.detail).toContain("global xp ranking");
+    expect(readiness.find((item) => item.key === "friend")?.detail).toContain("chengdu");
+    expect(readiness.find((item) => item.key === "season")?.detail).toContain("world-cup-run");
+    expect(readiness.find((item) => item.key === "remoteRows")?.detail).toContain("1 Supabase");
+  });
+
+  it("keeps leaderboard readiness honest when only local fallback is available", () => {
+    const cloudState: CloudSyncState = {
+      configured: false,
+      authenticated: false,
+      mode: "local",
+      status: "offline",
+      message: "local",
+    };
+    const localEntry = buildLocalLeaderboard(profile, [record("local-only")])[0];
+
+    const readiness = buildLeaderboardReadiness(cloudState, [localEntry], profile);
+
+    expect(readiness.find((item) => item.key === "view")?.passed).toBe(false);
+    expect(readiness.find((item) => item.key === "global")?.detail).toContain("requires Supabase");
+    expect(readiness.find((item) => item.key === "remoteRows")?.passed).toBe(false);
+    expect(readiness.find((item) => item.key === "remoteRows")?.detail).toContain("local fallback");
   });
 
   it("counts winner streak from the latest revealed records", () => {

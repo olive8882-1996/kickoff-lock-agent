@@ -42,6 +42,9 @@ test("expanded product workflow is usable", async ({ page }) => {
 
   await page.getByRole("button", { name: /Memory/i }).last().click();
   await expect(page.locator(".leaderboard-summary")).toContainText(/Proof source/i);
+  await expect(page.locator(".leaderboard-readiness")).toContainText(/Supabase view/i);
+  await expect(page.locator(".leaderboard-readiness")).toContainText(/Remote rows/i);
+  await expect(page.locator(".leaderboard-readiness")).toContainText(/local fallback/i);
   await expect(page.locator(".leaderboard article")).toContainText(/locks/i);
   await expect(page.locator(".leaderboard article")).toContainText(/real proofs/i);
 

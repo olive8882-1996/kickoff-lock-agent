@@ -1533,6 +1533,47 @@ pre {
   text-transform: uppercase;
 }
 
+.leaderboard-readiness {
+  display: grid;
+  gap: 7px;
+}
+
+.leaderboard-readiness div {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 0.7fr) minmax(0, 1.2fr);
+  gap: 8px;
+  align-items: center;
+  padding: 9px;
+  border: 1px solid rgba(255, 91, 78, 0.22);
+  background: rgba(255, 91, 78, 0.07);
+}
+
+.leaderboard-readiness div.passed {
+  border-color: rgba(77, 217, 137, 0.26);
+  background: rgba(77, 217, 137, 0.07);
+}
+
+.leaderboard-readiness svg {
+  color: #ff9188;
+}
+
+.leaderboard-readiness div.passed svg {
+  color: #61d893;
+}
+
+.leaderboard-readiness span {
+  color: rgba(238, 247, 243, 0.72);
+  font-size: 0.7rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.leaderboard-readiness strong {
+  overflow-wrap: anywhere;
+  color: #eef7f3;
+  font-size: 0.74rem;
+}
+
 .leaderboard article {
   display: grid;
   grid-template-columns: 48px minmax(0, 0.8fr) minmax(260px, 1.4fr);
@@ -2387,6 +2428,7 @@ pre {
   .memory-stats,
   .leaderboard-summary,
   .leaderboard article,
+  .leaderboard-readiness div,
   .provider-readiness article,
   .cloud-checklist div,
   .seal-checklist div,

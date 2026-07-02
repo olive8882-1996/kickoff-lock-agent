@@ -209,6 +209,13 @@ export type LeaderboardEntry = {
   source: "local" | LeaderboardScope;
 };
 
+export type LeaderboardReadinessItem = {
+  key: "view" | "global" | "friend" | "season" | "remoteRows";
+  label: string;
+  passed: boolean;
+  detail: string;
+};
+
 export type BracketPick = {
   id: string;
   matchId: string;

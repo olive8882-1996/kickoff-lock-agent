@@ -68,6 +68,10 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /Tournament mode runs/i })).toBeVisible();
   await expect(page.getByText(/Bracket path sealed/i)).toBeVisible();
   await expect(page.getByText(/Prediction 0-1/i)).toBeVisible();
+  await page.locator(".profile-records").filter({ hasText: "Tournament mode runs" }).getByRole("button", { name: /Verify/i }).first().click();
+  await expect(page.getByRole("heading", { name: /Mode proof verification/i })).toBeVisible();
+  await expect(page.locator(".proof-facts")).toContainText(/Mode proof facts/i);
+  await expect(page.locator(".locked-payload")).toContainText(/modeRun/i);
 
   await page.getByRole("button", { name: /Auto seal to Filecoin/i }).click();
   await expect(page.getByText(/Auto seal status/i)).toBeVisible();

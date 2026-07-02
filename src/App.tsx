@@ -44,6 +44,7 @@ import {
   loadLeaderboard,
   loadProfile,
   loadModeRunsFromCloud,
+  loadPublicModeRun,
   loadPublicProfile,
   loadPublicRecord,
   loadRecordsFromCloud,
@@ -242,6 +243,13 @@ const profileUrl = (profileId: string) => {
   return url.toString();
 };
 
+const modeRunUrl = (runId: string) => {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.searchParams.set("mode", runId);
+  return url.toString();
+};
+
 const copyToClipboard = async (text: string) => {
   try {
     await navigator.clipboard.writeText(text);
@@ -386,6 +394,8 @@ function App() {
   const [publicShareImageUrl, setPublicShareImageUrl] = useState("");
   const [publicRecord, setPublicRecord] = useState<MemoryRecord | undefined>();
   const [publicProofStatus, setPublicProofStatus] = useState("");
+  const [publicModeRun, setPublicModeRun] = useState<GameModeRun | undefined>();
+  const [publicModeStatus, setPublicModeStatus] = useState("");
   const [cidLookupInput, setCidLookupInput] = useState("");
   const [cidLookupState, setCidLookupState] = useState<FilecoinLookupState>({
     status: "idle",
@@ -483,6 +493,17 @@ function App() {
     }
   };
 
+  const fetchPublicModeRun = async (runId: string) => {
+    setPublicModeStatus("Loading public mode proof from cloud...");
+    try {
+      const run = await loadPublicModeRun(runId);
+      setPublicModeRun(run);
+      setPublicModeStatus(run ? "Cloud mode proof loaded." : "No cloud mode proof found for this link.");
+    } catch (error) {
+      setPublicModeStatus((error as Error).message);
+    }
+  };
+
   const reconcileCloudHistory = async (
     nextProfile: typeof profile,
     localRecords: MemoryRecord[],
@@ -524,9 +545,13 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const proofId = params.get("proof");
     const profileId = params.get("profile");
+    const modeId = params.get("mode");
     if (proofId) {
       setView("verify");
       void fetchPublicProof(proofId);
+    } else if (modeId) {
+      setView("verify");
+      void fetchPublicModeRun(modeId);
     } else if (profileId) {
       setView("profile");
       void fetchPublicProfile(profileId);
@@ -931,6 +956,11 @@ function App() {
   const openProofView = () => {
     if (!selectedRecord) return;
     window.history.replaceState({}, "", `?proof=${selectedRecord.capsule.id}`);
+    setView("verify");
+  };
+
+  const openModeProofView = (runId: string) => {
+    window.history.replaceState({}, "", `?mode=${runId}`);
     setView("verify");
   };
 
@@ -1371,8 +1401,11 @@ function App() {
       {view === "verify" && (
         <VerifyDashboard
           records={records}
+          modeRuns={modeRuns}
           publicRecord={publicRecord}
           publicProofStatus={publicProofStatus}
+          publicModeRun={publicModeRun}
+          publicModeStatus={publicModeStatus}
           shareImageUrl={publicShareImageUrl}
           onShareImage={(record) => void generateShareImageForRecord(record, { publicPreview: true })}
           onTwitter={shareRecordToTwitter}
@@ -1406,6 +1439,7 @@ function App() {
             setView("verify");
             void fetchPublicProof(capsuleId);
           }}
+          onOpenModeProof={openModeProofView}
         />
       )}
 
@@ -2013,8 +2047,11 @@ function MemoryDashboard({
 
 function VerifyDashboard({
   records,
+  modeRuns,
   publicRecord,
   publicProofStatus,
+  publicModeRun,
+  publicModeStatus,
   shareImageUrl,
   onShareImage,
   onTwitter,
@@ -2025,8 +2062,11 @@ function VerifyDashboard({
   onCidLookup,
 }: {
   records: MemoryRecord[];
+  modeRuns: GameModeRun[];
   publicRecord?: MemoryRecord;
   publicProofStatus: string;
+  publicModeRun?: GameModeRun;
+  publicModeStatus: string;
   shareImageUrl: string;
   onShareImage: (record: MemoryRecord) => void;
   onTwitter: (record: MemoryRecord) => void;
@@ -2037,9 +2077,15 @@ function VerifyDashboard({
   onCidLookup: () => void;
 }) {
   const proofId = new URLSearchParams(window.location.search).get("proof");
+  const modeProofId = new URLSearchParams(window.location.search).get("mode");
+  const localModeRun = modeProofId ? modeRuns.find((run) => run.id === modeProofId) : undefined;
+  const modeRun = localModeRun ?? publicModeRun;
+  const modeProofSource = localModeRun ? "local device" : publicModeRun ? "cloud public mode proof" : "unresolved";
   const localRecord = proofId
     ? records.find((item) => item.capsule.id === proofId)
-    : records[0];
+    : modeProofId
+      ? undefined
+      : records[0];
   const record = localRecord ?? publicRecord;
   const proofSource = localRecord ? "local device" : publicRecord ? "cloud public record" : "unresolved";
   const match = record ? matches.find((item) => item.id === record.capsule.matchId) : undefined;
@@ -2068,11 +2114,92 @@ function VerifyDashboard({
       <div className="panel-head">
         <div>
           <p className="eyebrow">Public verifier</p>
-          <h2>Proof verification</h2>
+          <h2>{modeProofId ? "Mode proof verification" : "Proof verification"}</h2>
         </div>
-        <span className="pill">{record ? proofSource : "missing"}</span>
+        <span className="pill">{modeProofId ? modeProofSource : record ? proofSource : "missing"}</span>
       </div>
       {publicProofStatus && <div className="warning">{publicProofStatus}</div>}
+      {publicModeStatus && <div className="warning">{publicModeStatus}</div>}
+      {modeRun && (
+        <div
+          className="public-proof-hero"
+          style={imageLayer(
+            "proof-ticket.jpg",
+            "linear-gradient(90deg, rgba(3, 8, 10, 0.96) 0%, rgba(3, 8, 10, 0.82) 52%, rgba(3, 8, 10, 0.46) 100%)",
+          )}
+        >
+          <div className="public-proof-title">
+            <div className="proof-brand-mark">
+              <img src={assetUrl("kickoff-lock-icon.png")} alt="" />
+              <span>Kickoff Lock Agent</span>
+            </div>
+            <h3>{modeRun.title}</h3>
+            <p>{modeRun.summary}</p>
+          </div>
+          <div className="public-scoreline" aria-label="Public mode proof scoreline">
+            <div>
+              <span>Mode</span>
+              <strong>{modeRun.modeId}</strong>
+            </div>
+            <div>
+              <span>Status</span>
+              <strong>{modeRun.status}</strong>
+            </div>
+            <div>
+              <span>Score</span>
+              <strong>{modeRun.score !== undefined ? `${modeRun.score}/100` : "--"}</strong>
+            </div>
+          </div>
+          <div className="public-proof-rail">
+            <div>
+              <span>Public URL</span>
+              <code>{modeRunUrl(modeRun.id)}</code>
+            </div>
+            <div>
+              <span>Source</span>
+              <strong>{modeProofSource}</strong>
+            </div>
+            <div>
+              <span>CID</span>
+              <code>{modeRun.filecoinProof.cid}</code>
+            </div>
+            <div>
+              <span>Hash</span>
+              <code>{modeRun.payloadHash}</code>
+            </div>
+          </div>
+        </div>
+      )}
+      {modeRun && (
+        <div className="verify-grid">
+          <div className="verify-card proof-facts">
+            <h3>Mode proof facts</h3>
+            <p>{modeRun.requirements.join(" · ")}</p>
+            <ModeRunArtifact artifact={modeRun.artifact} />
+            <code>{modeRun.payloadHash}</code>
+            <code>{modeRun.filecoinProof.cid}</code>
+          </div>
+          <div className="verify-checks">
+            {[
+              { label: "Mode proof exists", passed: true },
+              { label: "Payload hash present", passed: modeRun.payloadHash.length >= 32 },
+              { label: "CID present", passed: modeRun.filecoinProof.cid.length > 12 },
+              { label: "Linked capsules present", passed: modeRun.capsuleIds.length > 0 },
+              { label: "Public source resolved", passed: modeProofSource !== "unresolved" },
+            ].map((check) => (
+              <article key={check.label}>
+                <CheckCircle2 size={18} />
+                <span>{check.label}</span>
+                <strong>{check.passed ? "Pass" : "Fail"}</strong>
+              </article>
+            ))}
+          </div>
+          <div className="verify-card locked-payload">
+            <h3>Mode payload</h3>
+            <pre>{stableJson({ modeRun })}</pre>
+          </div>
+        </div>
+      )}
       {record && (
         <div
           className="public-proof-hero"
@@ -2164,13 +2291,13 @@ function VerifyDashboard({
           </div>
         )}
       </div>
-      {!record ? (
+      {!record && !modeRun ? (
         <div className="empty">
           <ShieldCheck size={32} />
           <h2>No proof found</h2>
-          <p>Open a proof link from a locked capsule, or lock a prediction first.</p>
+          <p>Open a proof or mode proof link from a locked capsule, or lock a prediction first.</p>
         </div>
-      ) : (
+      ) : record ? (
         <div className="verify-grid">
           <div className="verify-card proof-facts">
             <h3>Proof facts</h3>
@@ -2208,7 +2335,7 @@ function VerifyDashboard({
             </div>
           )}
         </div>
-      )}
+      ) : null}
     </section>
   );
 }
@@ -2393,11 +2520,13 @@ function PublicProfileDashboard({
   status,
   onCopyProfileLink,
   onOpenProof,
+  onOpenModeProof,
 }: {
   profile: PublicProfile;
   status: string;
   onCopyProfileLink: (profileId: string) => void;
   onOpenProof: (capsuleId: string) => void;
+  onOpenModeProof: (runId: string) => void;
 }) {
   const latestRecords = profile.records.slice(0, 12);
   const latestModeRuns = profile.modeRuns.slice(0, 6);
@@ -2478,7 +2607,9 @@ function PublicProfileDashboard({
               <span>{run.summary}{run.score !== undefined ? ` · Score ${run.score}/100` : ""}</span>
               <code>{run.filecoinProof.cid}</code>
             </div>
-            <span className={`pill mode-${run.status === "scored" ? "playable" : "planned"}`}>{run.status}</span>
+            <button onClick={() => onOpenModeProof(run.id)}>
+              <ShieldCheck size={16} /> Verify
+            </button>
           </article>
         ))}
       </div>

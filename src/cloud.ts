@@ -477,6 +477,21 @@ export const loadPublicRecord = async (capsuleId: string): Promise<MemoryRecord 
   };
 };
 
+export const loadPublicModeRun = async (runId: string): Promise<GameModeRun | undefined> => {
+  if (!configured || !runId) return undefined;
+  const params = new URLSearchParams({
+    select: "mode_run",
+    id: `eq.${runId}`,
+    limit: "1",
+  });
+  const res = await fetch(restUrl(`kickoff_mode_runs?${params.toString()}`), {
+    headers: headers(loadSupabaseSession()),
+  });
+  if (!res.ok) throw new Error(`Public mode proof load failed: ${res.status}`);
+  const [row] = (await res.json()) as any[];
+  return row?.mode_run as GameModeRun | undefined;
+};
+
 export const buildPublicProfile = (
   profile: UserProfile,
   records: MemoryRecord[],

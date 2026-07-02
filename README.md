@@ -102,6 +102,7 @@ Key files:
 - `src/bracket.ts`: knockout path builder, bracket readiness rules, and bracket proof run sealing.
 - `src/modes.ts`: bracket/parlay/agent/upset mode proof runs, including parlay tickets, agent calibration reports and upset bonus tickets.
 - `src/readiness.ts`: production acceptance radar for real account sync, live data, Filecoin sealing, sharing, leaderboards, modes, and automated tests.
+- `src/acceptance.ts`: explicit acceptance test manifest covering scoring, proof hashes, cloud read-back, providers, share cards, Filecoin API, modes, browser E2E and seal E2E.
 - `scripts/seal-with-synapse.mjs`: real Synapse/Filecoin adapter.
 - `server/filecoin-seal-api.mjs`: one-click seal API and CID verification endpoints.
 
@@ -123,7 +124,10 @@ Test:
 ```bash
 bun run test
 bun run test:e2e
+bun run test:e2e:seal
 ```
+
+The Account view includes an "Acceptance tests" panel that maps each production requirement to the command and spec file that verifies it, so final review can check the test rule before trusting the readiness score.
 
 ## Cloud Backend
 

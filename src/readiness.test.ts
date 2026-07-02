@@ -119,6 +119,7 @@ describe("production readiness", () => {
     expect(items.find((item) => item.key === "account")?.level).toBe("blocked");
     expect(items.find((item) => item.key === "filecoin")?.level).toBe("blocked");
     expect(items.find((item) => item.key === "data")?.evidence).toContain("Seed");
+    expect(items.find((item) => item.key === "tests")?.evidence).toContain("coverage 9/9");
     expect(summarizeProductionReadiness(items).blocked).toBeGreaterThan(0);
   });
 

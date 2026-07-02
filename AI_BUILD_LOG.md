@@ -35,6 +35,8 @@ Cloud account validation now requires read-back proof. After profile/history/mod
 
 The generated Kickoff Lock trophy-lock logo was added as the shared brand asset for the hero lockup, proof pages, social card rendering, favicon, Open Graph/Twitter image, Apple touch icon, and PWA icon set.
 
+Automated-test acceptance was made explicit with a manifest-driven checklist. The Account view now lists every验收用例 with its command, spec file and covered requirement, and the production radar scores the automated-test category from that manifest instead of a vague static claim.
+
 ## Debugging Plan
 
 The final app should be checked through:

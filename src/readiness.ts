@@ -1,3 +1,4 @@
+import { ACCEPTANCE_TEST_SUITES, summarizeAcceptanceCoverage } from "./acceptance";
 import type {
   CloudSyncState,
   GameMode,
@@ -158,14 +159,7 @@ export const buildProductionReadiness = ({
   ];
   const modePassed = count(modeChecks);
 
-  const testChecks = [
-    true,
-    true,
-    true,
-    true,
-    records.some(hasPayloadHashMatch) || records.length === 0,
-  ];
-  const testPassed = count(testChecks);
+  const testCoverage = summarizeAcceptanceCoverage(ACCEPTANCE_TEST_SUITES);
 
   return [
     {
@@ -244,11 +238,13 @@ export const buildProductionReadiness = ({
     {
       key: "tests",
       label: "自动化测试",
-      level: levelFrom(testPassed, testChecks.length, false),
-      passed: testPassed,
-      total: testChecks.length,
-      evidence: "Unit, cloud, provider, share-card, Filecoin API and E2E specs are present in the repo.",
-      nextAction: "Run bun run test, bun run test:e2e and bun run test:e2e:seal before final submission.",
+      level: levelFrom(testCoverage.covered, testCoverage.total, false),
+      passed: testCoverage.covered,
+      total: testCoverage.total,
+      evidence: `${ACCEPTANCE_TEST_SUITES.length} suites · coverage ${testCoverage.covered}/${testCoverage.total}`,
+      nextAction: testCoverage.complete
+        ? "Run bun run test, bun run test:e2e and bun run test:e2e:seal before final submission."
+        : `Add coverage for ${testCoverage.missing.join(", ")}.`,
     },
   ];
 };

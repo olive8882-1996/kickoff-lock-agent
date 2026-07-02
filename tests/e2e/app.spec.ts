@@ -38,6 +38,9 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Production acceptance")).toContainText(/真实账号系统/i);
   await expect(page.getByLabel("Production acceptance")).toContainText(/真实 Filecoin 自动封存/i);
   await expect(page.getByLabel("Production acceptance")).toContainText(/排行榜后端/i);
+  await expect(page.getByLabel("Acceptance test cases")).toContainText(/验收用例与测试规则/i);
+  await expect(page.getByLabel("Acceptance test cases")).toContainText(/bun run test:e2e:seal/i);
+  await expect(page.getByLabel("Acceptance test cases")).toContainText(/Cloud account and read-back/i);
   await expect(page.locator(".cloud-status-grid")).toContainText(/Pending sync/i);
   await expect(page.getByRole("button", { name: /Continue with Google/i })).toBeVisible();
   await expect(page.getByText(/Pull cloud history/i)).toBeVisible();

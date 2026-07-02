@@ -33,6 +33,7 @@ import {
   createEmptyBracketPath,
   isBracketPathReady,
 } from "./bracket";
+import { ACCEPTANCE_TEST_SUITES } from "./acceptance";
 import {
   buildPublicProfile,
   buildCloudSyncAudit,
@@ -3067,6 +3068,7 @@ function AccountDashboard({
         </div>
       </div>
       <ProductionReadinessPanel items={productionReadiness} summary={productionSummary} />
+      <AcceptanceTestPanel />
     </section>
   );
 }
@@ -3116,6 +3118,33 @@ function ProductionReadinessPanel({
             <progress value={item.passed} max={item.total} />
             <small>{item.passed}/{item.total} · {item.evidence}</small>
             <p>{item.nextAction}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AcceptanceTestPanel() {
+  return (
+    <section className="acceptance-tests" aria-label="Acceptance test cases">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Acceptance tests</p>
+          <h3>验收用例与测试规则</h3>
+        </div>
+        <span className="pill">{ACCEPTANCE_TEST_SUITES.length} suites</span>
+      </div>
+      <div className="acceptance-test-grid">
+        {ACCEPTANCE_TEST_SUITES.map((suite) => (
+          <article key={suite.id}>
+            <div>
+              <CheckCircle2 size={17} />
+              <strong>{suite.label}</strong>
+            </div>
+            <code>{suite.command}</code>
+            <small>{suite.file}</small>
+            <p>{suite.proves}</p>
           </article>
         ))}
       </div>

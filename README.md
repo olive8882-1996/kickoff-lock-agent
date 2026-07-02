@@ -10,6 +10,8 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 - Reveal after the match with an actual score.
 - Get an explainable score and a shareable proof card.
 - Keep every revealed call in a tournament memory dashboard.
+- Sign in with Supabase magic links to sync profile, prediction history, public proof links, and global/friend/season leaderboards.
+- Create mode proof runs for bracket paths, parlays, Agent vs Human calibration, and upset challenges.
 
 ## Links
 
@@ -41,12 +43,29 @@ SYNAPSE_PRIVATE_KEY=0x... KICKOFF_CAPSULE_PATH=./proofs/demo-prediction-capsule.
 
 The generated proof JSON can be pasted into the app's "Import real proof JSON" panel.
 
+For one-click browser sealing, run the seal API on a trusted server and point the frontend at `POST /seal`:
+
+```bash
+SYNAPSE_PRIVATE_KEY=0x... ALLOW_ORIGIN=https://your-site.example bun run seal:api
+```
+
+Local smoke test without spending funds:
+
+```bash
+FILECOIN_SEAL_MOCK=1 bun run seal:api:mock
+```
+
+The API exposes `GET /health`, `POST /seal`, `GET /verify?cid=...`, and `GET /proof/:cid`. The frontend uploads the stable capsule payload, polls CID verification, and updates the proof workflow steps.
+
 Key files:
 
 - `src/proof.ts`: capsule hash, demo proof, real proof import.
 - `src/providers.ts`: ESPN/worldcup26/seed fallback.
 - `src/scoring.ts`: explainable scoring engine.
+- `src/cloud.ts`: Supabase auth, profile sync, public proof lookup, and leaderboard queries.
+- `src/modes.ts`: bracket/parlay/agent/upset mode proof runs.
 - `scripts/seal-with-synapse.mjs`: real Synapse/Filecoin adapter.
+- `server/filecoin-seal-api.mjs`: one-click seal API and CID verification endpoints.
 
 ## Run Locally
 
@@ -60,6 +79,25 @@ Build:
 ```bash
 bun run build
 ```
+
+Test:
+
+```bash
+bun run test
+bun run test:e2e
+```
+
+## Cloud Backend
+
+Create the tables and views in `supabase.schema.sql`, then set:
+
+```bash
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+VITE_SUPABASE_REDIRECT_URL=https://your-site.example/kickoff-lock-agent/
+```
+
+Public proof pages can load a capsule from Supabase by `?proof=<capsule-id>` when the record has been synced.
 
 ## Simple Acceptance Checklist
 

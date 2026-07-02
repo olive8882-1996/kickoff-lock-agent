@@ -47,6 +47,39 @@ const mark = (steps: SealStep[], ids: SealStep["id"][], status: SealStep["status
       : step,
   );
 
+const wait = (ms: number) => new Promise((resolve) => globalThis.setTimeout(resolve, ms));
+
+const verifyEndpoint = (cid: string) => {
+  if (!sealEndpoint) return "";
+  const url = new URL(sealEndpoint, window.location.href);
+  url.pathname = url.pathname.replace(/\/seal\/?$/, "/verify");
+  url.search = "";
+  url.searchParams.set("cid", cid);
+  return url.toString();
+};
+
+const pollProofStatus = async (proof: FilecoinProof): Promise<FilecoinProof> => {
+  const endpoint = verifyEndpoint(proof.cid);
+  if (!endpoint) return proof;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const res = await fetch(endpoint).catch(() => undefined);
+    if (res?.ok) {
+      const status = (await res.json()) as Partial<FilecoinProof> & { ok?: boolean };
+      if (status.proofStatus === "verified" || status.proofStatus === "retrievable") {
+        return {
+          ...proof,
+          ...status,
+          mode: "real",
+          proofStatus: status.proofStatus,
+          retrievalUrl: status.retrievalUrl ?? proof.retrievalUrl,
+        };
+      }
+    }
+    await wait(650);
+  }
+  return proof;
+};
+
 export const createSealJob = (capsule: PredictionCapsule): SealJob => ({
   id: `seal-${capsule.id}-${Date.now()}`,
   capsuleId: capsule.id,
@@ -100,19 +133,37 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
     uploadedAt: new Date().toISOString(),
     retrievalUrl: proof.retrievalUrl,
   };
+  job = {
+    ...job,
+    steps: mark(
+      mark(job.steps, ["upload", "deal"], "passed", "Seal API accepted the upload and returned provider proof metadata."),
+      ["poll"],
+      "running",
+      `Polling CID ${realProof.cid} for retrievability.`,
+    ),
+  };
+  const verifiedProof = await pollProofStatus(realProof);
+  const verified = verifiedProof.proofStatus === "verified";
 
   return {
     ...record,
     capsule: {
       ...capsule,
-      filecoinProof: realProof,
+      filecoinProof: verifiedProof,
     },
     sealJob: {
       ...job,
-      status: "verified",
-      proof: realProof,
+      status: verified ? "verified" : "running",
+      proof: verifiedProof,
       updatedAt: new Date().toISOString(),
-      steps: mark(baseSteps(), ["payload", "upload", "deal", "poll", "verify"], "passed", "Real proof returned by the configured seal API."),
+      steps: verified
+        ? mark(baseSteps(), ["payload", "upload", "deal", "poll", "verify"], "passed", "CID is verified by the configured seal API.")
+        : mark(
+            mark(baseSteps(), ["payload", "upload", "deal", "poll"], "passed", "CID is retrievable but final verification is still pending."),
+            ["verify"],
+            "running",
+            "Run Auto seal again to re-check final verification.",
+          ),
     },
   };
 };

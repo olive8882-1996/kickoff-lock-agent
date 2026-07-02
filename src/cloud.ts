@@ -1,4 +1,4 @@
-import type { CloudSyncState, LeaderboardEntry, MemoryRecord, UserProfile } from "./types";
+import type { CloudSyncState, LeaderboardEntry, LeaderboardScope, MemoryRecord, UserProfile } from "./types";
 
 const PROFILE_KEY = "kickoff-lock-agent-profile-v1";
 const SESSION_KEY = "kickoff-lock-agent-supabase-session-v1";
@@ -12,6 +12,16 @@ type SupabaseSession = {
   expires_at?: number;
 };
 
+type SupabaseUser = {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    avatar_url?: string;
+    full_name?: string;
+    name?: string;
+  };
+};
+
 const configured = Boolean(supabaseUrl && supabaseAnonKey);
 
 const headers = (session?: SupabaseSession) => ({
@@ -21,6 +31,15 @@ const headers = (session?: SupabaseSession) => ({
 });
 
 const restUrl = (path: string) => `${supabaseUrl}/rest/v1/${path}`;
+
+const friendCodeFor = (profile: UserProfile) =>
+  (profile.location || profile.email.split("@")[1] || "global")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "global";
+
+const currentSeasonKey = "world-cup-run";
 
 export const getCloudState = (): CloudSyncState => {
   const session = loadSupabaseSession();
@@ -85,6 +104,63 @@ export const consumeSupabaseHash = (): SupabaseSession | undefined => {
   return session;
 };
 
+export const loadCurrentUser = async (): Promise<SupabaseUser | undefined> => {
+  const session = loadSupabaseSession();
+  if (!configured || !session) return undefined;
+  const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: headers(session),
+  });
+  if (!res.ok) throw new Error(`Profile load failed: ${res.status}`);
+  return res.json();
+};
+
+export const hydrateProfileFromAuth = async (profile: UserProfile): Promise<UserProfile> => {
+  const user = await loadCurrentUser();
+  if (!user?.id) return profile;
+  const next: UserProfile = {
+    ...profile,
+    id: user.id,
+    email: user.email ?? profile.email,
+    displayName: user.user_metadata?.full_name ?? user.user_metadata?.name ?? profile.displayName,
+    avatarUrl: user.user_metadata?.avatar_url ?? profile.avatarUrl,
+    cloudMode: "supabase",
+  };
+  saveProfile(next);
+  return next;
+};
+
+export const syncProfileToCloud = async (profile: UserProfile) => {
+  const session = loadSupabaseSession();
+  if (!configured || !session) return;
+  const user = await loadCurrentUser();
+  const row = {
+    id: user?.id ?? profile.id,
+    email: user?.email ?? profile.email,
+    display_name: profile.displayName,
+    location: profile.location,
+    avatar_url: profile.avatarUrl ?? null,
+    friend_code: friendCodeFor(profile),
+    updated_at: new Date().toISOString(),
+  };
+  const res = await fetch(restUrl("kickoff_profiles?on_conflict=id"), {
+    method: "POST",
+    headers: { ...headers(session), Prefer: "resolution=merge-duplicates" },
+    body: JSON.stringify(row),
+  });
+  if (!res.ok) throw new Error(`Profile sync failed: ${res.status}`);
+};
+
+export const signOutCloud = async () => {
+  const session = loadSupabaseSession();
+  if (configured && session) {
+    await fetch(`${supabaseUrl}/auth/v1/logout`, {
+      method: "POST",
+      headers: headers(session),
+    }).catch(() => undefined);
+  }
+  localStorage.removeItem(SESSION_KEY);
+};
+
 export const sendMagicLink = async (email: string) => {
   if (!configured) throw new Error("Supabase is not configured.");
   const redirectTo = import.meta.env.VITE_SUPABASE_REDIRECT_URL ?? window.location.origin + import.meta.env.BASE_URL;
@@ -108,12 +184,16 @@ export const syncRecordsToCloud = async (profile: UserProfile, records: MemoryRe
       message: "Cloud sync skipped. Sign in with Supabase to sync records.",
     };
   }
+  const user = await loadCurrentUser();
+  await syncProfileToCloud(profile);
   const rows = records.map((record) => ({
     id: record.capsule.id,
-    user_id: profile.id,
-    email: profile.email,
+    user_id: user?.id ?? profile.id,
+    email: user?.email ?? profile.email,
     display_name: profile.displayName,
     location: profile.location,
+    friend_code: friendCodeFor(profile),
+    season_key: currentSeasonKey,
     capsule: record.capsule,
     result: record.result ?? null,
     seal_job: record.sealJob ?? null,
@@ -152,13 +232,42 @@ export const loadRecordsFromCloud = async (profile: UserProfile): Promise<Memory
   }));
 };
 
-export const loadGlobalLeaderboard = async (): Promise<LeaderboardEntry[]> => {
+export const loadPublicRecord = async (capsuleId: string): Promise<MemoryRecord | undefined> => {
+  if (!configured || !capsuleId) return undefined;
+  const params = new URLSearchParams({
+    select: "capsule,result,seal_job",
+    id: `eq.${capsuleId}`,
+    limit: "1",
+  });
+  const res = await fetch(restUrl(`kickoff_records?${params.toString()}`), {
+    headers: headers(loadSupabaseSession()),
+  });
+  if (!res.ok) throw new Error(`Public proof load failed: ${res.status}`);
+  const [row] = (await res.json()) as any[];
+  if (!row) return undefined;
+  return {
+    capsule: row.capsule,
+    result: row.result ?? undefined,
+    sealJob: row.seal_job ?? undefined,
+  };
+};
+
+export const loadLeaderboard = async (
+  scope: LeaderboardScope,
+  profile: UserProfile,
+): Promise<LeaderboardEntry[]> => {
   const session = loadSupabaseSession();
   if (!configured || !session) return [];
-  const res = await fetch(
-    restUrl("kickoff_leaderboard?select=*&order=xp.desc&limit=20"),
-    { headers: headers(session) },
-  );
+  const params = new URLSearchParams({
+    select: "*",
+    order: "xp.desc",
+    limit: "20",
+  });
+  if (scope === "friend") params.set("friend_code", `eq.${friendCodeFor(profile)}`);
+  if (scope === "season") params.set("season_key", `eq.${currentSeasonKey}`);
+  const res = await fetch(restUrl(`kickoff_leaderboard?${params.toString()}`), {
+    headers: headers(session),
+  });
   if (!res.ok) throw new Error(`Leaderboard load failed: ${res.status}`);
   const rows = (await res.json()) as any[];
   return rows.map((row) => ({
@@ -170,9 +279,13 @@ export const loadGlobalLeaderboard = async (): Promise<LeaderboardEntry[]> => {
     bestScore: Number(row.best_score ?? 0),
     xp: Number(row.xp ?? 0),
     streak: Number(row.streak ?? 0),
-    source: "global",
+    seasonKey: row.season_key ?? undefined,
+    friendCode: row.friend_code ?? undefined,
+    source: scope,
   }));
 };
+
+export const loadGlobalLeaderboard = () => loadLeaderboard("global", loadProfile());
 
 export const buildLocalLeaderboard = (
   profile: UserProfile,

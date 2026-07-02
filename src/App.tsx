@@ -31,14 +31,19 @@ import {
   buildLocalLeaderboard,
   consumeSupabaseHash,
   getCloudState,
-  loadGlobalLeaderboard,
+  hydrateProfileFromAuth,
+  loadLeaderboard,
   loadProfile,
+  loadPublicRecord,
   loadRecordsFromCloud,
   saveProfile,
   sendMagicLink,
+  signOutCloud,
   syncRecordsToCloud,
+  syncProfileToCloud,
 } from "./cloud";
 import { filecoinSealConfigured, runSealJob } from "./filecoinSeal";
+import { createGameModeRun, getModeReadiness } from "./modes";
 import { applyRealProof, createCapsule, stableJson } from "./proof";
 import { enrichMatchFromApiFootball, loadMatchesWithFallback, sourceLabel } from "./providers";
 import { scorePrediction } from "./scoring";
@@ -47,13 +52,16 @@ import type {
   AppView,
   CloudSyncState,
   GameMode,
+  GameModeRun,
   LeaderboardEntry,
+  LeaderboardScope,
   Match,
   MemoryRecord,
   PredictionDraft,
 } from "./types";
 
 const STORAGE_KEY = "kickoff-lock-agent-records-v1";
+const MODE_RUNS_KEY = "kickoff-lock-agent-mode-runs-v1";
 
 const gameModes: GameMode[] = [
   {
@@ -154,6 +162,18 @@ const loadRecords = (): MemoryRecord[] => {
 
 const saveRecords = (records: MemoryRecord[]) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+};
+
+const loadModeRuns = (): GameModeRun[] => {
+  try {
+    return JSON.parse(localStorage.getItem(MODE_RUNS_KEY) ?? "[]") as GameModeRun[];
+  } catch {
+    return [];
+  }
+};
+
+const saveModeRuns = (runs: GameModeRun[]) => {
+  localStorage.setItem(MODE_RUNS_KEY, JSON.stringify(runs));
 };
 
 const formatDate = (iso: string) =>
@@ -295,9 +315,11 @@ function App() {
   const [matchFilter, setMatchFilter] = useState<"all" | "live" | "today" | "upcoming">("all");
   const [view, setView] = useState<AppView>("matches");
   const [records, setRecords] = useState<MemoryRecord[]>(loadRecords);
+  const [modeRuns, setModeRuns] = useState<GameModeRun[]>(loadModeRuns);
   const [profile, setProfile] = useState(loadProfile);
   const [cloudState, setCloudState] = useState<CloudSyncState>(getCloudState);
   const [globalLeaderboard, setGlobalLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>("global");
   const [accountEmail, setAccountEmail] = useState(loadProfile().email);
   const [draft, setDraft] = useState<PredictionDraft>(defaultDraft);
   const [now, setNow] = useState(Date.now());
@@ -307,19 +329,21 @@ function App() {
   const [actualKeyPlayers, setActualKeyPlayers] = useState("");
   const [proofJson, setProofJson] = useState("");
   const [shareImageUrl, setShareImageUrl] = useState("");
+  const [publicRecord, setPublicRecord] = useState<MemoryRecord | undefined>();
+  const [publicProofStatus, setPublicProofStatus] = useState("");
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    void refreshMatches(false);
-    consumeSupabaseHash();
-    setCloudState(getCloudState());
-    const proofId = new URLSearchParams(window.location.search).get("proof");
-    if (proofId) setView("verify");
+    void bootstrapApp();
   }, []);
 
   useEffect(() => {
     saveRecords(records);
   }, [records]);
+
+  useEffect(() => {
+    saveModeRuns(modeRuns);
+  }, [modeRuns]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -336,6 +360,47 @@ function App() {
     setProviderSource(sourceLabel(result.source));
     setProviderWarning(result.warning ?? "");
     setSelectedMatchId((current) => current || sorted.find((match) => match.status === "upcoming")?.id || sorted[0]?.id || "");
+  };
+
+  const refreshLeaderboard = async (scope = leaderboardScope, nextProfile = profile) => {
+    try {
+      const remoteLeaderboard = await loadLeaderboard(scope, nextProfile);
+      setGlobalLeaderboard(remoteLeaderboard);
+    } catch (error) {
+      setNotice((error as Error).message);
+    }
+  };
+
+  const fetchPublicProof = async (capsuleId: string) => {
+    setPublicProofStatus("Loading public proof from cloud...");
+    try {
+      const record = await loadPublicRecord(capsuleId);
+      setPublicRecord(record);
+      setPublicProofStatus(record ? "Cloud proof loaded." : "No cloud proof found for this link.");
+    } catch (error) {
+      setPublicProofStatus((error as Error).message);
+    }
+  };
+
+  const bootstrapApp = async () => {
+    await refreshMatches(false);
+    const proofId = new URLSearchParams(window.location.search).get("proof");
+    if (proofId) {
+      setView("verify");
+      void fetchPublicProof(proofId);
+    }
+    const session = consumeSupabaseHash();
+    setCloudState(getCloudState());
+    if (!session) return;
+    try {
+      const nextProfile = await hydrateProfileFromAuth(loadProfile());
+      setProfile(nextProfile);
+      setAccountEmail(nextProfile.email);
+      setCloudState(getCloudState());
+      void refreshLeaderboard(leaderboardScope, nextProfile);
+    } catch (error) {
+      setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
+    }
   };
 
   const selectedMatch = matches.find((match) => match.id === selectedMatchId) ?? matches[0];
@@ -441,8 +506,7 @@ function App() {
     setCloudState({ ...getCloudState(), status: "syncing", message: "Syncing records to cloud..." });
     try {
       const result = await syncRecordsToCloud(profile, records);
-      const remoteLeaderboard = await loadGlobalLeaderboard();
-      setGlobalLeaderboard(remoteLeaderboard);
+      await refreshLeaderboard(leaderboardScope, profile);
       setCloudState({
         ...getCloudState(),
         status: result.status === "synced" ? "synced" : "offline",
@@ -493,6 +557,40 @@ function App() {
     setProfile(next);
     saveProfile(next);
     setNotice("Profile updated.");
+  };
+
+  const saveCloudProfile = async () => {
+    setCloudState({ ...getCloudState(), status: "syncing", message: "Saving cloud profile..." });
+    try {
+      await syncProfileToCloud(profile);
+      setCloudState({ ...getCloudState(), status: "synced", message: "Cloud profile saved.", lastSyncedAt: new Date().toISOString() });
+      setNotice("Cloud profile saved.");
+      void refreshLeaderboard(leaderboardScope, profile);
+    } catch (error) {
+      setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
+      setNotice((error as Error).message);
+    }
+  };
+
+  const signOut = async () => {
+    await signOutCloud();
+    setCloudState(getCloudState());
+    setNotice("Signed out of Supabase on this device.");
+  };
+
+  const changeLeaderboardScope = (scope: LeaderboardScope) => {
+    setLeaderboardScope(scope);
+    void refreshLeaderboard(scope, profile);
+  };
+
+  const createModeRun = async (mode: GameMode) => {
+    try {
+      const run = await createGameModeRun(mode, records);
+      setModeRuns((current) => [run, ...current.filter((item) => item.id !== run.id)]);
+      setNotice(`${mode.title} proof run created.`);
+    } catch (error) {
+      setNotice((error as Error).message);
+    }
   };
 
   const startFilecoinSeal = async () => {
@@ -920,15 +1018,34 @@ function App() {
       </section>
 
       {view === "memory" && (
-        <MemoryDashboard records={records} averageScore={averageScore} bestRecord={bestRecord} currentRank={currentRank} currentXp={currentXp} leaderboardEntries={leaderboardEntries} />
+        <MemoryDashboard
+          records={records}
+          averageScore={averageScore}
+          bestRecord={bestRecord}
+          currentRank={currentRank}
+          currentXp={currentXp}
+          leaderboardEntries={leaderboardEntries}
+          leaderboardScope={leaderboardScope}
+          onLeaderboardScope={changeLeaderboardScope}
+        />
       )}
 
       {view === "verify" && (
-        <VerifyDashboard records={records} matches={matches} />
+        <VerifyDashboard
+          records={records}
+          publicRecord={publicRecord}
+          publicProofStatus={publicProofStatus}
+          matches={matches}
+        />
       )}
 
       {view === "modes" && (
-        <ModesDashboard modes={gameModes} records={records} />
+        <ModesDashboard
+          modes={gameModes}
+          records={records}
+          modeRuns={modeRuns}
+          onCreateModeRun={createModeRun}
+        />
       )}
 
       {view === "account" && (
@@ -942,6 +1059,8 @@ function App() {
           onMagicLink={requestMagicLink}
           onSync={syncToCloud}
           onPull={pullCloudHistory}
+          onSaveProfile={saveCloudProfile}
+          onSignOut={signOut}
         />
       )}
     </main>
@@ -1315,6 +1434,8 @@ function MemoryDashboard({
   currentRank,
   currentXp,
   leaderboardEntries,
+  leaderboardScope,
+  onLeaderboardScope,
 }: {
   records: MemoryRecord[];
   averageScore: number;
@@ -1322,6 +1443,8 @@ function MemoryDashboard({
   currentRank: number;
   currentXp: number;
   leaderboardEntries: LeaderboardEntry[];
+  leaderboardScope: LeaderboardScope;
+  onLeaderboardScope: (scope: LeaderboardScope) => void;
 }) {
   const revealed = records.filter((record) => record.result);
   const streak = records.reduce((run, record) => {
@@ -1362,15 +1485,26 @@ function MemoryDashboard({
         <div className="panel-head">
           <div>
             <p className="eyebrow">Leaderboard</p>
-            <h3>Best proof cards</h3>
+            <h3>{leaderboardScope} proof cards</h3>
           </div>
           <Medal size={22} />
+        </div>
+        <div className="scope-switch" aria-label="Leaderboard scope">
+          {(["global", "friend", "season"] as const).map((scope) => (
+            <button
+              key={scope}
+              className={leaderboardScope === scope ? "active" : ""}
+              onClick={() => onLeaderboardScope(scope)}
+            >
+              {scope}
+            </button>
+          ))}
         </div>
         {leaderboard.length === 0 && <p>No revealed scores yet.</p>}
         {leaderboard.map((entry, index) => (
           <article key={entry.id}>
             <b>#{index + 1}</b>
-            <span>{entry.displayName} · {entry.location} · {entry.source}</span>
+            <span>{entry.displayName} · {entry.location} · {entry.source}{entry.friendCode ? ` · ${entry.friendCode}` : ""}</span>
             <strong>{entry.xp} XP</strong>
           </article>
         ))}
@@ -1394,11 +1528,23 @@ function MemoryDashboard({
   );
 }
 
-function VerifyDashboard({ records, matches }: { records: MemoryRecord[]; matches: Match[] }) {
+function VerifyDashboard({
+  records,
+  publicRecord,
+  publicProofStatus,
+  matches,
+}: {
+  records: MemoryRecord[];
+  publicRecord?: MemoryRecord;
+  publicProofStatus: string;
+  matches: Match[];
+}) {
   const proofId = new URLSearchParams(window.location.search).get("proof");
-  const record = proofId
+  const localRecord = proofId
     ? records.find((item) => item.capsule.id === proofId)
     : records[0];
+  const record = localRecord ?? publicRecord;
+  const proofSource = localRecord ? "local device" : publicRecord ? "cloud public record" : "unresolved";
   const match = record ? matches.find((item) => item.id === record.capsule.matchId) : undefined;
   const checks = record
     ? [
@@ -1406,7 +1552,8 @@ function VerifyDashboard({ records, matches }: { records: MemoryRecord[]; matche
         { label: "Payload hash present", passed: record.capsule.payloadHash.length >= 32 },
         { label: "CID present", passed: record.capsule.filecoinProof.cid.length > 12 },
         { label: "Sealed before kickoff", passed: !record.capsule.lateLock },
-        { label: "Match data resolved", passed: !!match },
+        { label: "Public source resolved", passed: proofSource !== "unresolved" },
+        { label: "Match data resolved", passed: !!match || proofSource === "cloud public record" },
       ]
     : [];
   return (
@@ -1416,8 +1563,9 @@ function VerifyDashboard({ records, matches }: { records: MemoryRecord[]; matche
           <p className="eyebrow">Public verifier</p>
           <h2>Proof verification</h2>
         </div>
-        <span className="pill">{record ? "resolved" : "missing"}</span>
+        <span className="pill">{record ? proofSource : "missing"}</span>
       </div>
+      {publicProofStatus && <div className="warning">{publicProofStatus}</div>}
       {!record ? (
         <div className="empty">
           <ShieldCheck size={32} />
@@ -1429,6 +1577,7 @@ function VerifyDashboard({ records, matches }: { records: MemoryRecord[]; matche
           <div className="verify-card">
             <h3>{record.capsule.matchLabel}</h3>
             <p>Prediction {record.capsule.prediction.homeScore}-{record.capsule.prediction.awayScore}</p>
+            {record.result && <p>Actual {record.result.homeScore}-{record.result.awayScore} · Score {record.result.totalScore}/100</p>}
             <code>{record.capsule.payloadHash}</code>
             <code>{record.capsule.filecoinProof.cid}</code>
           </div>
@@ -1451,7 +1600,17 @@ function VerifyDashboard({ records, matches }: { records: MemoryRecord[]; matche
   );
 }
 
-function ModesDashboard({ modes, records }: { modes: GameMode[]; records: MemoryRecord[] }) {
+function ModesDashboard({
+  modes,
+  records,
+  modeRuns,
+  onCreateModeRun,
+}: {
+  modes: GameMode[];
+  records: MemoryRecord[];
+  modeRuns: GameModeRun[];
+  onCreateModeRun: (mode: GameMode) => void;
+}) {
   const lockedCount = records.length;
   return (
     <section className="modes panel">
@@ -1463,25 +1622,50 @@ function ModesDashboard({ modes, records }: { modes: GameMode[]; records: Memory
         <span className="pill">{lockedCount} active locks</span>
       </div>
       <div className="mode-grid">
-        {modes.map((mode) => (
-          <article key={mode.id}>
-            <div className="mode-top">
-              <Flame size={20} />
-              <span className={`pill mode-${mode.status}`}>{mode.status}</span>
-            </div>
-            <h3>{mode.title}</h3>
-            <p>{mode.description}</p>
-            <div className="progress-track">
-              <span style={{ width: `${mode.progress}%` }} />
-            </div>
-            <b>{mode.progress}% productized</b>
-            <small>{mode.reward}</small>
-          </article>
-        ))}
+        {modes.map((mode) => {
+          const readiness = getModeReadiness(mode.id, records);
+          const runs = modeRuns.filter((run) => run.modeId === mode.id);
+          const productized = readiness.ready ? Math.max(mode.progress, 88) : mode.progress;
+          return (
+            <article key={mode.id}>
+              <div className="mode-top">
+                <Flame size={20} />
+                <span className={`pill mode-${readiness.ready ? "playable" : mode.status}`}>
+                  {readiness.ready ? "ready" : mode.status}
+                </span>
+              </div>
+              <h3>{mode.title}</h3>
+              <p>{mode.description}</p>
+              <div className="mode-requirements">
+                {readiness.requirements.map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </div>
+              <div className="progress-track">
+                <span style={{ width: `${productized}%` }} />
+              </div>
+              <b>{readiness.eligibleRecords.length} eligible capsule{readiness.eligibleRecords.length === 1 ? "" : "s"}</b>
+              <small>{readiness.nextAction}</small>
+              <button className="mode-create" disabled={!readiness.ready} onClick={() => onCreateModeRun(mode)}>
+                <FileCheck2 size={16} /> Create mode proof
+              </button>
+              {runs.length > 0 && (
+                <div className="mode-runs">
+                  {runs.slice(0, 2).map((run) => (
+                    <div key={run.id}>
+                      <strong>{run.status}{run.score !== undefined ? ` · ${run.score}/100` : ""}</strong>
+                      <code>{run.filecoinProof.cid}</code>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </article>
+          );
+        })}
       </div>
       <div className="mode-rules">
         <h3>Acceptance rule</h3>
-        <p>Each mode must create a sealed capsule, produce a score after reveal, and appear on the public leaderboard before it is marked complete.</p>
+        <p>Each mode now creates its own mode proof run with hash, CID, linked capsule ids and score when enough revealed records exist.</p>
       </div>
     </section>
   );
@@ -1497,6 +1681,8 @@ function AccountDashboard({
   onMagicLink,
   onSync,
   onPull,
+  onSaveProfile,
+  onSignOut,
 }: {
   profile: ReturnType<typeof loadProfile>;
   cloudState: CloudSyncState;
@@ -1507,6 +1693,8 @@ function AccountDashboard({
   onMagicLink: () => void;
   onSync: () => void;
   onPull: () => void;
+  onSaveProfile: () => void;
+  onSignOut: () => void;
 }) {
   return (
     <section className="account panel">
@@ -1519,7 +1707,7 @@ function AccountDashboard({
       </div>
       <div className="account-grid">
         <div className="profile-card">
-          <UserCircle2 size={42} />
+          {profile.avatarUrl ? <img className="avatar" src={profile.avatarUrl} alt="" /> : <UserCircle2 size={42} />}
           <label>
             <span>Display name</span>
             <input value={profile.displayName} onChange={(event) => onProfile({ displayName: event.target.value })} />
@@ -1532,6 +1720,10 @@ function AccountDashboard({
             <span>Location</span>
             <input value={profile.location} onChange={(event) => onProfile({ location: event.target.value })} />
           </label>
+          <div className="profile-meta">
+            <code>{profile.id}</code>
+            <span>{profile.cloudMode} profile</span>
+          </div>
         </div>
         <div className="cloud-card">
           <Cloud size={34} />
@@ -1551,9 +1743,16 @@ function AccountDashboard({
             <button onClick={onPull}>
               <Download size={18} /> Pull cloud history
             </button>
+            <button onClick={onSaveProfile}>
+              <UserCircle2 size={18} /> Save profile
+            </button>
+            <button onClick={onSignOut}>
+              <ShieldCheck size={18} /> Sign out
+            </button>
           </div>
           <div className="schema-note">
             <strong>Required backend tables</strong>
+            <code>kickoff_profiles</code>
             <code>kickoff_records</code>
             <code>kickoff_leaderboard</code>
           </div>

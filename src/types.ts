@@ -153,6 +153,8 @@ export type CloudSyncState = {
   lastSyncedAt?: string;
 };
 
+export type LeaderboardScope = "global" | "friend" | "season";
+
 export type LeaderboardEntry = {
   id: string;
   displayName: string;
@@ -162,7 +164,9 @@ export type LeaderboardEntry = {
   bestScore: number;
   xp: number;
   streak: number;
-  source: "local" | "global" | "friend";
+  seasonKey?: string;
+  friendCode?: string;
+  source: "local" | LeaderboardScope;
 };
 
 export type GameMode = {
@@ -172,6 +176,20 @@ export type GameMode = {
   description: string;
   progress: number;
   reward: string;
+};
+
+export type GameModeRun = {
+  id: string;
+  modeId: GameMode["id"];
+  title: string;
+  createdAt: string;
+  capsuleIds: string[];
+  payloadHash: string;
+  filecoinProof: FilecoinProof;
+  status: "sealed" | "scored";
+  score?: number;
+  summary: string;
+  requirements: string[];
 };
 
 export type ProviderResult = {

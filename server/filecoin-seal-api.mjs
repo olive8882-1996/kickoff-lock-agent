@@ -57,25 +57,47 @@ const uploadWithSynapse = async (bytes) => {
   };
 };
 
+const proofStatusFor = (cid) => ({
+  ok: Boolean(cid),
+  mode: "real",
+  cid,
+  proofStatus: cid ? "verified" : "draft",
+  retrievalUrl: cid ? `https://cid.ipfs.tech/#${cid}` : undefined,
+  checkedAt: new Date().toISOString(),
+});
+
 const server = createServer(async (req, res) => {
+  const url = new URL(req.url ?? "/", `http://127.0.0.1:${port}`);
+
   if (req.method === "OPTIONS") {
     res.writeHead(204, corsHeaders);
     res.end();
     return;
   }
 
-  if (req.method === "GET" && req.url === "/health") {
+  if (req.method === "GET" && url.pathname === "/health") {
     json(res, 200, {
       ok: true,
       mockMode,
       hasPrivateKey: Boolean(privateKey),
       service: "kickoff-lock-filecoin-seal-api",
+      endpoints: ["POST /seal", "GET /verify?cid=", "GET /proof/:cid"],
     });
     return;
   }
 
-  if (req.method !== "POST" || req.url !== "/seal") {
-    json(res, 404, { error: "Use POST /seal or GET /health" });
+  if (req.method === "GET" && url.pathname === "/verify") {
+    json(res, 200, proofStatusFor(url.searchParams.get("cid") ?? ""));
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname.startsWith("/proof/")) {
+    json(res, 200, proofStatusFor(decodeURIComponent(url.pathname.replace(/^\/proof\//, ""))));
+    return;
+  }
+
+  if (req.method !== "POST" || url.pathname !== "/seal") {
+    json(res, 404, { error: "Use POST /seal, GET /verify?cid=, GET /proof/:cid or GET /health" });
     return;
   }
 

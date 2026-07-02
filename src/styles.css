@@ -1210,6 +1210,29 @@ pre {
   background: rgba(3, 8, 10, 0.5);
 }
 
+.scope-switch {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.scope-switch button {
+  min-height: 34px;
+  border: 1px solid rgba(238, 247, 243, 0.12);
+  border-radius: 4px;
+  background: rgba(238, 247, 243, 0.07);
+  color: rgba(238, 247, 243, 0.72);
+  font-size: 0.76rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.scope-switch button.active {
+  border-color: rgba(241, 201, 77, 0.56);
+  background: rgba(241, 201, 77, 0.14);
+  color: #f1c94d;
+}
+
 .leaderboard article {
   display: grid;
   grid-template-columns: 48px 1fr auto;
@@ -1271,6 +1294,46 @@ pre {
   color: rgba(238, 247, 243, 0.72);
 }
 
+.mode-requirements,
+.mode-runs {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.mode-requirements span,
+.mode-runs div {
+  padding: 9px;
+  border: 1px solid rgba(238, 247, 243, 0.1);
+  border-radius: 4px;
+  background: rgba(3, 8, 10, 0.38);
+  color: rgba(238, 247, 243, 0.72);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.mode-create {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 38px;
+  margin-top: 12px;
+  border: 1px solid rgba(241, 201, 77, 0.3);
+  border-radius: 4px;
+  background: rgba(241, 201, 77, 0.12);
+  color: #f1c94d;
+  font-size: 0.8rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mode-runs strong,
+.mode-runs code {
+  display: block;
+}
+
 .progress-track {
   height: 8px;
   overflow: hidden;
@@ -1299,6 +1362,29 @@ pre {
 .cloud-card {
   display: grid;
   gap: 12px;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(241, 201, 77, 0.34);
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.profile-meta {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(238, 247, 243, 0.12);
+  background: rgba(3, 8, 10, 0.5);
+}
+
+.profile-meta span {
+  color: rgba(238, 247, 243, 0.62);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
 }
 
 .schema-note {

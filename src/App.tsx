@@ -1784,6 +1784,15 @@ function VerifyDashboard({
   const record = localRecord ?? publicRecord;
   const proofSource = localRecord ? "local device" : publicRecord ? "cloud public record" : "unresolved";
   const match = record ? matches.find((item) => item.id === record.capsule.matchId) : undefined;
+  const proofLabel = record?.capsule.filecoinProof.mode === "real" ? "Real Filecoin proof" : "Demo proof";
+  const sealLabel = record?.capsule.lateLock ? "Late practice lock" : "Sealed before kickoff";
+  const proofHeroStatus =
+    record?.capsule.filecoinProof.proofStatus === "retrievable"
+      ? "ready"
+      : record?.capsule.filecoinProof.proofStatus ?? "pending";
+  const resultLabel = record?.result
+    ? `Actual ${record.result.homeScore}-${record.result.awayScore} · Score ${record.result.totalScore}/100`
+    : "Reveal pending";
   const checks = record
     ? [
         { label: "Capsule exists", passed: true },
@@ -1804,6 +1813,60 @@ function VerifyDashboard({
         <span className="pill">{record ? proofSource : "missing"}</span>
       </div>
       {publicProofStatus && <div className="warning">{publicProofStatus}</div>}
+      {record && (
+        <div
+          className="public-proof-hero"
+          style={imageLayer(
+            "proof-ticket.jpg",
+            "linear-gradient(90deg, rgba(3, 8, 10, 0.96) 0%, rgba(3, 8, 10, 0.82) 52%, rgba(3, 8, 10, 0.46) 100%)",
+          )}
+        >
+          <div className="public-proof-title">
+            <div className="proof-brand-mark">
+              <img src={assetUrl("kickoff-lock-icon.png")} alt="" />
+              <span>Kickoff Lock Agent</span>
+            </div>
+            <h3>{record.capsule.matchLabel}</h3>
+            <p>{sealLabel} · {proofLabel} · {resultLabel}</p>
+          </div>
+          <div className="public-scoreline" aria-label="Public proof scoreline">
+            <div>
+              <span>Prediction</span>
+              <strong>{record.capsule.prediction.homeScore}-{record.capsule.prediction.awayScore}</strong>
+            </div>
+            <div>
+              <span>Actual</span>
+              <strong>{record.result ? `${record.result.homeScore}-${record.result.awayScore}` : "--"}</strong>
+            </div>
+            <div>
+              <span>Proof</span>
+              <strong>{proofHeroStatus}</strong>
+            </div>
+          </div>
+          <div className="public-proof-rail">
+            <div>
+              <span>Source</span>
+              <strong>{proofSource}</strong>
+            </div>
+            <div>
+              <span>CID</span>
+              <code>{record.capsule.filecoinProof.cid}</code>
+            </div>
+            <div>
+              <span>Hash</span>
+              <code>{record.capsule.payloadHash}</code>
+            </div>
+          </div>
+          <div className="proof-hero-actions">
+            <button onClick={() => onShareImage(record)}>
+              <ImageDown size={16} /> Generate public share image
+            </button>
+            <button onClick={() => onTwitter(record)}>
+              <Users size={16} /> Share proof to X
+            </button>
+          </div>
+        </div>
+      )}
       <div className="cid-lookup">
         <div>
           <p className="eyebrow">Filecoin CID lookup</p>
@@ -1845,20 +1908,13 @@ function VerifyDashboard({
         </div>
       ) : (
         <div className="verify-grid">
-          <div className="verify-card">
-            <h3>{record.capsule.matchLabel}</h3>
-            <p>Prediction {record.capsule.prediction.homeScore}-{record.capsule.prediction.awayScore}</p>
-            {record.result && <p>Actual {record.result.homeScore}-{record.result.awayScore} · Score {record.result.totalScore}/100</p>}
+          <div className="verify-card proof-facts">
+            <h3>Proof facts</h3>
+            <p>{sealLabel}</p>
+            <p>{proofLabel}</p>
+            <p>{resultLabel}</p>
             <code>{record.capsule.payloadHash}</code>
             <code>{record.capsule.filecoinProof.cid}</code>
-            <div className="verify-actions">
-              <button onClick={() => onShareImage(record)}>
-                <ImageDown size={16} /> Generate public share image
-              </button>
-              <button onClick={() => onTwitter(record)}>
-                <Users size={16} /> Share proof to X
-              </button>
-            </div>
           </div>
           <div className="verify-checks">
             {checks.map((check) => (
@@ -1869,7 +1925,7 @@ function VerifyDashboard({
               </article>
             ))}
           </div>
-          <div className="verify-card">
+          <div className="verify-card locked-payload">
             <h3>Locked payload</h3>
             <pre>{stableJson({ capsule: record.capsule, result: record.result, match })}</pre>
           </div>

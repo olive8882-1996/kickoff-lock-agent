@@ -105,6 +105,18 @@ export type SealStep = {
   detail: string;
 };
 
+export type SealBackendHealth = {
+  ok: boolean;
+  service?: string;
+  mockMode?: boolean;
+  hasPrivateKey?: boolean;
+  authRequired?: boolean;
+  proofCount?: number;
+  persistence?: "file" | "memory" | string;
+  maxUploadBytes?: number;
+  endpoints?: string[];
+};
+
 export type SealJob = {
   id: string;
   capsuleId: string;
@@ -113,6 +125,7 @@ export type SealJob = {
   updatedAt: string;
   endpoint?: string;
   healthStatus?: "unchecked" | "ready" | "failed";
+  backendHealth?: SealBackendHealth;
   proofUrl?: string;
   verifyUrl?: string;
   pollAttempts?: number;

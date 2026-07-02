@@ -64,6 +64,7 @@ For one-click browser sealing, run the seal API on a trusted server and point th
 SYNAPSE_PRIVATE_KEY=0x... \
 FILECOIN_PROOF_STORE_PATH=./proofs/filecoin-proof-store.json \
 FILECOIN_SEAL_TOKEN=change-me \
+FILECOIN_MAX_UPLOAD_BYTES=262144 \
 ALLOW_ORIGIN=https://your-site.example \
 bun run seal:api
 ```
@@ -82,8 +83,9 @@ End-to-end seal workflow test without spending funds:
 bun run test:e2e:seal
 ```
 
-The API exposes `GET /health`, `POST /seal`, `GET /verify?cid=...`, and `GET /proof/:cid`. Each successful seal is registered by CID with payload hash, byte length, provider metadata, and checked timestamps, so the verifier only reports proof metadata for CIDs sealed by that backend instance. Set `FILECOIN_PROOF_STORE_PATH` to persist that registry across server restarts; without it, the server falls back to memory-only mode for local demos. Set `FILECOIN_SEAL_TOKEN` to require a bearer token for browser upload requests while leaving public proof verification readable.
-The frontend runs a health preflight, uploads the stable capsule payload, polls CID verification, stores proof/verify URLs, and renders a Filecoin acceptance checklist for backend configuration, API health, upload acceptance, CID return, verification polling, and verifier URL readiness.
+The API exposes `GET /health`, `POST /seal`, `GET /verify?cid=...`, and `GET /proof/:cid`. Each successful seal is registered by CID with payload hash, byte length, provider metadata, and checked timestamps, so the verifier only reports proof metadata for CIDs sealed by that backend instance. Set `FILECOIN_PROOF_STORE_PATH` to persist that registry across server restarts; without it, the server falls back to memory-only mode for local demos. Set `FILECOIN_SEAL_TOKEN` to require a bearer token for browser upload requests while leaving public proof verification readable. Set `FILECOIN_MAX_UPLOAD_BYTES` to cap browser seal payload size; the API rejects invalid capsule JSON and oversized uploads before invoking Synapse.
+The frontend runs a health preflight, uploads the stable capsule payload, polls CID verification, stores proof/verify URLs, and renders a Filecoin acceptance checklist for backend configuration, API health, upload acceptance, CID return, verification polling, verifier URL readiness, backend mode, proof registry persistence, and upload token enforcement.
+The seal panel deliberately distinguishes mock smoke-test sealing from a production Synapse backend with `SYNAPSE_PRIVATE_KEY`, so demo verification cannot be mistaken for a funded Filecoin upload.
 The public verifier also includes a CID lookup panel that queries the configured seal API and displays proof status, PieceCID, provider, dataset, and retrieval URL.
 
 Key files:

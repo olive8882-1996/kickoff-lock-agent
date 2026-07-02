@@ -1,5 +1,13 @@
 import { stableJson } from "./proof";
-import type { FilecoinLookupState, FilecoinProof, MemoryRecord, PredictionCapsule, SealJob, SealStep } from "./types";
+import type {
+  FilecoinLookupState,
+  FilecoinProof,
+  MemoryRecord,
+  PredictionCapsule,
+  SealBackendHealth,
+  SealJob,
+  SealStep,
+} from "./types";
 
 const sealEndpoint = import.meta.env.VITE_FILECOIN_SEAL_API as string | undefined;
 const sealToken = import.meta.env.VITE_FILECOIN_SEAL_TOKEN as string | undefined;
@@ -229,13 +237,23 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
   if (!healthRes?.ok) {
     return failJob(record, job, "health", `Seal API health check failed${healthRes ? ` with ${healthRes.status}` : ""}.`);
   }
+  const backendHealth = (await healthRes.json().catch(() => ({ ok: true }))) as SealBackendHealth;
+  const backendMode = backendHealth.mockMode
+    ? "mock seal API"
+    : backendHealth.hasPrivateKey
+      ? "real Synapse seal API"
+      : "seal API missing SYNAPSE_PRIVATE_KEY";
+  const healthDetail = `${backendMode}; ${backendHealth.persistence ?? "unknown"} proof registry; ${
+    backendHealth.authRequired ? "token required" : "token not required"
+  }.`;
 
   job = {
     ...job,
     healthStatus: "ready",
+    backendHealth,
     updatedAt: new Date().toISOString(),
     steps: mark(
-      mark(job.steps, ["health"], "passed", "Seal API health check passed."),
+      mark(job.steps, ["health"], "passed", healthDetail),
       ["upload"],
       "running",
       "Uploading capsule payload to the configured seal API.",
@@ -289,6 +307,7 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
     sealJob: {
       ...job,
       status: verified ? "verified" : "running",
+      backendHealth,
       proof: verifiedProof,
       proofUrl,
       verifyUrl,
@@ -296,9 +315,14 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
       lastCheckedAt: pollResult.checkedAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       steps: verified
-        ? mark(baseSteps(), ["payload", "health", "upload", "deal", "poll", "verify"], "passed", "CID is verified by the configured seal API.")
+        ? mark(
+            mark(job.steps, ["poll"], "passed", `CID ${verifiedProof.cid} is retrievable.`),
+            ["verify"],
+            "passed",
+            "CID is verified by the configured seal API.",
+          )
         : mark(
-            mark(baseSteps(), ["payload", "health", "upload", "deal", "poll"], "passed", "CID is retrievable but final verification is still pending."),
+            mark(job.steps, ["poll"], "passed", "CID is retrievable but final verification is still pending."),
             ["verify"],
             "running",
             "Run Auto seal again to re-check final verification.",

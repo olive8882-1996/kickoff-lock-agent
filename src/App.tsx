@@ -1780,6 +1780,7 @@ function ProofPanel({
   const { capsule, result } = record;
   const uploadStep = record.sealJob?.steps.find((step) => step.id === "upload");
   const pollStep = record.sealJob?.steps.find((step) => step.id === "poll");
+  const backendHealth = record.sealJob?.backendHealth;
   const sealChecks = record.sealJob
     ? [
         {
@@ -1818,6 +1819,34 @@ function ProofPanel({
           label: "Verifier URL",
           detail: record.sealJob.verifyUrl ?? "waiting for CID",
           passed: Boolean(record.sealJob.verifyUrl),
+        },
+        {
+          label: "Backend mode",
+          detail: backendHealth
+            ? backendHealth.mockMode
+              ? "mock seal API for smoke tests"
+              : backendHealth.hasPrivateKey
+                ? "real Synapse backend"
+                : "private key missing"
+            : "waiting for health response",
+          passed: Boolean(backendHealth && !backendHealth.mockMode && backendHealth.hasPrivateKey),
+        },
+        {
+          label: "Proof registry",
+          detail: backendHealth
+            ? `${backendHealth.persistence ?? "unknown"} storage · ${backendHealth.proofCount ?? 0} registered`
+            : "waiting for health response",
+          passed: backendHealth?.persistence === "file",
+        },
+        {
+          label: "Upload auth",
+          detail: backendHealth ? (backendHealth.authRequired ? "bearer token required" : "token not required") : "waiting for health response",
+          passed: backendHealth?.authRequired === true,
+        },
+        {
+          label: "Upload limit",
+          detail: backendHealth?.maxUploadBytes ? `${Math.round(backendHealth.maxUploadBytes / 1024)} KB max` : "waiting for health response",
+          passed: Boolean(backendHealth?.maxUploadBytes),
         },
       ]
     : [];

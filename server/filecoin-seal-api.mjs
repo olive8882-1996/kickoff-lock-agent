@@ -9,6 +9,7 @@ const privateKey = process.env.SYNAPSE_PRIVATE_KEY;
 const mockMode = process.env.FILECOIN_SEAL_MOCK === "1";
 const proofStorePath = process.env.FILECOIN_PROOF_STORE_PATH;
 const sealToken = process.env.FILECOIN_SEAL_TOKEN;
+const maxUploadBytes = Number(process.env.FILECOIN_MAX_UPLOAD_BYTES || 262_144);
 const proofStore = new Map();
 
 const corsHeaders = {
@@ -22,11 +23,27 @@ const json = (res, status, body) => {
   res.end(JSON.stringify(body));
 };
 
-const readBody = (req) =>
+const readBody = (req, maxBytes = maxUploadBytes) =>
   new Promise((resolve, reject) => {
     const chunks = [];
-    req.on("data", (chunk) => chunks.push(chunk));
-    req.on("end", () => resolve(Buffer.concat(chunks)));
+    let total = 0;
+    let rejected = false;
+    req.on("data", (chunk) => {
+      if (rejected) return;
+      total += chunk.length;
+      if (total > maxBytes) {
+        rejected = true;
+        const error = new Error(`Capsule payload exceeds ${maxBytes} bytes`);
+        error.statusCode = 413;
+        reject(error);
+        req.resume();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", () => {
+      if (!rejected) resolve(Buffer.concat(chunks));
+    });
     req.on("error", reject);
   });
 
@@ -49,6 +66,25 @@ const pseudoProof = async (bytes) => {
     uploadedAt: new Date().toISOString(),
     retrievalUrl: `https://cid.ipfs.tech/#bafy-mock-${hex.slice(0, 46)}`,
   };
+};
+
+const validateSealPayload = (bytes) => {
+  let payload;
+  try {
+    payload = JSON.parse(bytes.toString("utf8"));
+  } catch {
+    return "Seal payload must be valid JSON.";
+  }
+  if (!payload || typeof payload !== "object" || !payload.capsule || typeof payload.capsule !== "object") {
+    return "Seal payload must include a capsule object.";
+  }
+  if (typeof payload.capsule.id !== "string" || payload.capsule.id.length === 0) {
+    return "Seal payload capsule.id is required.";
+  }
+  if (typeof payload.capsule.payloadHash !== "string" || payload.capsule.payloadHash.length < 32) {
+    return "Seal payload capsule.payloadHash is required.";
+  }
+  return "";
 };
 
 const uploadWithSynapse = async (bytes) => {
@@ -167,6 +203,7 @@ const server = createServer(async (req, res) => {
       service: "kickoff-lock-filecoin-seal-api",
       proofCount: proofStore.size,
       persistence: proofStorePath ? "file" : "memory",
+      maxUploadBytes,
       proofStorePath: proofStorePath ? "configured" : undefined,
       endpoints: ["POST /seal", "GET /verify?cid=", "GET /proof/:cid"],
     });
@@ -200,10 +237,15 @@ const server = createServer(async (req, res) => {
       json(res, 400, { error: "Empty capsule payload" });
       return;
     }
+    const invalidPayload = validateSealPayload(bytes);
+    if (invalidPayload) {
+      json(res, 400, { error: invalidPayload });
+      return;
+    }
     const proof = mockMode ? await pseudoProof(bytes) : await uploadWithSynapse(bytes);
     json(res, 200, await registerProof(proof, bytes));
   } catch (error) {
-    json(res, 500, { error: error.message });
+    json(res, error.statusCode ?? 500, { error: error.message });
   }
 });
 

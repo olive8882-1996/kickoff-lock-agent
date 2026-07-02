@@ -17,6 +17,14 @@ test("mock Filecoin seal flow verifies a real proof end to end", async ({ page }
   await expect(page.locator(".seal-checklist")).toContainText(/Health check/i);
   await expect(page.locator(".seal-checklist")).toContainText(/CID returned/i);
   await expect(page.locator(".seal-checklist")).toContainText(/Verifier URL/i);
+  await expect(page.locator(".seal-checklist")).toContainText(/Backend mode/i);
+  await expect(page.locator(".seal-checklist")).toContainText(/mock seal API/i);
+  await expect(page.locator(".seal-checklist")).toContainText(/Proof registry/i);
+  await expect(page.locator(".seal-checklist")).toContainText(/memory storage/i);
+  await expect(page.locator(".seal-checklist")).toContainText(/Upload auth/i);
+  await expect(page.locator(".seal-checklist")).toContainText(/token not required/i);
+  await expect(page.locator(".seal-checklist")).toContainText(/Upload limit/i);
+  await expect(page.locator(".seal-checklist")).toContainText(/256 KB max/i);
   await expect(page.locator(".seal-links")).toContainText(/Verify CID/i);
   const cid = await page.locator(".proof-lines p").filter({ hasText: /^CID/ }).locator("span").innerText();
   expect(cid).toContain("bafy-mock-");

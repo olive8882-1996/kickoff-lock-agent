@@ -103,7 +103,16 @@ describe("Filecoin seal workflow", () => {
         const url = String(input);
         calls.push({ url, method: init?.method ?? "GET", body: init?.body?.toString() });
         if (url === "https://seal.example/health") {
-          return jsonResponse({ ok: true, service: "kickoff-lock-filecoin-seal-api" });
+          return jsonResponse({
+            ok: true,
+            service: "kickoff-lock-filecoin-seal-api",
+            mockMode: false,
+            hasPrivateKey: true,
+            authRequired: true,
+            proofCount: 4,
+            persistence: "file",
+            maxUploadBytes: 262144,
+          });
         }
         if (url === "https://seal.example/seal") {
           return jsonResponse({
@@ -142,6 +151,13 @@ describe("Filecoin seal workflow", () => {
     expect(updated.capsule.filecoinProof.proofStatus).toBe("verified");
     expect(updated.sealJob?.status).toBe("verified");
     expect(updated.sealJob?.healthStatus).toBe("ready");
+    expect(updated.sealJob?.backendHealth?.mockMode).toBe(false);
+    expect(updated.sealJob?.backendHealth?.hasPrivateKey).toBe(true);
+    expect(updated.sealJob?.backendHealth?.authRequired).toBe(true);
+    expect(updated.sealJob?.backendHealth?.persistence).toBe("file");
+    expect(updated.sealJob?.backendHealth?.maxUploadBytes).toBe(262144);
+    expect(updated.sealJob?.steps.find((step) => step.id === "health")?.detail).toContain("real Synapse");
+    expect(updated.sealJob?.steps.find((step) => step.id === "health")?.detail).toContain("file proof registry");
     expect(updated.sealJob?.pollAttempts).toBe(1);
     expect(updated.sealJob?.lastCheckedAt).toBe("2099-01-01T00:00:00.000Z");
     expect(updated.sealJob?.proofUrl).toBe("https://seal.example/proof/bafy-real-1234567890");

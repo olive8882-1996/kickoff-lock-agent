@@ -44,16 +44,18 @@ const waitForHealth = async (baseUrl: string) => {
   throw new Error("Filecoin seal API did not become healthy");
 };
 
-const startServer = async (port: number, storePath: string, token?: string) => {
+const startServer = async (port: number, storePath: string, token?: string, maxUploadBytes?: number) => {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    FILECOIN_SEAL_MOCK: "1",
+    FILECOIN_PROOF_STORE_PATH: storePath,
+    FILECOIN_SEAL_TOKEN: token ?? "",
+    PORT: String(port),
+  };
+  if (maxUploadBytes) env.FILECOIN_MAX_UPLOAD_BYTES = String(maxUploadBytes);
   child = spawn("bun", ["server/filecoin-seal-api.mjs"], {
     cwd: process.cwd(),
-    env: {
-      ...process.env,
-      FILECOIN_SEAL_MOCK: "1",
-      FILECOIN_PROOF_STORE_PATH: storePath,
-      FILECOIN_SEAL_TOKEN: token ?? "",
-      PORT: String(port),
-    },
+    env,
     stdio: ["ignore", "pipe", "pipe"],
   });
   return waitForHealth(`http://127.0.0.1:${port}`);
@@ -73,11 +75,12 @@ describe("Filecoin seal API", () => {
     const storePath = join(tempDir, "proof-store.json");
     const port = await getPort();
     const baseUrl = `http://127.0.0.1:${port}`;
-    const payload = JSON.stringify({ capsule: { id: "cap-api-test" }, result: null });
+    const payload = JSON.stringify({ capsule: { id: "cap-api-test", payloadHash: "a".repeat(64) }, result: null });
     const payloadHash = createHash("sha256").update(payload).digest("hex");
 
     const initialHealth = await startServer(port, storePath);
     expect(initialHealth.persistence).toBe("file");
+    expect(initialHealth.maxUploadBytes).toBe(262_144);
     expect(initialHealth.proofCount).toBe(0);
 
     const sealRes = await fetch(`${baseUrl}/seal`, {
@@ -111,7 +114,7 @@ describe("Filecoin seal API", () => {
     const storePath = join(tempDir, "proof-store.json");
     const port = await getPort();
     const baseUrl = `http://127.0.0.1:${port}`;
-    const payload = JSON.stringify({ capsule: { id: "cap-api-auth-test" }, result: null });
+    const payload = JSON.stringify({ capsule: { id: "cap-api-auth-test", payloadHash: "b".repeat(64) }, result: null });
 
     const health = await startServer(port, storePath, "seal-secret");
     expect(health.authRequired).toBe(true);
@@ -134,5 +137,40 @@ describe("Filecoin seal API", () => {
     expect(authorized.ok).toBe(true);
     const proof = (await authorized.json()) as { cid: string };
     expect(proof.cid).toContain("bafy-mock-");
+  }, 15_000);
+
+  it("rejects invalid or oversized seal payloads before spending backend work", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "kickoff-filecoin-guard-"));
+    const storePath = join(tempDir, "proof-store.json");
+    const port = await getPort();
+    const baseUrl = `http://127.0.0.1:${port}`;
+
+    const health = await startServer(port, storePath, undefined, 96);
+    expect(health.maxUploadBytes).toBe(96);
+
+    const invalidJson = await fetch(`${baseUrl}/seal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{not-json",
+    });
+    expect(invalidJson.status).toBe(400);
+    await expect(invalidJson.json()).resolves.toMatchObject({ error: "Seal payload must be valid JSON." });
+
+    const invalidCapsule = await fetch(`${baseUrl}/seal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ capsule: { id: "missing-hash" }, result: null }),
+    });
+    expect(invalidCapsule.status).toBe(400);
+    await expect(invalidCapsule.json()).resolves.toMatchObject({
+      error: "Seal payload capsule.payloadHash is required.",
+    });
+
+    const oversized = await fetch(`${baseUrl}/seal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ capsule: { id: "too-large", payloadHash: "c".repeat(64), filler: "x".repeat(120) } }),
+    });
+    expect(oversized.status).toBe(413);
   }, 15_000);
 });

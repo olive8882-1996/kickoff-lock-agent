@@ -39,6 +39,26 @@ const headers = (session?: SupabaseSession) => ({
 
 const restUrl = (path: string) => `${supabaseUrl}/rest/v1/${path}`;
 
+export const isSupabaseSessionExpired = (
+  session: SupabaseSession | undefined,
+  skewSeconds = 60,
+  nowMs = Date.now(),
+) => Boolean(session?.expires_at && session.expires_at <= Math.floor(nowMs / 1000) + skewSeconds);
+
+const saveSupabaseSession = (session: SupabaseSession) => {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+};
+
+const normalizeSupabaseSession = (payload: any, fallbackRefreshToken?: string): SupabaseSession => ({
+  access_token: payload.access_token,
+  refresh_token: payload.refresh_token ?? fallbackRefreshToken,
+  expires_at: Number(payload.expires_at ?? 0)
+    ? Number(payload.expires_at)
+    : Number(payload.expires_in ?? 0)
+      ? Math.floor(Date.now() / 1000) + Number(payload.expires_in)
+      : undefined,
+});
+
 const friendCodeFor = (profile: UserProfile) =>
   (profile.location || profile.email.split("@")[1] || "global")
     .trim()
@@ -84,6 +104,8 @@ const scoreRecords = (records: MemoryRecord[]) => {
 
 export const getCloudState = (): CloudSyncState => {
   const session = loadSupabaseSession();
+  const sessionExpired = isSupabaseSessionExpired(session, 0);
+  const refreshable = Boolean(session?.refresh_token);
   if (!configured) {
     return {
       configured: false,
@@ -95,12 +117,19 @@ export const getCloudState = (): CloudSyncState => {
   }
   return {
     configured: true,
-    authenticated: Boolean(session?.access_token),
+    authenticated: Boolean(session?.access_token) && !sessionExpired,
     mode: "supabase",
-    status: session?.access_token ? "ready" : "offline",
+    status: session?.access_token && !sessionExpired ? "ready" : "offline",
     message: session?.access_token
-      ? "Supabase session ready. Records can sync across devices."
+      ? sessionExpired && refreshable
+        ? "Supabase session expired. It will refresh before the next cloud action."
+        : sessionExpired
+          ? "Supabase session expired. Send a new magic link to sign in."
+          : "Supabase session ready. Records can sync across devices."
       : "Supabase configured. Send a magic link to sign in.",
+    sessionExpiresAt: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : undefined,
+    sessionExpired,
+    refreshable,
   };
 };
 
@@ -129,25 +158,48 @@ export const loadSupabaseSession = (): SupabaseSession | undefined => {
   return undefined;
 };
 
+export const refreshSupabaseSession = async (): Promise<SupabaseSession | undefined> => {
+  const session = loadSupabaseSession();
+  if (!configured || !session) return session;
+  if (!isSupabaseSessionExpired(session) && session.access_token) return session;
+  if (!session.refresh_token) return session;
+  const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({ refresh_token: session.refresh_token }),
+  });
+  if (!res.ok) throw new Error(`Session refresh failed: ${res.status}`);
+  const nextSession = normalizeSupabaseSession(await res.json(), session.refresh_token);
+  saveSupabaseSession(nextSession);
+  return nextSession;
+};
+
+const requireFreshSession = async () => {
+  const session = await refreshSupabaseSession();
+  if (!configured || !session?.access_token || isSupabaseSessionExpired(session, 0)) {
+    throw new Error("Sign in with Supabase before using cloud sync.");
+  }
+  return session;
+};
+
 export const consumeSupabaseHash = (): SupabaseSession | undefined => {
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   const accessToken = hash.get("access_token");
   if (!accessToken) return loadSupabaseSession();
-  const session: SupabaseSession = {
+  const session = normalizeSupabaseSession({
     access_token: accessToken,
     refresh_token: hash.get("refresh_token") ?? undefined,
-    expires_at: Number(hash.get("expires_in") ?? 0)
-      ? Math.floor(Date.now() / 1000) + Number(hash.get("expires_in"))
-      : undefined,
-  };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    expires_in: hash.get("expires_in"),
+    expires_at: hash.get("expires_at"),
+  });
+  saveSupabaseSession(session);
   window.history.replaceState({}, "", window.location.pathname + window.location.search);
   return session;
 };
 
 export const loadCurrentUser = async (): Promise<SupabaseUser | undefined> => {
-  const session = loadSupabaseSession();
-  if (!configured || !session) return undefined;
+  if (!configured || !loadSupabaseSession()) return undefined;
+  const session = await requireFreshSession();
   const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
     headers: headers(session),
   });
@@ -171,8 +223,8 @@ export const hydrateProfileFromAuth = async (profile: UserProfile): Promise<User
 };
 
 export const syncProfileToCloud = async (profile: UserProfile) => {
-  const session = loadSupabaseSession();
-  if (!configured || !session) return;
+  if (!configured || !loadSupabaseSession()) return;
+  const session = await requireFreshSession();
   const user = await loadCurrentUser();
   const row = {
     id: user?.id ?? profile.id,
@@ -192,7 +244,7 @@ export const syncProfileToCloud = async (profile: UserProfile) => {
 };
 
 export const signOutCloud = async () => {
-  const session = loadSupabaseSession();
+  const session = await refreshSupabaseSession().catch(() => loadSupabaseSession());
   if (configured && session) {
     await fetch(`${supabaseUrl}/auth/v1/logout`, {
       method: "POST",
@@ -218,13 +270,13 @@ export const sendMagicLink = async (email: string) => {
 };
 
 export const syncRecordsToCloud = async (profile: UserProfile, records: MemoryRecord[]) => {
-  const session = loadSupabaseSession();
-  if (!configured || !session) {
+  if (!configured || !loadSupabaseSession()) {
     return {
       status: "offline" as const,
       message: "Cloud sync skipped. Sign in with Supabase to sync records.",
     };
   }
+  const session = await requireFreshSession();
   const user = await loadCurrentUser();
   await syncProfileToCloud(profile);
   const rows = records.map((record) => ({
@@ -283,8 +335,7 @@ export const mergeMemoryRecords = (localRecords: MemoryRecord[], cloudRecords: M
 };
 
 export const loadRecordsFromCloud = async (profile: UserProfile): Promise<MemoryRecord[]> => {
-  const session = loadSupabaseSession();
-  if (!configured || !session) throw new Error("Sign in with Supabase before pulling cloud records.");
+  const session = await requireFreshSession();
   const params = new URLSearchParams({
     select: "capsule,result,seal_job,updated_at",
     or: `(user_id.eq.${profile.id},email.eq.${profile.email})`,
@@ -403,7 +454,6 @@ export const loadLeaderboard = async (
   scope: LeaderboardScope,
   profile: UserProfile,
 ): Promise<LeaderboardEntry[]> => {
-  const session = loadSupabaseSession();
   if (!configured) return [];
   const params = new URLSearchParams({
     select: "*",
@@ -413,7 +463,7 @@ export const loadLeaderboard = async (
   if (scope === "friend") params.set("friend_code", `eq.${friendCodeFor(profile)}`);
   if (scope === "season") params.set("season_key", `eq.${currentSeasonKey}`);
   const res = await fetch(restUrl(`kickoff_leaderboard?${params.toString()}`), {
-    headers: headers(session),
+    headers: headers(await refreshSupabaseSession()),
   });
   if (!res.ok) throw new Error(`Leaderboard load failed: ${res.status}`);
   const rows = (await res.json()) as any[];

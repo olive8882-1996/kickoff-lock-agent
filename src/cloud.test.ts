@@ -1,6 +1,37 @@
-import { describe, expect, it } from "vitest";
-import { buildLocalLeaderboard, buildPublicProfile, mergeMemoryRecords } from "./cloud";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { buildLocalLeaderboard, buildPublicProfile, consumeSupabaseHash, isSupabaseSessionExpired, loadSupabaseSession, mergeMemoryRecords } from "./cloud";
 import type { MemoryRecord, UserProfile } from "./types";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+const stubBrowserStorage = (hash = "") => {
+  const store = new Map<string, string>();
+  let fakeWindow: {
+    location: { hash: string; pathname: string; search: string };
+    history: { replaceState: ReturnType<typeof vi.fn> };
+  };
+  fakeWindow = {
+    location: {
+      hash,
+      pathname: "/kickoff-lock-agent/",
+      search: "",
+    },
+    history: {
+      replaceState: vi.fn(() => {
+        fakeWindow.location.hash = "";
+      }),
+    },
+  };
+  vi.stubGlobal("window", fakeWindow);
+  vi.stubGlobal("localStorage", {
+    getItem: vi.fn((key: string) => store.get(key) ?? null),
+    setItem: vi.fn((key: string, value: string) => store.set(key, value)),
+    removeItem: vi.fn((key: string) => store.delete(key)),
+  });
+  return fakeWindow;
+};
 
 const profile: UserProfile = {
   id: "local-test",
@@ -46,6 +77,24 @@ const record = (id: string, patch: Partial<MemoryRecord> = {}): MemoryRecord => 
 });
 
 describe("local leaderboard", () => {
+  it("detects expired Supabase sessions with a refresh skew", () => {
+    expect(isSupabaseSessionExpired({ access_token: "token", expires_at: 100 }, 60, 50_000)).toBe(true);
+    expect(isSupabaseSessionExpired({ access_token: "token", expires_at: 500 }, 60, 50_000)).toBe(false);
+    expect(isSupabaseSessionExpired(undefined, 60, 50_000)).toBe(false);
+  });
+
+  it("stores Supabase callback hash sessions with expiry and refresh token", () => {
+    const fakeWindow = stubBrowserStorage("#access_token=abc&refresh_token=refresh-abc&expires_in=120");
+
+    const session = consumeSupabaseHash();
+    const saved = loadSupabaseSession();
+
+    expect(session?.access_token).toBe("abc");
+    expect(saved?.refresh_token).toBe("refresh-abc");
+    expect(saved?.expires_at).toBeGreaterThan(Math.floor(Date.now() / 1000));
+    expect(fakeWindow.location.hash).toBe("");
+  });
+
   it("builds an XP entry from local records", () => {
     const records: MemoryRecord[] = [
       {

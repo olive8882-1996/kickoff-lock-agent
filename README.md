@@ -123,7 +123,7 @@ VITE_ODDS_API_SPORT_KEY=...
 ```
 
 Public proof pages can load a capsule from Supabase by `?proof=<capsule-id>` when the record has been synced.
-After a Supabase magic-link sign-in, the app automatically pulls cloud history, merges it with local records, keeps the richest capsule version, and syncs the merged history back to Supabase.
+After a Supabase magic-link sign-in, the app stores the Supabase session, refreshes expired access tokens when a refresh token is available, automatically pulls cloud history, merges it with local records, keeps the richest capsule version, and syncs the merged history back to Supabase. The Account view includes a cloud acceptance checklist for env configuration, auth session, refresh token, cloud records and public profile readiness.
 The `kickoff_leaderboard` view is public-read and supports the app's global, friend-code and season filters. It returns rank, locks, revealed proof count, average score, best score, XP, current winner streak, exact-score hits, verified real Filecoin proofs, and the latest update time. The app can read this view with the anon key, so public leaderboards still render before the viewer signs in.
 
 Simple Supabase leaderboard acceptance query:

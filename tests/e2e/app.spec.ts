@@ -10,6 +10,9 @@ test("expanded product workflow is usable", async ({ page }) => {
   await page.getByRole("button", { name: /Account/i }).last().click();
   await expect(page.getByRole("heading", { name: /Profile sync center/i })).toBeVisible();
   await expect(page.locator(".cloud-status-grid")).toContainText(/Auto reconcile/i);
+  await expect(page.locator(".cloud-checklist")).toContainText(/Supabase env/i);
+  await expect(page.locator(".cloud-checklist")).toContainText(/Refresh token/i);
+  await expect(page.locator(".cloud-checklist")).toContainText(/Public profile/i);
   await expect(page.getByText(/Pull cloud history/i)).toBeVisible();
 
   await page.getByRole("button", { name: /Modes/i }).last().click();

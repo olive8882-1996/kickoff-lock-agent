@@ -1724,6 +1724,50 @@ pre {
   overflow-wrap: anywhere;
 }
 
+.cloud-checklist {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.cloud-checklist div {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 0.75fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid rgba(255, 77, 64, 0.18);
+  background: rgba(255, 77, 64, 0.06);
+}
+
+.cloud-checklist div.passed {
+  border-color: rgba(79, 211, 109, 0.22);
+  background: rgba(79, 211, 109, 0.06);
+}
+
+.cloud-checklist svg {
+  color: #ffb3ad;
+}
+
+.cloud-checklist div.passed svg {
+  color: #d8ffd9;
+}
+
+.cloud-checklist span {
+  color: rgba(238, 247, 243, 0.62);
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.cloud-checklist strong {
+  min-width: 0;
+  color: #eef7f3;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
 .mode-requirements,
 .mode-runs {
   display: grid;
@@ -2201,6 +2245,7 @@ pre {
   .memory-stats,
   .leaderboard-summary,
   .leaderboard article,
+  .cloud-checklist div,
   .public-profile-stats,
   .lock-window,
   .coverage-grid,

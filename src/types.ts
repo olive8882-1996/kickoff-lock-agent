@@ -170,6 +170,9 @@ export type CloudSyncState = {
   status: "offline" | "ready" | "syncing" | "synced" | "error";
   message: string;
   lastSyncedAt?: string;
+  sessionExpiresAt?: string;
+  sessionExpired?: boolean;
+  refreshable?: boolean;
 };
 
 export type LeaderboardScope = "global" | "friend" | "season";

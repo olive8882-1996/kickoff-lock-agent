@@ -2266,6 +2266,33 @@ function AccountDashboard({
   onOpenProfile: () => void;
   onCopyProfileLink: () => void;
 }) {
+  const cloudChecks = [
+    {
+      label: "Supabase env",
+      passed: cloudState.configured,
+      detail: cloudState.configured ? "configured" : "missing env vars",
+    },
+    {
+      label: "Auth session",
+      passed: cloudState.authenticated,
+      detail: cloudState.sessionExpired ? "expired" : cloudState.authenticated ? "active" : "not signed in",
+    },
+    {
+      label: "Refresh token",
+      passed: Boolean(cloudState.refreshable),
+      detail: cloudState.refreshable ? "auto refresh ready" : "magic link required",
+    },
+    {
+      label: "Cloud records",
+      passed: cloudState.authenticated && records.length > 0,
+      detail: records.length > 0 ? `${records.length} local record${records.length === 1 ? "" : "s"} ready` : "lock a prediction first",
+    },
+    {
+      label: "Public profile",
+      passed: profile.cloudMode === "supabase" && !profile.id.startsWith("local-"),
+      detail: profile.cloudMode === "supabase" ? profile.id : "local preview only",
+    },
+  ];
   return (
     <section className="account panel">
       <div className="panel-head">
@@ -2316,6 +2343,19 @@ function AccountDashboard({
               <span>Last synced</span>
               <strong>{cloudState.lastSyncedAt ? formatDate(cloudState.lastSyncedAt) : "not yet"}</strong>
             </div>
+            <div>
+              <span>Session expires</span>
+              <strong>{cloudState.sessionExpiresAt ? formatDate(cloudState.sessionExpiresAt) : "not set"}</strong>
+            </div>
+          </div>
+          <div className="cloud-checklist" aria-label="Cloud acceptance checks">
+            {cloudChecks.map((check) => (
+              <div key={check.label} className={check.passed ? "passed" : ""}>
+                <CheckCircle2 size={16} />
+                <span>{check.label}</span>
+                <strong>{check.detail}</strong>
+              </div>
+            ))}
           </div>
           <label>
             <span>Magic link email</span>

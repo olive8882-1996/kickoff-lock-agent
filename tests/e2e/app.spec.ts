@@ -63,6 +63,7 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /Proof verification/i })).toBeVisible();
   await expect(page.locator(".public-proof-hero")).toContainText(/Kickoff Lock Agent/i);
   await expect(page.locator(".public-proof-hero")).toContainText(/Prediction/i);
+  await expect(page.locator(".public-proof-rail")).toContainText(/Public URL/i);
   await expect(page.locator(".proof-facts")).toContainText(/Proof facts/i);
   await page.getByLabel("Filecoin CID").fill("bafy-kickoff-test");
   await page.getByRole("button", { name: /Query CID/i }).click();

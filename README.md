@@ -8,7 +8,7 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 - Ask the prediction agent to draft a scoreline, key players, confidence, and reasoning.
 - Lock the prediction into a read-only capsule with hash, timestamp, CID, PieceCID, and proof status.
 - Reveal after the match with an actual score.
-- Get an explainable score and a shareable proof card.
+- Get an explainable score and a generated 1200x675 social proof image with stadium artwork, CID, hash, proof status, and public verifier URL.
 - Keep every revealed call in a tournament memory dashboard.
 - Sign in with Supabase magic links to sync profile, prediction history, public proof links, and global/friend/season leaderboards.
 - Build a 4-pick knockout path in the bracket builder, then seal it as its own proof run.
@@ -154,7 +154,7 @@ limit 10;
 5. App shows CID/hash/timestamp/proof status.
 6. User can reveal with an actual score.
 7. App calculates and explains the score.
-8. Proof card is clear and shareable.
+8. Proof card is clear and shareable with a public URL.
 9. Memory dashboard records revealed predictions.
 10. ESPN failure falls back to worldcup26 or seed data.
 11. App works without API keys or Filecoin private key in demo mode.
@@ -165,7 +165,7 @@ limit 10;
 16. Supabase magic-link sign-in can sync profile and records across devices.
 17. Public profile links can load synced proof history by `?profile=<user-id>`.
 18. Global, friend and season leaderboards expose rank, XP, revealed count, exact hits and real proof count.
-19. Share images can be generated from locked proof cards.
+19. Share images can be generated from locked proof cards and include match, score, proof pattern, CID and public verifier URL.
 
 ## Submission Notes
 

@@ -1,13 +1,138 @@
 import type { MemoryRecord } from "./types";
 
-export const generateShareCard = async (record: MemoryRecord): Promise<string> => {
+export type ShareCardPayload = {
+  title: string;
+  subtitle: string;
+  matchLabel: string;
+  prediction: string;
+  actual: string;
+  score: string;
+  confidence: string;
+  proofMode: string;
+  proofStatus: string;
+  cid: string;
+  hash: string;
+  proofUrl: string;
+  footer: string;
+};
+
+export const buildShareCardPayload = (record: MemoryRecord, proofUrl: string): ShareCardPayload => {
+  const { capsule, result } = record;
+  return {
+    title: "KICKOFF LOCK AGENT",
+    subtitle: capsule.lateLock ? "LATE PRACTICE LOCK" : "LOCKED BEFORE KICKOFF",
+    matchLabel: capsule.matchLabel.toUpperCase(),
+    prediction: `${capsule.prediction.homeScore}-${capsule.prediction.awayScore}`,
+    actual: result ? `${result.homeScore}-${result.awayScore}` : "PENDING",
+    score: result ? `${result.totalScore}/100` : "PENDING",
+    confidence: `${capsule.prediction.confidence}% CONFIDENCE`,
+    proofMode: `${capsule.filecoinProof.mode.toUpperCase()} PROOF`,
+    proofStatus: capsule.filecoinProof.proofStatus.toUpperCase(),
+    cid: capsule.filecoinProof.cid,
+    hash: capsule.payloadHash,
+    proofUrl,
+    footer: "PUBLIC PROOF CARD · FILECOIN-STYLE CAPSULE · WORLD CUP PREDICTION MEMORY",
+  };
+};
+
+const loadImage = (src: string) =>
+  new Promise<HTMLImageElement | undefined>((resolve) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(undefined);
+    image.src = src;
+  });
+
+const drawImageCover = (
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) => {
+  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
+  const sw = width / scale;
+  const sh = height / scale;
+  const sx = (image.naturalWidth - sw) / 2;
+  const sy = (image.naturalHeight - sh) / 2;
+  ctx.drawImage(image, sx, sy, sw, sh, x, y, width, height);
+};
+
+const roundRect = (ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius = 10) => {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+};
+
+const drawWrappedText = (
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines = 2,
+) => {
+  const words = text.split(" ");
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (ctx.measureText(next).width <= maxWidth || current === "") {
+      current = next;
+    } else {
+      lines.push(current);
+      current = word;
+    }
+    if (lines.length === maxLines) break;
+  }
+  if (lines.length < maxLines && current) lines.push(current);
+  lines.slice(0, maxLines).forEach((line, index) => ctx.fillText(line, x, y + index * lineHeight));
+};
+
+const drawProofPattern = (ctx: CanvasRenderingContext2D, hash: string, x: number, y: number, size: number) => {
+  const cells = 9;
+  const gap = 3;
+  const cell = Math.floor((size - gap * (cells - 1)) / cells);
+  ctx.fillStyle = "rgba(238, 247, 243, 0.1)";
+  ctx.fillRect(x - 12, y - 12, size + 24, size + 24);
+  for (let row = 0; row < cells; row += 1) {
+    for (let col = 0; col < cells; col += 1) {
+      const index = (row * cells + col) % hash.length;
+      const active = Number.parseInt(hash[index] ?? "0", 16) % 2 === 0;
+      ctx.fillStyle = active ? "#eef7f3" : "rgba(238, 247, 243, 0.16)";
+      ctx.fillRect(x + col * (cell + gap), y + row * (cell + gap), cell, cell);
+    }
+  }
+};
+
+export const generateShareCard = async (
+  record: MemoryRecord,
+  options: { proofUrl?: string; assetBaseUrl?: string } = {},
+): Promise<string> => {
   const canvas = document.createElement("canvas");
   canvas.width = 1200;
   canvas.height = 675;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas is unavailable.");
 
-  const { capsule, result } = record;
+  const payload = buildShareCardPayload(record, options.proofUrl ?? "");
+  const assetBaseUrl = options.assetBaseUrl ?? `${import.meta.env.BASE_URL}assets/`;
+  const [stadium, icon] = await Promise.all([
+    loadImage(`${assetBaseUrl}stadium-hero.jpg`),
+    loadImage(`${assetBaseUrl}kickoff-lock-icon.png`),
+  ]);
+
   const gradient = ctx.createLinearGradient(0, 0, 1200, 675);
   gradient.addColorStop(0, "#061112");
   gradient.addColorStop(0.52, "#102d24");
@@ -15,7 +140,17 @@ export const generateShareCard = async (record: MemoryRecord): Promise<string> =
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 1200, 675);
 
-  ctx.fillStyle = "rgba(241, 201, 77, 0.16)";
+  if (stadium) {
+    drawImageCover(ctx, stadium, 0, 0, 1200, 675);
+    const shade = ctx.createLinearGradient(0, 0, 1200, 675);
+    shade.addColorStop(0, "rgba(3, 8, 10, 0.95)");
+    shade.addColorStop(0.56, "rgba(3, 8, 10, 0.72)");
+    shade.addColorStop(1, "rgba(3, 8, 10, 0.44)");
+    ctx.fillStyle = shade;
+    ctx.fillRect(0, 0, 1200, 675);
+  }
+
+  ctx.fillStyle = "rgba(241, 201, 77, 0.18)";
   ctx.fillRect(0, 0, 1200, 10);
   ctx.fillStyle = "#f1c94d";
   ctx.fillRect(0, 0, 480, 10);
@@ -24,40 +159,69 @@ export const generateShareCard = async (record: MemoryRecord): Promise<string> =
   ctx.fillStyle = "#1aa6ff";
   ctx.fillRect(800, 0, 400, 10);
 
+  if (icon) {
+    roundRect(ctx, 70, 54, 62, 62, 10);
+    ctx.fillStyle = "rgba(3, 8, 10, 0.72)";
+    ctx.fill();
+    ctx.drawImage(icon, 76, 60, 50, 50);
+  }
+
   ctx.fillStyle = "#eef7f3";
   ctx.font = "900 46px Inter, Arial, sans-serif";
-  ctx.fillText("KICKOFF LOCK AGENT", 70, 92);
+  ctx.fillText(payload.title, icon ? 150 : 70, 92);
   ctx.fillStyle = "#ff5b4e";
   ctx.font = "800 24px Inter, Arial, sans-serif";
-  ctx.fillText("LOCKED BEFORE KICKOFF", 70, 132);
+  ctx.fillText(payload.subtitle, icon ? 150 : 70, 132);
 
-  ctx.strokeStyle = "rgba(238, 247, 243, 0.22)";
+  roundRect(ctx, 70, 170, 690, 320, 14);
+  ctx.fillStyle = "rgba(3, 8, 10, 0.6)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(241, 201, 77, 0.34)";
   ctx.lineWidth = 2;
-  ctx.strokeRect(70, 172, 1060, 330);
+  ctx.stroke();
 
   ctx.fillStyle = "#f1c94d";
-  ctx.font = "900 58px Inter, Arial, sans-serif";
-  ctx.fillText(capsule.matchLabel.toUpperCase(), 104, 250);
+  ctx.font = "900 52px Inter, Arial, sans-serif";
+  drawWrappedText(ctx, payload.matchLabel, 104, 248, 600, 58, 2);
 
   ctx.fillStyle = "#eef7f3";
-  ctx.font = "900 104px Inter, Arial, sans-serif";
-  ctx.fillText(`${capsule.prediction.homeScore} - ${capsule.prediction.awayScore}`, 104, 382);
+  ctx.font = "900 112px Inter, Arial, sans-serif";
+  ctx.fillText(payload.prediction, 104, 390);
 
   ctx.fillStyle = "rgba(238, 247, 243, 0.72)";
   ctx.font = "700 26px Inter, Arial, sans-serif";
-  ctx.fillText(`Confidence ${capsule.prediction.confidence}%`, 106, 430);
-  ctx.fillText(result ? `Actual ${result.homeScore}-${result.awayScore} · Score ${result.totalScore}/100` : "Actual pending · Proof ready", 106, 470);
+  ctx.fillText(payload.confidence, 106, 438);
+  ctx.fillText(`ACTUAL ${payload.actual} · SCORE ${payload.score}`, 106, 474);
+
+  roundRect(ctx, 805, 170, 325, 320, 14);
+  ctx.fillStyle = "rgba(3, 8, 10, 0.68)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(238, 247, 243, 0.16)";
+  ctx.stroke();
+  drawProofPattern(ctx, payload.hash, 870, 215, 190);
+
+  ctx.fillStyle = payload.proofMode.includes("REAL") ? "#d8ffd9" : "#ffe8a8";
+  ctx.font = "900 27px Inter, Arial, sans-serif";
+  ctx.fillText(payload.proofMode, 840, 448);
+  ctx.fillText(payload.proofStatus, 840, 482);
+
+  roundRect(ctx, 70, 525, 1060, 94, 12);
+  ctx.fillStyle = "rgba(3, 8, 10, 0.72)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(238, 247, 243, 0.14)";
+  ctx.stroke();
 
   ctx.fillStyle = "rgba(238, 247, 243, 0.9)";
-  ctx.font = "700 22px Inter, Arial, sans-serif";
-  const cid = capsule.filecoinProof.cid;
-  ctx.fillText(`CID ${cid.slice(0, 48)}`, 70, 574);
-  ctx.fillText(`${cid.slice(48)}`, 70, 606);
+  ctx.font = "800 20px Inter, Arial, sans-serif";
+  ctx.fillText(`CID ${payload.cid.slice(0, 66)}`, 96, 562);
+  ctx.fillStyle = "rgba(238, 247, 243, 0.66)";
+  ctx.font = "700 18px Inter, Arial, sans-serif";
+  const proofUrlText = payload.proofUrl || "Open the public verifier from the proof panel";
+  ctx.fillText(`VERIFY ${proofUrlText.slice(0, 88)}`, 96, 595);
 
-  ctx.fillStyle = capsule.filecoinProof.mode === "real" ? "#d8ffd9" : "#ffe8a8";
-  ctx.font = "900 28px Inter, Arial, sans-serif";
-  ctx.fillText(`${capsule.filecoinProof.mode.toUpperCase()} PROOF`, 870, 574);
-  ctx.fillText(capsule.filecoinProof.proofStatus.toUpperCase(), 870, 612);
+  ctx.fillStyle = "#f1c94d";
+  ctx.font = "900 15px Inter, Arial, sans-serif";
+  ctx.fillText(payload.footer, 70, 652);
 
   return canvas.toDataURL("image/png");
 };

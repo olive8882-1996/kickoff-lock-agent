@@ -777,7 +777,7 @@ function App() {
     record: MemoryRecord,
     options: { download?: boolean; publicPreview?: boolean } = {},
   ) => {
-    const dataUrl = await generateShareCard(record);
+    const dataUrl = await generateShareCard(record, { proofUrl: proofUrl(record.capsule.id) });
     if (options.publicPreview) setPublicShareImageUrl(dataUrl);
     else setShareImageUrl(dataUrl);
     if (options.download) downloadDataUrl(dataUrl, `${record.capsule.id}-share-card.png`);
@@ -1918,6 +1918,7 @@ function VerifyDashboard({
   const resultLabel = record?.result
     ? `Actual ${record.result.homeScore}-${record.result.awayScore} · Score ${record.result.totalScore}/100`
     : "Reveal pending";
+  const publicUrl = record ? proofUrl(record.capsule.id) : "";
   const checks = record
     ? [
         { label: "Capsule exists", passed: true },
@@ -1969,6 +1970,10 @@ function VerifyDashboard({
             </div>
           </div>
           <div className="public-proof-rail">
+            <div>
+              <span>Public URL</span>
+              <code>{publicUrl}</code>
+            </div>
             <div>
               <span>Source</span>
               <strong>{proofSource}</strong>

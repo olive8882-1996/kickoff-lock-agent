@@ -25,6 +25,8 @@ The app was structured around simple verifiable states:
 
 Demo mode is intentionally explicit so judges can distinguish product simulation from a real Synapse upload. A real Synapse adapter is included for funded-key operation.
 
+The tournament modes were expanded beyond status cards with a knockout path builder. The builder creates four editable advancement picks from live/upcoming matches, saves the draft locally, and seals the full bracket path into a standalone mode proof run with hash and CID.
+
 ## Debugging Plan
 
 The final app should be checked through:

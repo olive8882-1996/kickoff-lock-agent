@@ -8,6 +8,8 @@ An AI agent that seals World Cup predictions before kickoff, reveals them after 
 
 The user picks a match, lets the prediction agent create a scoreline and reasoning, then locks the prediction. The locked capsule becomes read-only and shows hash, timestamp, CID, PieceCID, provider, dataset, and proof status. After the match, the user imports or manually enters the final score, and the agent explains how well the prediction performed.
 
+Tournament mode now includes a real knockout path builder: users choose four advancing teams, tune confidence and notes, then seal the path into a bracket proof run with hash and CID.
+
 ## Filecoin Usage
 
 Kickoff Lock uses Filecoin as the trust and memory layer:
@@ -37,6 +39,7 @@ Demo mode is clearly labeled. The repo also includes `scripts/seal-with-synapse.
 - [ ] User can reveal with an actual score.
 - [ ] App calculates and explains the score.
 - [ ] Proof card is clear and shareable.
+- [ ] User can seal a bracket path proof with four knockout picks.
 - [ ] Memory dashboard records revealed predictions.
 - [ ] ESPN failure falls back to worldcup26 or seed data.
 - [ ] App works without API keys or Filecoin private key in demo mode.

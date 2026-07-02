@@ -28,6 +28,12 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+  buildBracketPathFromMatches,
+  createBracketModeRun,
+  createEmptyBracketPath,
+  isBracketPathReady,
+} from "./bracket";
+import {
   buildPublicProfile,
   buildLocalLeaderboard,
   consumeSupabaseHash,
@@ -52,6 +58,7 @@ import { scorePrediction } from "./scoring";
 import { downloadDataUrl, generateShareCard } from "./shareCard";
 import type {
   AppView,
+  BracketPath,
   CloudSyncState,
   GameMode,
   GameModeRun,
@@ -65,6 +72,7 @@ import type {
 
 const STORAGE_KEY = "kickoff-lock-agent-records-v1";
 const MODE_RUNS_KEY = "kickoff-lock-agent-mode-runs-v1";
+const BRACKET_PATH_KEY = "kickoff-lock-agent-bracket-path-v1";
 
 const gameModes: GameMode[] = [
   {
@@ -177,6 +185,18 @@ const loadModeRuns = (): GameModeRun[] => {
 
 const saveModeRuns = (runs: GameModeRun[]) => {
   localStorage.setItem(MODE_RUNS_KEY, JSON.stringify(runs));
+};
+
+const loadBracketPath = (): BracketPath => {
+  try {
+    return JSON.parse(localStorage.getItem(BRACKET_PATH_KEY) ?? "null") ?? createEmptyBracketPath();
+  } catch {
+    return createEmptyBracketPath();
+  }
+};
+
+const saveBracketPath = (path: BracketPath) => {
+  localStorage.setItem(BRACKET_PATH_KEY, JSON.stringify(path));
 };
 
 const formatDate = (iso: string) =>
@@ -327,6 +347,7 @@ function App() {
   const [view, setView] = useState<AppView>("matches");
   const [records, setRecords] = useState<MemoryRecord[]>(loadRecords);
   const [modeRuns, setModeRuns] = useState<GameModeRun[]>(loadModeRuns);
+  const [bracketPath, setBracketPath] = useState<BracketPath>(loadBracketPath);
   const [profile, setProfile] = useState(loadProfile);
   const [cloudState, setCloudState] = useState<CloudSyncState>(getCloudState);
   const [globalLeaderboard, setGlobalLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -360,6 +381,10 @@ function App() {
   }, [modeRuns]);
 
   useEffect(() => {
+    saveBracketPath(bracketPath);
+  }, [bracketPath]);
+
+  useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
@@ -375,6 +400,7 @@ function App() {
     setProviderWarning(result.warning ?? "");
     setProviderEvidence(result.evidence ?? [`${sourceLabel(result.source)} feed loaded`, `${sorted.length} matches available`]);
     setSelectedMatchId((current) => current || sorted.find((match) => match.status === "upcoming")?.id || sorted[0]?.id || "");
+    setBracketPath((current) => buildBracketPathFromMatches(sorted, current));
   };
 
   const refreshLeaderboard = async (scope = leaderboardScope, nextProfile = profile) => {
@@ -665,6 +691,25 @@ function App() {
       const run = await createGameModeRun(mode, records);
       setModeRuns((current) => [run, ...current.filter((item) => item.id !== run.id)]);
       setNotice(`${mode.title} proof run created.`);
+    } catch (error) {
+      setNotice((error as Error).message);
+    }
+  };
+
+  const updateBracketPick = (pickId: string, patch: Partial<BracketPath["picks"][number]>) => {
+    setBracketPath((current) => ({
+      ...current,
+      updatedAt: new Date().toISOString(),
+      picks: current.picks.map((pick) => (pick.id === pickId ? { ...pick, ...patch } : pick)),
+    }));
+  };
+
+  const sealBracketPath = async () => {
+    try {
+      const run = await createBracketModeRun(bracketPath);
+      setModeRuns((current) => [run, ...current.filter((item) => item.id !== run.id)]);
+      setBracketPath(run.artifact?.bracketPath ?? bracketPath);
+      setNotice("Bracket path sealed as a tournament mode proof.");
     } catch (error) {
       setNotice((error as Error).message);
     }
@@ -1163,7 +1208,10 @@ function App() {
         <ModesDashboard
           modes={gameModes}
           records={records}
+          bracketPath={bracketPath}
           modeRuns={modeRuns}
+          onBracketPick={updateBracketPick}
+          onSealBracket={sealBracketPath}
           onCreateModeRun={createModeRun}
         />
       )}
@@ -1766,15 +1814,23 @@ function VerifyDashboard({
 function ModesDashboard({
   modes,
   records,
+  bracketPath,
   modeRuns,
+  onBracketPick,
+  onSealBracket,
   onCreateModeRun,
 }: {
   modes: GameMode[];
   records: MemoryRecord[];
+  bracketPath: BracketPath;
   modeRuns: GameModeRun[];
+  onBracketPick: (pickId: string, patch: Partial<BracketPath["picks"][number]>) => void;
+  onSealBracket: () => void;
   onCreateModeRun: (mode: GameMode) => void;
 }) {
   const lockedCount = records.length;
+  const bracketReady = isBracketPathReady(bracketPath);
+  const bracketRuns = modeRuns.filter((run) => run.modeId === "bracket" && run.artifact?.kind === "bracket-path");
   return (
     <section className="modes panel">
       <div className="panel-head">
@@ -1783,6 +1839,75 @@ function ModesDashboard({
           <h2>Beyond single-match locks</h2>
         </div>
         <span className="pill">{lockedCount} active locks</span>
+      </div>
+      <div className="bracket-builder">
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">Knockout path builder</p>
+            <h3>Seal a bracket path</h3>
+          </div>
+          <span className={`pill ${bracketReady ? "real" : "demo"}`}>{bracketReady ? "ready" : "needs 4 picks"}</span>
+        </div>
+        <div className="bracket-grid">
+          {bracketPath.picks.length === 0 && <p>No upcoming knockout matches are available from the active provider yet.</p>}
+          {bracketPath.picks.map((pick) => {
+            const teams = pick.matchLabel.split(" vs ");
+            const winnerOptions = [...teams, pick.winner].filter((value, index, list) => value && list.indexOf(value) === index);
+            return (
+              <article key={pick.id}>
+                <div>
+                  <strong>{pick.matchLabel}</strong>
+                  <span>{pick.stage}</span>
+                </div>
+                <label>
+                  <span>Advance</span>
+                  <select
+                    value={pick.winner}
+                    onChange={(event) => onBracketPick(pick.id, { winner: event.target.value })}
+                  >
+                    {winnerOptions.map((team) => (
+                      <option key={team} value={team}>{team}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Confidence</span>
+                  <input
+                    type="range"
+                    min="1"
+                    max="100"
+                    value={pick.confidence}
+                    onChange={(event) => onBracketPick(pick.id, { confidence: Number(event.target.value) })}
+                  />
+                  <b>{pick.confidence}%</b>
+                </label>
+                <label>
+                  <span>Path note</span>
+                  <textarea value={pick.note} onChange={(event) => onBracketPick(pick.id, { note: event.target.value })} />
+                </label>
+              </article>
+            );
+          })}
+        </div>
+        <div className="bracket-footer">
+          <div>
+            <strong>{bracketPath.picks.length}/4 path picks</strong>
+            <span>{bracketPath.payloadHash ? `Last sealed ${bracketPath.payloadHash.slice(0, 12)}...` : "Draft updates are saved locally until sealed."}</span>
+          </div>
+          <button className="mode-create" disabled={!bracketReady} onClick={onSealBracket}>
+            <FileCheck2 size={16} /> Seal bracket proof
+          </button>
+        </div>
+        {bracketRuns.length > 0 && (
+          <div className="bracket-runs">
+            {bracketRuns.slice(0, 3).map((run) => (
+              <article key={run.id}>
+                <strong>{run.summary}</strong>
+                <code>{run.filecoinProof.cid}</code>
+              </article>
+            ))}
+          </div>
+        )}
       </div>
       <div className="mode-grid">
         {modes.map((mode) => {

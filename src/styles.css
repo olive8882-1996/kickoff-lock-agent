@@ -25,7 +25,8 @@ body {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -36,7 +37,8 @@ button {
 
 button:disabled,
 input:disabled,
-textarea:disabled {
+textarea:disabled,
+select:disabled {
   cursor: not-allowed;
   opacity: 0.54;
 }
@@ -854,7 +856,8 @@ label span {
 }
 
 textarea,
-input {
+input,
+select {
   width: 100%;
   min-width: 0;
   border: 1px solid rgba(238, 247, 243, 0.16);
@@ -866,7 +869,8 @@ input {
 }
 
 textarea:focus,
-input:focus {
+input:focus,
+select:focus {
   border-color: #1aa6ff;
   box-shadow: 0 0 0 3px rgba(26, 166, 255, 0.18);
 }
@@ -1390,6 +1394,86 @@ pre {
   margin-top: 14px;
 }
 
+.bracket-builder {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 16px;
+  border: 1px solid rgba(241, 201, 77, 0.2);
+  background:
+    linear-gradient(135deg, rgba(210, 55, 46, 0.16), rgba(26, 166, 255, 0.08)),
+    rgba(3, 8, 10, 0.5);
+}
+
+.bracket-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bracket-grid article {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid rgba(238, 247, 243, 0.12);
+  background: rgba(3, 8, 10, 0.56);
+}
+
+.bracket-grid article > div {
+  min-height: 72px;
+}
+
+.bracket-grid strong {
+  display: block;
+  color: #f1c94d;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.bracket-grid span,
+.bracket-footer span {
+  color: rgba(238, 247, 243, 0.62);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.bracket-grid textarea {
+  min-height: 92px;
+}
+
+.bracket-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(238, 247, 243, 0.12);
+  background: rgba(238, 247, 243, 0.06);
+}
+
+.bracket-footer strong,
+.bracket-footer span {
+  display: block;
+}
+
+.bracket-runs {
+  display: grid;
+  gap: 8px;
+}
+
+.bracket-runs article {
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  border: 1px solid rgba(216, 255, 217, 0.14);
+  background: rgba(216, 255, 217, 0.06);
+}
+
+.bracket-runs strong {
+  color: #d8ffd9;
+}
+
 .profile-card,
 .cloud-card {
   display: grid;
@@ -1720,6 +1804,7 @@ pre {
   .verify-grid,
   .verify-actions,
   .mode-grid,
+  .bracket-grid,
   .account-grid,
   .scoreboard-lock {
     grid-template-columns: 1fr;
@@ -1741,8 +1826,10 @@ pre {
   .versus,
   .public-profile-hero,
   .public-profile-identity,
+  .bracket-footer,
   .actions {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .profile-records article {

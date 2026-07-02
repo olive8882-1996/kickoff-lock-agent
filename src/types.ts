@@ -169,6 +169,26 @@ export type LeaderboardEntry = {
   source: "local" | LeaderboardScope;
 };
 
+export type BracketPick = {
+  id: string;
+  matchId: string;
+  matchLabel: string;
+  stage: string;
+  winner: string;
+  confidence: number;
+  note: string;
+};
+
+export type BracketPath = {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  picks: BracketPick[];
+  payloadHash?: string;
+  filecoinProof?: FilecoinProof;
+};
+
 export type PublicProfile = {
   id: string;
   email?: string;
@@ -205,6 +225,10 @@ export type GameModeRun = {
   score?: number;
   summary: string;
   requirements: string[];
+  artifact?: {
+    kind: "bracket-path";
+    bracketPath: BracketPath;
+  };
 };
 
 export type ProviderResult = {

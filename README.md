@@ -11,7 +11,8 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 - Get an explainable score and a shareable proof card.
 - Keep every revealed call in a tournament memory dashboard.
 - Sign in with Supabase magic links to sync profile, prediction history, public proof links, and global/friend/season leaderboards.
-- Create mode proof runs for bracket paths, parlays, Agent vs Human calibration, and upset challenges.
+- Build a 4-pick knockout path in the bracket builder, then seal it as its own proof run.
+- Create additional mode proof runs for parlays, Agent vs Human calibration, and upset challenges.
 
 ## Links
 
@@ -63,6 +64,7 @@ Key files:
 - `src/providers.ts`: ESPN/worldcup26/seed fallback.
 - `src/scoring.ts`: explainable scoring engine.
 - `src/cloud.ts`: Supabase auth, profile sync, public proof lookup, and leaderboard queries.
+- `src/bracket.ts`: knockout path builder, bracket readiness rules, and bracket proof run sealing.
 - `src/modes.ts`: bracket/parlay/agent/upset mode proof runs.
 - `scripts/seal-with-synapse.mjs`: real Synapse/Filecoin adapter.
 - `server/filecoin-seal-api.mjs`: one-click seal API and CID verification endpoints.

@@ -8,22 +8,24 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".provider-readiness")).toContainText(/Schedule/i);
   await expect(page.locator(".provider-readiness")).toContainText(/Lineups/i);
   await expect(page.locator(".provider-readiness")).toContainText(/Odds/i);
-  await expect(page.getByRole("button", { name: /Account/i }).last()).toBeVisible();
-  await expect(page.getByRole("button", { name: /Modes/i }).last()).toBeVisible();
+  const mainNav = page.getByRole("navigation", { name: "Main views" });
+  await expect(mainNav.getByRole("button", { name: "Account" })).toBeVisible();
+  await expect(mainNav.getByRole("button", { name: "Modes" })).toBeVisible();
   await expect(page.locator(".brand-lockup img")).toHaveJSProperty("complete", true);
   await expect
     .poll(async () => page.locator(".brand-lockup img").evaluate((image: HTMLImageElement) => image.naturalWidth))
     .toBeGreaterThan(0);
 
-  await page.getByRole("button", { name: /Account/i }).last().click();
+  await mainNav.getByRole("button", { name: "Account" }).click();
   await expect(page.getByRole("heading", { name: /Profile sync center/i })).toBeVisible();
   await expect(page.locator(".cloud-status-grid")).toContainText(/Auto reconcile/i);
   await expect(page.locator(".cloud-checklist")).toContainText(/Supabase env/i);
   await expect(page.locator(".cloud-checklist")).toContainText(/Refresh token/i);
   await expect(page.locator(".cloud-checklist")).toContainText(/Public profile/i);
+  await expect(page.locator(".cloud-checklist")).toContainText(/Mode proofs/i);
   await expect(page.getByText(/Pull cloud history/i)).toBeVisible();
 
-  await page.getByRole("button", { name: /Modes/i }).last().click();
+  await mainNav.getByRole("button", { name: "Modes" }).click();
   await expect(page.getByRole("heading", { name: /Beyond single-match locks/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Seal a bracket path/i })).toBeVisible();
   await expect(page.locator(".bracket-grid article")).toHaveCount(4);
@@ -45,7 +47,7 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(lockButton).toBeEnabled();
   await lockButton.click();
 
-  await page.getByRole("button", { name: /Memory/i }).last().click();
+  await mainNav.getByRole("button", { name: "Memory" }).click();
   await expect(page.locator(".leaderboard-summary")).toContainText(/Proof source/i);
   await expect(page.locator(".leaderboard-readiness")).toContainText(/Supabase view/i);
   await expect(page.locator(".leaderboard-readiness")).toContainText(/Remote rows/i);
@@ -53,11 +55,13 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".leaderboard article")).toContainText(/locks/i);
   await expect(page.locator(".leaderboard article")).toContainText(/real proofs/i);
 
-  await page.getByRole("button", { name: /Account/i }).last().click();
+  await mainNav.getByRole("button", { name: "Account" }).click();
   await page.getByRole("button", { name: /Open public profile/i }).click();
   await expect(page.getByRole("heading", { name: /Kickoff Analyst/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Latest proof capsules/i })).toBeVisible();
-  await expect(page.locator(".profile-records")).toContainText(/Prediction/i);
+  await expect(page.getByRole("heading", { name: /Tournament mode runs/i })).toBeVisible();
+  await expect(page.getByText(/Bracket path sealed/i)).toBeVisible();
+  await expect(page.getByText(/Prediction 0-1/i)).toBeVisible();
 
   await page.getByRole("button", { name: /Auto seal to Filecoin/i }).click();
   await expect(page.getByText(/Auto seal status/i)).toBeVisible();

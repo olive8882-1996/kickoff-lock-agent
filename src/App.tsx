@@ -42,13 +42,16 @@ import {
   hydrateProfileFromAuth,
   loadLeaderboard,
   loadProfile,
+  loadModeRunsFromCloud,
   loadPublicProfile,
   loadPublicRecord,
   loadRecordsFromCloud,
+  mergeModeRuns,
   mergeMemoryRecords,
   saveProfile,
   sendMagicLink,
   signOutCloud,
+  syncModeRunsToCloud,
   syncRecordsToCloud,
   syncProfileToCloud,
 } from "./cloud";
@@ -447,23 +450,32 @@ function App() {
   const reconcileCloudHistory = async (
     nextProfile: typeof profile,
     localRecords: MemoryRecord[],
+    localModeRuns: GameModeRun[],
     reason: string,
   ) => {
     const baseState = getCloudState();
     setCloudState({ ...baseState, status: "syncing", message: `${reason} Reconciling cloud history...` });
-    const remoteRecords = await loadRecordsFromCloud(nextProfile);
+    const [remoteRecords, remoteModeRuns] = await Promise.all([
+      loadRecordsFromCloud(nextProfile),
+      loadModeRunsFromCloud(nextProfile),
+    ]);
     const merged = mergeMemoryRecords(localRecords, remoteRecords);
+    const mergedModeRuns = mergeModeRuns(localModeRuns, remoteModeRuns);
     setRecords(merged);
-    const result = await syncRecordsToCloud(nextProfile, merged);
+    setModeRuns(mergedModeRuns);
+    const [recordSync, modeSync] = await Promise.all([
+      syncRecordsToCloud(nextProfile, merged),
+      syncModeRunsToCloud(nextProfile, mergedModeRuns),
+    ]);
     await refreshLeaderboard(leaderboardScope, nextProfile);
     const message =
-      remoteRecords.length > 0
-        ? `${reason} merged ${remoteRecords.length} cloud records and synced ${merged.length} total records.`
-        : `${reason} no cloud records found; local history is ready to sync.`;
+      remoteRecords.length > 0 || remoteModeRuns.length > 0
+        ? `${reason} merged ${remoteRecords.length} cloud records and ${remoteModeRuns.length} mode proof runs.`
+        : `${reason} no cloud history found; local records and mode runs are ready to sync.`;
     setCloudState({
       ...getCloudState(),
-      status: result.status === "synced" ? "synced" : "offline",
-      message,
+      status: recordSync.status === "synced" && modeSync.status === "synced" ? "synced" : "offline",
+      message: `${message} ${recordSync.message} ${modeSync.message}`,
       lastSyncedAt: new Date().toISOString(),
     });
     setNotice(message);
@@ -490,7 +502,7 @@ function App() {
       const nextProfile = await hydrateProfileFromAuth(loadProfile());
       setProfile(nextProfile);
       setAccountEmail(nextProfile.email);
-      await reconcileCloudHistory(nextProfile, records, "Signed in.");
+      await reconcileCloudHistory(nextProfile, records, modeRuns, "Signed in.");
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
     }
@@ -535,7 +547,7 @@ function App() {
   const currentXp = localLeaderboard[0]?.xp ?? 0;
   const currentStreak = localLeaderboard[0]?.streak ?? 0;
   const routeProfileId = new URLSearchParams(window.location.search).get("profile");
-  const localPublicProfile = buildPublicProfile(profile, records);
+  const localPublicProfile = buildPublicProfile(profile, records, modeRuns);
   const shownPublicProfile =
     publicProfile ??
     (routeProfileId && routeProfileId !== profile.id
@@ -564,6 +576,26 @@ function App() {
     void syncRecordsToCloud(profile, nextRecords)
       .then(async (result) => {
         await refreshLeaderboard(leaderboardScope, profile);
+        setCloudState({
+          ...getCloudState(),
+          status: result.status === "synced" ? "synced" : "offline",
+          message: result.message,
+          lastSyncedAt: new Date().toISOString(),
+        });
+        setNotice(`${reason} ${result.message}`);
+      })
+      .catch((error) => {
+        setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
+        setNotice((error as Error).message);
+      });
+  };
+
+  const syncModeRunsInBackground = (nextModeRuns: GameModeRun[], reason: string) => {
+    const state = getCloudState();
+    if (!state.configured || !state.authenticated) return;
+    setCloudState({ ...state, status: "syncing", message: `${reason} Syncing mode proofs...` });
+    void syncModeRunsToCloud(profile, nextModeRuns)
+      .then((result) => {
         setCloudState({
           ...getCloudState(),
           status: result.status === "synced" ? "synced" : "offline",
@@ -651,15 +683,18 @@ function App() {
   const syncToCloud = async () => {
     setCloudState({ ...getCloudState(), status: "syncing", message: "Syncing records to cloud..." });
     try {
-      const result = await syncRecordsToCloud(profile, records);
+      const [recordSync, modeSync] = await Promise.all([
+        syncRecordsToCloud(profile, records),
+        syncModeRunsToCloud(profile, modeRuns),
+      ]);
       await refreshLeaderboard(leaderboardScope, profile);
       setCloudState({
         ...getCloudState(),
-        status: result.status === "synced" ? "synced" : "offline",
-        message: result.message,
+        status: recordSync.status === "synced" && modeSync.status === "synced" ? "synced" : "offline",
+        message: `${recordSync.message} ${modeSync.message}`,
         lastSyncedAt: new Date().toISOString(),
       });
-      setNotice(result.message);
+      setNotice(`${recordSync.message} ${modeSync.message}`);
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
       setNotice((error as Error).message);
@@ -669,18 +704,26 @@ function App() {
   const pullCloudHistory = async () => {
     setCloudState({ ...getCloudState(), status: "syncing", message: "Pulling cloud history..." });
     try {
-      const remoteRecords = await loadRecordsFromCloud(profile);
+      const [remoteRecords, remoteModeRuns] = await Promise.all([
+        loadRecordsFromCloud(profile),
+        loadModeRunsFromCloud(profile),
+      ]);
       const merged = mergeMemoryRecords(records, remoteRecords);
+      const mergedModeRuns = mergeModeRuns(modeRuns, remoteModeRuns);
       setRecords(merged);
-      await syncRecordsToCloud(profile, merged);
+      setModeRuns(mergedModeRuns);
+      await Promise.all([
+        syncRecordsToCloud(profile, merged),
+        syncModeRunsToCloud(profile, mergedModeRuns),
+      ]);
       await refreshLeaderboard(leaderboardScope, profile);
       setCloudState({
         ...getCloudState(),
         status: "synced",
-        message: `Pulled ${remoteRecords.length} cloud records and synced ${merged.length} merged records.`,
+        message: `Pulled ${remoteRecords.length} cloud records and ${remoteModeRuns.length} mode proof runs.`,
         lastSyncedAt: new Date().toISOString(),
       });
-      setNotice(`Pulled ${remoteRecords.length} cloud records and synced ${merged.length} merged records.`);
+      setNotice(`Pulled ${remoteRecords.length} cloud records and ${remoteModeRuns.length} mode proof runs.`);
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
       setNotice((error as Error).message);
@@ -730,7 +773,9 @@ function App() {
   const createModeRun = async (mode: GameMode) => {
     try {
       const run = await createGameModeRun(mode, records);
-      setModeRuns((current) => [run, ...current.filter((item) => item.id !== run.id)]);
+      const nextModeRuns = [run, ...modeRuns.filter((item) => item.id !== run.id)];
+      setModeRuns(nextModeRuns);
+      syncModeRunsInBackground(nextModeRuns, `${mode.title} proof run created.`);
       setNotice(`${mode.title} proof run created.`);
     } catch (error) {
       setNotice((error as Error).message);
@@ -748,8 +793,10 @@ function App() {
   const sealBracketPath = async () => {
     try {
       const run = await createBracketModeRun(bracketPath);
-      setModeRuns((current) => [run, ...current.filter((item) => item.id !== run.id)]);
+      const nextModeRuns = [run, ...modeRuns.filter((item) => item.id !== run.id)];
+      setModeRuns(nextModeRuns);
       setBracketPath(run.artifact?.kind === "bracket-path" ? run.artifact.bracketPath : bracketPath);
+      syncModeRunsInBackground(nextModeRuns, "Bracket path sealed as a tournament mode proof.");
       setNotice("Bracket path sealed as a tournament mode proof.");
     } catch (error) {
       setNotice((error as Error).message);
@@ -1299,6 +1346,7 @@ function App() {
           cloudState={cloudState}
           email={accountEmail}
           records={records}
+          modeRuns={modeRuns}
           onEmail={setAccountEmail}
           onProfile={updateProfile}
           onMagicLink={requestMagicLink}
@@ -2281,6 +2329,7 @@ function PublicProfileDashboard({
   onOpenProof: (capsuleId: string) => void;
 }) {
   const latestRecords = profile.records.slice(0, 12);
+  const latestModeRuns = profile.modeRuns.slice(0, 6);
   return (
     <section className="public-profile panel">
       <div
@@ -2308,6 +2357,7 @@ function PublicProfileDashboard({
       <div className="public-profile-stats">
         <div><strong>{profile.locks}</strong><span>locked predictions</span></div>
         <div><strong>{profile.revealed}</strong><span>revealed</span></div>
+        <div><strong>{profile.modeProofs}</strong><span>mode proofs</span></div>
         <div><strong>{profile.averageScore}</strong><span>average score</span></div>
         <div><strong>{profile.bestScore}</strong><span>best score</span></div>
         <div><strong>{profile.xp}</strong><span>XP</span></div>
@@ -2341,6 +2391,26 @@ function PublicProfileDashboard({
           </article>
         ))}
       </div>
+      <div className="profile-records">
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">Mode proof archive</p>
+            <h3>Tournament mode runs</h3>
+          </div>
+          <span className="pill">{latestModeRuns.length} shown</span>
+        </div>
+        {latestModeRuns.length === 0 && <p>No public mode proofs yet. Create a bracket, parlay, calibration or upset proof, then sync cloud history.</p>}
+        {latestModeRuns.map((run) => (
+          <article key={run.id}>
+            <div>
+              <strong>{run.title}</strong>
+              <span>{run.summary}{run.score !== undefined ? ` · Score ${run.score}/100` : ""}</span>
+              <code>{run.filecoinProof.cid}</code>
+            </div>
+            <span className={`pill mode-${run.status === "scored" ? "playable" : "planned"}`}>{run.status}</span>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
@@ -2350,6 +2420,7 @@ function AccountDashboard({
   cloudState,
   email,
   records,
+  modeRuns,
   onEmail,
   onProfile,
   onMagicLink,
@@ -2364,6 +2435,7 @@ function AccountDashboard({
   cloudState: CloudSyncState;
   email: string;
   records: MemoryRecord[];
+  modeRuns: GameModeRun[];
   onEmail: (value: string) => void;
   onProfile: (patch: Partial<ReturnType<typeof loadProfile>>) => void;
   onMagicLink: () => void;
@@ -2394,6 +2466,11 @@ function AccountDashboard({
       label: "Cloud records",
       passed: cloudState.authenticated && records.length > 0,
       detail: records.length > 0 ? `${records.length} local record${records.length === 1 ? "" : "s"} ready` : "lock a prediction first",
+    },
+    {
+      label: "Mode proofs",
+      passed: cloudState.authenticated && modeRuns.length > 0,
+      detail: modeRuns.length > 0 ? `${modeRuns.length} mode proof${modeRuns.length === 1 ? "" : "s"} ready` : "create a mode proof first",
     },
     {
       label: "Public profile",
@@ -2448,6 +2525,10 @@ function AccountDashboard({
               <strong>{records.length}</strong>
             </div>
             <div>
+              <span>Mode proofs</span>
+              <strong>{modeRuns.length}</strong>
+            </div>
+            <div>
               <span>Last synced</span>
               <strong>{cloudState.lastSyncedAt ? formatDate(cloudState.lastSyncedAt) : "not yet"}</strong>
             </div>
@@ -2474,7 +2555,7 @@ function AccountDashboard({
               <Link2 size={18} /> Send magic link
             </button>
             <button className="primary" onClick={onSync}>
-              <UploadCloud size={18} /> Sync {records.length} records
+              <UploadCloud size={18} /> Sync {records.length} records / {modeRuns.length} modes
             </button>
             <button onClick={onPull}>
               <Download size={18} /> Pull cloud history
@@ -2496,6 +2577,7 @@ function AccountDashboard({
             <strong>Required backend tables</strong>
             <code>kickoff_profiles</code>
             <code>kickoff_records</code>
+            <code>kickoff_mode_runs</code>
             <code>kickoff_leaderboard</code>
           </div>
         </div>

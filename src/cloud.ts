@@ -3,6 +3,7 @@ import type {
   LeaderboardEntry,
   LeaderboardReadinessItem,
   LeaderboardScope,
+  GameModeRun,
   MemoryRecord,
   PublicProfile,
   UserProfile,
@@ -306,6 +307,43 @@ export const syncRecordsToCloud = async (profile: UserProfile, records: MemoryRe
   return { status: "synced" as const, message: `Synced ${rows.length} records to Supabase.` };
 };
 
+export const syncModeRunsToCloud = async (profile: UserProfile, modeRuns: GameModeRun[]) => {
+  if (!configured || !loadSupabaseSession()) {
+    return {
+      status: "offline" as const,
+      message: "Mode proof sync skipped. Sign in with Supabase to sync mode runs.",
+    };
+  }
+  const session = await requireFreshSession();
+  const user = await loadCurrentUser();
+  await syncProfileToCloud(profile);
+  const rows = modeRuns.map((run) => ({
+    id: run.id,
+    user_id: user?.id ?? profile.id,
+    email: user?.email ?? profile.email,
+    display_name: profile.displayName,
+    location: profile.location,
+    friend_code: friendCodeFor(profile),
+    season_key: currentSeasonKey,
+    mode_id: run.modeId,
+    status: run.status,
+    score: run.score ?? null,
+    mode_run: run,
+    created_at: run.createdAt,
+    updated_at: new Date().toISOString(),
+  }));
+  if (rows.length === 0) {
+    return { status: "synced" as const, message: "No mode proof runs to sync." };
+  }
+  const res = await fetch(restUrl("kickoff_mode_runs?on_conflict=id"), {
+    method: "POST",
+    headers: { ...headers(session), Prefer: "resolution=merge-duplicates" },
+    body: JSON.stringify(rows),
+  });
+  if (!res.ok) throw new Error(`Mode proof sync failed: ${res.status}`);
+  return { status: "synced" as const, message: `Synced ${rows.length} mode proof runs to Supabase.` };
+};
+
 const recordCompleteness = (record: MemoryRecord) => {
   const realProof = record.capsule.filecoinProof.mode === "real" ? 4 : 0;
   const verifiedSeal = record.sealJob?.status === "verified" ? 3 : 0;
@@ -335,6 +373,29 @@ export const mergeMemoryRecords = (localRecords: MemoryRecord[], cloudRecords: M
   );
 };
 
+const modeRunCompleteness = (run: GameModeRun) => {
+  const scored = run.status === "scored" ? 8 : 0;
+  const realProof = run.filecoinProof.mode === "real" ? 4 : 0;
+  const artifact = run.artifact ? 2 : 0;
+  const score = run.score ?? 0;
+  const timestamp = new Date(run.createdAt).getTime();
+  return scored + realProof + artifact + score / 1000 + (Number.isFinite(timestamp) ? timestamp / 1_000_000_000_000_000 : 0);
+};
+
+const chooseModeRunVersion = (current: GameModeRun, incoming: GameModeRun) =>
+  modeRunCompleteness(incoming) >= modeRunCompleteness(current) ? incoming : current;
+
+export const mergeModeRuns = (localRuns: GameModeRun[], cloudRuns: GameModeRun[]) => {
+  const byId = new Map<string, GameModeRun>();
+  [...localRuns, ...cloudRuns].forEach((run) => {
+    const current = byId.get(run.id);
+    byId.set(run.id, current ? chooseModeRunVersion(current, run) : run);
+  });
+  return [...byId.values()].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+};
+
 export const loadRecordsFromCloud = async (profile: UserProfile): Promise<MemoryRecord[]> => {
   const session = await requireFreshSession();
   const params = new URLSearchParams({
@@ -352,6 +413,21 @@ export const loadRecordsFromCloud = async (profile: UserProfile): Promise<Memory
     result: row.result ?? undefined,
     sealJob: row.seal_job ?? undefined,
   }));
+};
+
+export const loadModeRunsFromCloud = async (profile: UserProfile): Promise<GameModeRun[]> => {
+  const session = await requireFreshSession();
+  const params = new URLSearchParams({
+    select: "mode_run,updated_at",
+    or: `(user_id.eq.${profile.id},email.eq.${profile.email})`,
+    order: "updated_at.desc",
+  });
+  const res = await fetch(restUrl(`kickoff_mode_runs?${params.toString()}`), {
+    headers: headers(session),
+  });
+  if (!res.ok) throw new Error(`Cloud mode proof load failed: ${res.status}`);
+  const rows = (await res.json()) as any[];
+  return rows.map((row) => row.mode_run as GameModeRun).filter(Boolean);
 };
 
 export const loadPublicRecord = async (capsuleId: string): Promise<MemoryRecord | undefined> => {
@@ -374,7 +450,11 @@ export const loadPublicRecord = async (capsuleId: string): Promise<MemoryRecord 
   };
 };
 
-export const buildPublicProfile = (profile: UserProfile, records: MemoryRecord[]): PublicProfile => {
+export const buildPublicProfile = (
+  profile: UserProfile,
+  records: MemoryRecord[],
+  modeRuns: GameModeRun[] = [],
+): PublicProfile => {
   const revealed = records.filter((record) => record.result);
   const averageScore =
     revealed.length > 0
@@ -391,20 +471,23 @@ export const buildPublicProfile = (profile: UserProfile, records: MemoryRecord[]
     avatarUrl: profile.avatarUrl,
     friendCode: friendCodeFor(profile),
     records,
+    modeRuns,
     locks: records.length,
     revealed: revealed.length,
+    modeProofs: modeRuns.length,
     averageScore,
     bestScore,
-    xp,
+    xp: xp + modeRuns.length * 90,
   };
 };
 
-const buildPublicProfileFromRows = (profileRow: any, recordRows: any[]): PublicProfile => {
+const buildPublicProfileFromRows = (profileRow: any, recordRows: any[], modeRunRows: any[]): PublicProfile => {
   const records = recordRows.map((row) => ({
     capsule: row.capsule,
     result: row.result ?? undefined,
     sealJob: row.seal_job ?? undefined,
   })) as MemoryRecord[];
+  const modeRuns = modeRunRows.map((row) => row.mode_run as GameModeRun).filter(Boolean);
   const publicProfile = buildPublicProfile(
     {
       id: profileRow.id,
@@ -416,6 +499,7 @@ const buildPublicProfileFromRows = (profileRow: any, recordRows: any[]): PublicP
       cloudMode: "supabase",
     },
     records,
+    modeRuns,
   );
   return {
     ...publicProfile,
@@ -448,7 +532,19 @@ export const loadPublicProfile = async (profileId: string): Promise<PublicProfil
   });
   if (!recordsRes.ok) throw new Error(`Public profile records load failed: ${recordsRes.status}`);
   const recordRows = (await recordsRes.json()) as any[];
-  return buildPublicProfileFromRows(profileRow, recordRows);
+
+  const modeRunParams = new URLSearchParams({
+    select: "mode_run,updated_at",
+    user_id: `eq.${profileId}`,
+    order: "updated_at.desc",
+    limit: "30",
+  });
+  const modeRunsRes = await fetch(restUrl(`kickoff_mode_runs?${modeRunParams.toString()}`), {
+    headers: headers(loadSupabaseSession()),
+  });
+  if (!modeRunsRes.ok) throw new Error(`Public profile mode proof load failed: ${modeRunsRes.status}`);
+  const modeRunRows = (await modeRunsRes.json()) as any[];
+  return buildPublicProfileFromRows(profileRow, recordRows, modeRunRows);
 };
 
 export const loadLeaderboard = async (

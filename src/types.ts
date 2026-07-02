@@ -244,8 +244,10 @@ export type PublicProfile = {
   avatarUrl?: string;
   friendCode?: string;
   records: MemoryRecord[];
+  modeRuns: GameModeRun[];
   locks: number;
   revealed: number;
+  modeProofs: number;
   averageScore: number;
   bestScore: number;
   xp: number;

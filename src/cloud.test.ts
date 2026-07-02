@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildLeaderboardReadiness, buildLocalLeaderboard, buildPublicProfile, consumeSupabaseHash, isSupabaseSessionExpired, loadSupabaseSession, mergeMemoryRecords } from "./cloud";
-import type { CloudSyncState, LeaderboardEntry, MemoryRecord, UserProfile } from "./types";
+import {
+  buildLeaderboardReadiness,
+  buildLocalLeaderboard,
+  buildPublicProfile,
+  consumeSupabaseHash,
+  isSupabaseSessionExpired,
+  loadSupabaseSession,
+  mergeMemoryRecords,
+  mergeModeRuns,
+} from "./cloud";
+import type { CloudSyncState, GameModeRun, LeaderboardEntry, MemoryRecord, UserProfile } from "./types";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -73,6 +82,27 @@ const record = (id: string, patch: Partial<MemoryRecord> = {}): MemoryRecord => 
       markets: [],
     },
   },
+  ...patch,
+});
+
+const modeRun = (id: string, patch: Partial<GameModeRun> = {}): GameModeRun => ({
+  id,
+  modeId: "parlay",
+  title: "Multi-match parlay",
+  createdAt: "2099-01-01T00:00:00.000Z",
+  capsuleIds: ["cap-1", "cap-2", "cap-3"],
+  payloadHash: "b".repeat(64),
+  filecoinProof: {
+    mode: "demo",
+    cid: `bafy-mode-${id}`,
+    pieceCid: `piece-${id}`,
+    provider: "demo",
+    dataSetId: "set",
+    proofStatus: "retrievable",
+  },
+  status: "sealed",
+  summary: "Parlay proof sealed.",
+  requirements: ["3 sealed match capsules"],
   ...patch,
 });
 
@@ -305,14 +335,16 @@ describe("local leaderboard", () => {
       },
     ];
 
-    const publicProfile = buildPublicProfile(profile, records);
+    const publicProfile = buildPublicProfile(profile, records, [modeRun("mode-public")]);
     expect(publicProfile.displayName).toBe("Tester");
     expect(publicProfile.friendCode).toBe("chengdu");
     expect(publicProfile.locks).toBe(1);
     expect(publicProfile.revealed).toBe(1);
+    expect(publicProfile.modeProofs).toBe(1);
+    expect(publicProfile.modeRuns[0].id).toBe("mode-public");
     expect(publicProfile.averageScore).toBe(92);
     expect(publicProfile.bestScore).toBe(92);
-    expect(publicProfile.xp).toBe(212);
+    expect(publicProfile.xp).toBe(302);
   });
 
   it("merges cloud history by keeping the richer capsule version", () => {
@@ -364,5 +396,24 @@ describe("local leaderboard", () => {
     const [merged] = mergeMemoryRecords([local], [cloud]);
     expect(merged.capsule.filecoinProof.mode).toBe("real");
     expect(merged.capsule.filecoinProof.cid).toBe("bafy-real");
+  });
+
+  it("merges cloud mode proof runs by keeping the richer scored version", () => {
+    const local = modeRun("mode-merge", { status: "sealed" });
+    const cloud = modeRun("mode-merge", {
+      status: "scored",
+      score: 88,
+      artifact: {
+        kind: "parlay-ticket",
+        legs: [],
+        settledLegs: 3,
+        hitLegs: 2,
+      },
+    });
+
+    const [merged] = mergeModeRuns([local], [cloud]);
+    expect(merged.status).toBe("scored");
+    expect(merged.score).toBe(88);
+    expect(merged.artifact?.kind).toBe("parlay-ticket");
   });
 });

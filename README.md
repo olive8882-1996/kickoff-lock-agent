@@ -81,9 +81,9 @@ The public verifier also includes a CID lookup panel that queries the configured
 Key files:
 
 - `src/proof.ts`: capsule hash, demo proof, real proof import.
-- `src/providers.ts`: API-Football, Football-Data.org, ESPN, The Odds API, worldcup26 and seed fallback.
+- `src/providers.ts`: API-Football, Football-Data.org, TheSportsDB, ESPN, The Odds API, worldcup26 and seed fallback.
 - `src/scoring.ts`: explainable scoring engine.
-- `src/cloud.ts`: Supabase auth, profile sync, public proof lookup, and leaderboard queries.
+- `src/cloud.ts`: Supabase auth, profile sync, prediction history sync, mode proof run sync, public proof/profile lookup, and leaderboard queries.
 - `src/bracket.ts`: knockout path builder, bracket readiness rules, and bracket proof run sealing.
 - `src/modes.ts`: bracket/parlay/agent/upset mode proof runs, including parlay tickets, agent calibration reports and upset bonus tickets.
 - `scripts/seal-with-synapse.mjs`: real Synapse/Filecoin adapter.
@@ -128,7 +128,8 @@ VITE_ODDS_API_SPORT_KEY=...
 ```
 
 Public proof pages can load a capsule from Supabase by `?proof=<capsule-id>` when the record has been synced.
-After a Supabase magic-link sign-in, the app stores the Supabase session, refreshes expired access tokens when a refresh token is available, automatically pulls cloud history, merges it with local records, keeps the richest capsule version, and syncs the merged history back to Supabase. The Account view includes a cloud acceptance checklist for env configuration, auth session, refresh token, cloud records and public profile readiness.
+After a Supabase magic-link sign-in, the app stores the Supabase session, refreshes expired access tokens when a refresh token is available, automatically pulls cloud history, merges it with local prediction records and local mode proof runs, keeps the richest version, and syncs the merged history back to Supabase. The Account view includes a cloud acceptance checklist for env configuration, auth session, refresh token, cloud records, mode proof runs and public profile readiness.
+Tournament mode proof runs are stored in `kickoff_mode_runs`, so bracket paths, parlay tickets, Agent vs Human calibration reports and upset challenges can appear on the public profile across devices instead of staying in localStorage.
 The `kickoff_leaderboard` view is public-read and supports the app's global, friend-code and season filters. It returns rank, locks, revealed proof count, average score, best score, XP, current winner streak, exact-score hits, verified real Filecoin proofs, and the latest update time. The app can read this view with the anon key, so public leaderboards still render before the viewer signs in. The Memory dashboard also shows a leaderboard backend readiness checklist so Supabase rows are not confused with the local fallback row.
 
 Simple Supabase leaderboard acceptance query:
@@ -167,8 +168,8 @@ limit 10;
 13. Real Synapse adapter exists and is documented.
 14. Desktop and mobile layouts work.
 15. Build passes with no blocking console errors.
-16. Supabase magic-link sign-in can sync profile and records across devices.
-17. Public profile links can load synced proof history by `?profile=<user-id>`.
+16. Supabase magic-link sign-in can sync profile, prediction records and mode proof runs across devices.
+17. Public profile links can load synced proof history and tournament mode proof runs by `?profile=<user-id>`.
 18. Global, friend and season leaderboards expose rank, XP, revealed count, exact hits and real proof count, with backend readiness shown separately from local fallback.
 19. Share images can be generated from locked proof cards and include match, score, proof pattern, CID and public verifier URL.
 

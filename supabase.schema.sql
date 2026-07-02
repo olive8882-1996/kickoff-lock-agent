@@ -59,6 +59,41 @@ create index if not exists kickoff_records_total_score_idx
   on public.kickoff_records (total_score desc)
   where total_score is not null;
 
+create table if not exists public.kickoff_mode_runs (
+  id text primary key,
+  user_id text not null,
+  email text not null,
+  display_name text not null,
+  location text not null,
+  friend_code text not null default 'global',
+  season_key text not null default 'world-cup-run',
+  mode_id text not null,
+  status text not null,
+  score integer,
+  mode_run jsonb not null,
+  created_at timestamptz not null,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.kickoff_mode_runs enable row level security;
+
+create policy "users can read public mode proof runs"
+  on public.kickoff_mode_runs
+  for select
+  using (true);
+
+create policy "users can upsert their own mode proof runs"
+  on public.kickoff_mode_runs
+  for all
+  using (auth.uid()::text = user_id or auth.jwt() ->> 'email' = email)
+  with check (auth.uid()::text = user_id or auth.jwt() ->> 'email' = email);
+
+create index if not exists kickoff_mode_runs_user_updated_idx
+  on public.kickoff_mode_runs (user_id, updated_at desc);
+
+create index if not exists kickoff_mode_runs_scope_score_idx
+  on public.kickoff_mode_runs (season_key, friend_code, score desc);
+
 create or replace view public.kickoff_leaderboard as
 with aggregate_rows as (
   select

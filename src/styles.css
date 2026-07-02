@@ -2040,6 +2040,84 @@ pre {
   overflow-wrap: anywhere;
 }
 
+.cloud-audit {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid rgba(238, 247, 243, 0.12);
+  background: rgba(3, 8, 10, 0.34);
+}
+
+.cloud-audit .panel-head {
+  margin-bottom: 0;
+}
+
+.cloud-audit article {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid rgba(241, 201, 77, 0.2);
+  background: rgba(241, 201, 77, 0.06);
+}
+
+.cloud-audit article.audit-passed {
+  border-color: rgba(79, 211, 109, 0.24);
+  background: rgba(79, 211, 109, 0.06);
+}
+
+.cloud-audit article.audit-blocked {
+  border-color: rgba(255, 77, 64, 0.24);
+  background: rgba(255, 77, 64, 0.06);
+}
+
+.cloud-audit article > div {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.cloud-audit svg {
+  color: #ffe8a8;
+}
+
+.cloud-audit .audit-passed svg {
+  color: #d8ffd9;
+}
+
+.cloud-audit .audit-blocked svg {
+  color: #ffb3ad;
+}
+
+.cloud-audit strong {
+  color: #eef7f3;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.cloud-audit span,
+.cloud-audit small,
+.cloud-audit p {
+  color: rgba(238, 247, 243, 0.68);
+  font-size: 0.72rem;
+}
+
+.cloud-audit span {
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.cloud-audit p {
+  margin: 0;
+}
+
+.cloud-audit progress {
+  width: 100%;
+  height: 8px;
+  accent-color: #f1c94d;
+}
+
 .mode-requirements,
 .mode-runs {
   display: grid;

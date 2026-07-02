@@ -1,5 +1,6 @@
 import type {
   CloudSyncState,
+  CloudSyncAuditItem,
   LeaderboardEntry,
   LeaderboardReadinessItem,
   LeaderboardScope,
@@ -701,6 +702,85 @@ export const buildCloudSyncCoverage = (
         ? `${localItems} local item${localItems === 1 ? "" : "s"} need sync retry`
         : `${localItems} local item${localItems === 1 ? "" : "s"} pending cloud acknowledgement`,
   };
+};
+
+const auditStatus = (blocked: boolean, passed: boolean): CloudSyncAuditItem["status"] =>
+  blocked ? "blocked" : passed ? "passed" : "pending";
+
+export const buildCloudSyncAudit = (
+  cloudState: CloudSyncState,
+  profile: UserProfile,
+  records: MemoryRecord[],
+  modeRuns: GameModeRun[],
+  leaderboardEntries: LeaderboardEntry[] = [],
+): CloudSyncAuditItem[] => {
+  const configured = cloudState.configured;
+  const signedIn = cloudState.authenticated;
+  const synced = cloudState.status === "synced";
+  const cloudProfile = profile.cloudMode === "supabase" && !profile.id.startsWith("local-");
+  const remoteLeaderboardRows = leaderboardEntries.filter((entry) => entry.source !== "local").length;
+  const totalProofLinks = records.length + modeRuns.length;
+  const blockingDetail = configured ? "sign in required" : "Supabase env missing";
+
+  return [
+    {
+      key: "profile",
+      label: "Cloud profile",
+      status: auditStatus(!configured, signedIn && cloudProfile),
+      synced: signedIn && cloudProfile ? 1 : 0,
+      total: 1,
+      detail: cloudProfile ? `profile id ${profile.id}` : blockingDetail,
+      action: cloudProfile ? "Profile can sync across devices." : "Sign in and save profile.",
+    },
+    {
+      key: "records",
+      label: "Prediction history",
+      status: auditStatus(!configured || !signedIn, synced && records.length > 0),
+      synced: synced ? records.length : 0,
+      total: records.length,
+      detail: records.length > 0 ? `${records.length} local capsule${records.length === 1 ? "" : "s"}` : "no local capsules",
+      action: synced ? "Records acknowledged by cloud." : "Run Sync after locking predictions.",
+    },
+    {
+      key: "modeRuns",
+      label: "Mode proof history",
+      status: auditStatus(!configured || !signedIn, synced && modeRuns.length > 0),
+      synced: synced ? modeRuns.length : 0,
+      total: modeRuns.length,
+      detail: modeRuns.length > 0 ? `${modeRuns.length} local mode proof${modeRuns.length === 1 ? "" : "s"}` : "no mode proofs",
+      action: synced ? "Mode proofs acknowledged by cloud." : "Create a mode proof and sync.",
+    },
+    {
+      key: "publicProofs",
+      label: "Public proof links",
+      status: auditStatus(!configured || !signedIn, synced && totalProofLinks > 0),
+      synced: synced ? totalProofLinks : 0,
+      total: totalProofLinks,
+      detail: totalProofLinks > 0 ? `${totalProofLinks} proof link${totalProofLinks === 1 ? "" : "s"} can be published` : "no proof links",
+      action: synced ? "Proof and mode URLs can resolve from another device." : "Sync history before sharing public links.",
+    },
+    {
+      key: "publicProfile",
+      label: "Public profile",
+      status: auditStatus(!configured, cloudProfile && synced),
+      synced: cloudProfile && synced ? 1 : 0,
+      total: 1,
+      detail: cloudProfile ? `?profile=${profile.id}` : "local preview only",
+      action: cloudProfile && synced ? "Profile page can load synced archives." : "Sync cloud history to publish the profile.",
+    },
+    {
+      key: "leaderboard",
+      label: "Leaderboard backend",
+      status: auditStatus(!configured, remoteLeaderboardRows > 0),
+      synced: remoteLeaderboardRows,
+      total: Math.max(1, remoteLeaderboardRows),
+      detail:
+        remoteLeaderboardRows > 0
+          ? `${remoteLeaderboardRows} remote leaderboard row${remoteLeaderboardRows === 1 ? "" : "s"} loaded`
+          : "local fallback row only",
+      action: remoteLeaderboardRows > 0 ? "Global/friend/season boards have backend evidence." : "Load Supabase leaderboard rows.",
+    },
+  ];
 };
 
 export const buildLeaderboardReadiness = (

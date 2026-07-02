@@ -140,6 +140,7 @@ VITE_ODDS_API_SPORT_KEY=...
 
 Public proof pages can load a capsule from Supabase by `?proof=<capsule-id>` when the record has been synced. Tournament mode proofs can also be opened by `?mode=<mode-run-id>`, including bracket paths, parlays, calibration reports and upset tickets.
 After a Supabase Google OAuth or magic-link sign-in, the app stores the Supabase session, refreshes expired access tokens when a refresh token is available, automatically pulls cloud history, merges it with local prediction records and local mode proof runs, keeps the richest version, and syncs the merged history back to Supabase. The Account view includes a cloud acceptance checklist for env configuration, auth session, refresh token, cloud records, mode proof runs, pending sync coverage and public profile readiness.
+The Account view also includes a cross-device cloud sync audit for profile, prediction history, mode proof history, public proof links, public profile and leaderboard backend evidence, so local-only fallback state is visible before claiming cloud readiness.
 Tournament mode proof runs are stored in `kickoff_mode_runs`, so bracket paths, parlay tickets, Agent vs Human calibration reports and upset challenges can appear on the public profile across devices instead of staying in localStorage.
 The `kickoff_leaderboard` view is public-read and supports the app's global, friend-code and season filters. It returns rank, locks, revealed proof count, mode proof count, average score, best score, XP, current winner streak, exact-score hits, verified real Filecoin proofs, and the latest update time. It aggregates both `kickoff_records` and `kickoff_mode_runs`, so bracket paths, parlays, Agent vs Human reports and upset challenges contribute to ranking instead of only appearing on the public profile. The app can read this view with the anon key, so public leaderboards still render before the viewer signs in. The Memory dashboard also shows a leaderboard backend readiness checklist so Supabase rows are not confused with the local fallback row.
 
@@ -186,6 +187,7 @@ limit 10;
 19. Share images can be generated from locked proof cards and tournament mode proofs, including score/status, proof pattern, CID and public verifier URL.
 20. Share actions produce a public proof URL or mode proof URL, CID-aware post text, X/Twitter intent fallback, and native image sharing when the browser supports file shares.
 21. Every selected match shows a 0-100 intelligence score, lock-risk label, and action plan derived from schedule, score, rankings, lineups, injuries, and odds coverage.
+22. Account view shows a cross-device cloud sync audit covering profile, prediction history, mode proofs, public proof links, public profile, and leaderboard backend rows.
 
 ## Submission Notes
 

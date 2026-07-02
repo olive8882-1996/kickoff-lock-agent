@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   buildLeaderboardReadiness,
+  buildCloudSyncAudit,
   buildCloudSyncCoverage,
   buildLocalLeaderboard,
   buildPublicProfile,
@@ -174,6 +175,58 @@ describe("local leaderboard", () => {
     expect(coverage.passed).toBe(true);
     expect(coverage.pendingItems).toBe(0);
     expect(coverage.detail).toContain("acknowledged by cloud");
+  });
+
+  it("audits cloud account coverage before sign-in", () => {
+    const cloudState: CloudSyncState = {
+      configured: true,
+      authenticated: false,
+      mode: "supabase",
+      status: "offline",
+      message: "waiting",
+    };
+
+    const audit = buildCloudSyncAudit(cloudState, profile, [record("cap-audit")], [modeRun("mode-audit")]);
+
+    expect(audit.find((item) => item.key === "profile")?.status).toBe("pending");
+    expect(audit.find((item) => item.key === "records")?.status).toBe("blocked");
+    expect(audit.find((item) => item.key === "records")?.total).toBe(1);
+    expect(audit.find((item) => item.key === "publicProofs")?.action).toContain("Sync history");
+    expect(audit.find((item) => item.key === "leaderboard")?.detail).toContain("local fallback");
+  });
+
+  it("audits synced cloud history and leaderboard backend evidence", () => {
+    const cloudState: CloudSyncState = {
+      configured: true,
+      authenticated: true,
+      mode: "supabase",
+      status: "synced",
+      message: "synced",
+    };
+    const cloudProfile = { ...profile, id: "user-123", cloudMode: "supabase" as const };
+    const remoteEntry: LeaderboardEntry = {
+      id: "remote-user",
+      displayName: "Remote",
+      location: "Chengdu",
+      locks: 2,
+      revealed: 1,
+      averageScore: 80,
+      bestScore: 80,
+      xp: 320,
+      streak: 1,
+      exactHits: 0,
+      verifiedProofs: 1,
+      modeProofs: 2,
+      source: "global",
+    };
+
+    const audit = buildCloudSyncAudit(cloudState, cloudProfile, [record("cap-synced")], [modeRun("mode-synced")], [remoteEntry]);
+
+    expect(audit.every((item) => item.status === "passed")).toBe(true);
+    expect(audit.find((item) => item.key === "records")?.synced).toBe(1);
+    expect(audit.find((item) => item.key === "modeRuns")?.synced).toBe(1);
+    expect(audit.find((item) => item.key === "publicProfile")?.detail).toContain("?profile=user-123");
+    expect(audit.find((item) => item.key === "leaderboard")?.detail).toContain("1 remote");
   });
 
   it("builds an XP entry from local records", () => {

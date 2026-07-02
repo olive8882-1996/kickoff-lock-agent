@@ -239,6 +239,16 @@ export type LeaderboardReadinessItem = {
   detail: string;
 };
 
+export type CloudSyncAuditItem = {
+  key: "profile" | "records" | "modeRuns" | "publicProofs" | "publicProfile" | "leaderboard";
+  label: string;
+  status: "passed" | "pending" | "blocked";
+  synced: number;
+  total: number;
+  detail: string;
+  action: string;
+};
+
 export type BracketPick = {
   id: string;
   matchId: string;

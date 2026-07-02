@@ -35,6 +35,7 @@ import {
 } from "./bracket";
 import {
   buildPublicProfile,
+  buildCloudSyncAudit,
   buildLocalLeaderboard,
   buildLeaderboardReadiness,
   consumeSupabaseHash,
@@ -1503,6 +1504,7 @@ function App() {
           email={accountEmail}
           records={records}
           modeRuns={modeRuns}
+          leaderboardEntries={globalLeaderboard}
           onEmail={setAccountEmail}
           onProfile={updateProfile}
           onMagicLink={requestMagicLink}
@@ -2750,6 +2752,7 @@ function AccountDashboard({
   email,
   records,
   modeRuns,
+  leaderboardEntries,
   onEmail,
   onProfile,
   onMagicLink,
@@ -2766,6 +2769,7 @@ function AccountDashboard({
   email: string;
   records: MemoryRecord[];
   modeRuns: GameModeRun[];
+  leaderboardEntries: LeaderboardEntry[];
   onEmail: (value: string) => void;
   onProfile: (patch: Partial<ReturnType<typeof loadProfile>>) => void;
   onMagicLink: () => void;
@@ -2778,6 +2782,8 @@ function AccountDashboard({
   onCopyProfileLink: () => void;
 }) {
   const syncCoverage = buildCloudSyncCoverage(cloudState, records, modeRuns);
+  const syncAudit = buildCloudSyncAudit(cloudState, profile, records, modeRuns, leaderboardEntries);
+  const auditPassed = syncAudit.filter((item) => item.status === "passed").length;
   const cloudChecks = [
     {
       label: "Supabase env",
@@ -2885,6 +2891,27 @@ function AccountDashboard({
                 <span>{check.label}</span>
                 <strong>{check.detail}</strong>
               </div>
+            ))}
+          </div>
+          <div className="cloud-audit" aria-label="Cloud sync audit">
+            <div className="panel-head">
+              <div>
+                <p className="eyebrow">Cross-device audit</p>
+                <h3>Cloud sync coverage</h3>
+              </div>
+              <span className="pill">{auditPassed}/{syncAudit.length}</span>
+            </div>
+            {syncAudit.map((item) => (
+              <article key={item.key} className={`audit-${item.status}`}>
+                <div>
+                  <CheckCircle2 size={16} />
+                  <strong>{item.label}</strong>
+                  <span>{item.status}</span>
+                </div>
+                <progress value={item.synced} max={Math.max(1, item.total)} />
+                <small>{item.synced}/{item.total} · {item.detail}</small>
+                <p>{item.action}</p>
+              </article>
             ))}
           </div>
           <label>

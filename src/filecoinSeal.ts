@@ -1,5 +1,5 @@
 import { stableJson } from "./proof";
-import type { FilecoinProof, MemoryRecord, PredictionCapsule, SealJob, SealStep } from "./types";
+import type { FilecoinLookupState, FilecoinProof, MemoryRecord, PredictionCapsule, SealJob, SealStep } from "./types";
 
 const sealEndpoint = import.meta.env.VITE_FILECOIN_SEAL_API as string | undefined;
 
@@ -49,13 +49,76 @@ const mark = (steps: SealStep[], ids: SealStep["id"][], status: SealStep["status
 
 const wait = (ms: number) => new Promise((resolve) => globalThis.setTimeout(resolve, ms));
 
-const verifyEndpoint = (cid: string) => {
-  if (!sealEndpoint) return "";
-  const url = new URL(sealEndpoint, window.location.href);
-  url.pathname = url.pathname.replace(/\/seal\/?$/, "/verify");
+export const sealApiUrl = (path: "seal" | "verify" | "proof", value?: string, endpoint = sealEndpoint) => {
+  if (!endpoint) return "";
+  const baseUrl = typeof window === "undefined" ? "http://127.0.0.1/" : window.location.href;
+  const url = new URL(endpoint, baseUrl);
+  if (path === "seal") {
+    url.pathname = url.pathname.replace(/\/verify\/?$/, "/seal").replace(/\/proof\/?.*$/, "/seal");
+    url.search = "";
+    return url.toString();
+  }
+  if (path === "verify") {
+    url.pathname = url.pathname.replace(/\/seal\/?$/, "/verify").replace(/\/proof\/?.*$/, "/verify");
+    url.search = "";
+    url.searchParams.set("cid", value ?? "");
+    return url.toString();
+  }
+  url.pathname = url.pathname.replace(/\/seal\/?$/, `/proof/${encodeURIComponent(value ?? "")}`).replace(/\/verify\/?$/, `/proof/${encodeURIComponent(value ?? "")}`);
   url.search = "";
-  url.searchParams.set("cid", cid);
   return url.toString();
+};
+
+const verifyEndpoint = (cid: string) => {
+  const url = sealApiUrl("verify", cid);
+  if (!url) return "";
+  return url;
+};
+
+const normalizeLookupProof = (cid: string, payload: Partial<FilecoinProof> & { checkedAt?: string }): FilecoinProof => ({
+  mode: "real",
+  cid: String(payload.cid ?? cid),
+  pieceCid: String(payload.pieceCid ?? payload.cid ?? cid),
+  provider: String(payload.provider ?? "seal-api-provider"),
+  dataSetId: String(payload.dataSetId ?? "seal-api-dataset"),
+  proofStatus: (payload.proofStatus as FilecoinProof["proofStatus"]) ?? "retrievable",
+  uploadedAt: payload.uploadedAt,
+  retrievalUrl: payload.retrievalUrl,
+});
+
+export const lookupFilecoinProof = async (cid: string): Promise<FilecoinLookupState> => {
+  const cleanCid = cid.trim();
+  if (!cleanCid) {
+    return { status: "missing", message: "Enter a CID to query the seal API." };
+  }
+  if (!sealEndpoint) {
+    return {
+      status: "needs-config",
+      message: "Set VITE_FILECOIN_SEAL_API to enable CID proof lookup.",
+    };
+  }
+  const proofUrl = sealApiUrl("proof", cleanCid);
+  const verifyUrl = sealApiUrl("verify", cleanCid);
+  try {
+    const proofRes = await fetch(proofUrl);
+    if (!proofRes.ok) {
+      return { status: "error", message: `Proof lookup returned ${proofRes.status}.` };
+    }
+    const proofPayload = (await proofRes.json()) as Partial<FilecoinProof> & { ok?: boolean; checkedAt?: string };
+    const verifyRes = await fetch(verifyUrl).catch(() => undefined);
+    const verifyPayload = verifyRes?.ok
+      ? ((await verifyRes.json()) as Partial<FilecoinProof> & { ok?: boolean; checkedAt?: string })
+      : {};
+    const proof = normalizeLookupProof(cleanCid, { ...proofPayload, ...verifyPayload });
+    return {
+      status: proof.proofStatus === "draft" ? "missing" : "found",
+      message: proof.proofStatus === "verified" ? "CID verified by the seal API." : "CID proof metadata loaded.",
+      proof,
+      checkedAt: verifyPayload.checkedAt ?? proofPayload.checkedAt ?? new Date().toISOString(),
+    };
+  } catch (error) {
+    return { status: "error", message: (error as Error).message };
+  }
 };
 
 const pollProofStatus = async (proof: FilecoinProof): Promise<FilecoinProof> => {

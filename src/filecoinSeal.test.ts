@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { runSealJob } from "./filecoinSeal";
+import { lookupFilecoinProof, runSealJob, sealApiUrl } from "./filecoinSeal";
 import type { MemoryRecord } from "./types";
 
 const record: MemoryRecord = {
@@ -40,5 +40,20 @@ describe("Filecoin seal workflow", () => {
     const updated = await runSealJob(record);
     expect(updated.sealJob?.status).toBe("needs-config");
     expect(updated.sealJob?.steps.some((step) => step.status === "needs-config")).toBe(true);
+  });
+
+  it("builds proof and verify URLs from a seal endpoint", () => {
+    expect(sealApiUrl("verify", "bafy123", "https://seal.example/seal")).toBe(
+      "https://seal.example/verify?cid=bafy123",
+    );
+    expect(sealApiUrl("proof", "bafy123", "https://seal.example/seal")).toBe(
+      "https://seal.example/proof/bafy123",
+    );
+  });
+
+  it("reports needs-config for CID lookup without a seal API", async () => {
+    const result = await lookupFilecoinProof("bafy123");
+    expect(result.status).toBe("needs-config");
+    expect(result.message).toContain("VITE_FILECOIN_SEAL_API");
   });
 });

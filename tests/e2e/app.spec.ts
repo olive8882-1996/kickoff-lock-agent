@@ -43,6 +43,9 @@ test("expanded product workflow is usable", async ({ page }) => {
 
   await page.getByRole("button", { name: /Open verifier/i }).click();
   await expect(page.getByRole("heading", { name: /Proof verification/i })).toBeVisible();
+  await page.getByLabel("Filecoin CID").fill("bafy-kickoff-test");
+  await page.getByRole("button", { name: /Query CID/i }).click();
+  await expect(page.locator(".cid-lookup")).toContainText(/VITE_FILECOIN_SEAL_API/i);
   await page.getByRole("button", { name: /Generate public share image/i }).click();
   await expect(page.getByRole("heading", { name: /Share image/i })).toBeVisible();
   await expect(page.locator(".public-share-card img")).toHaveAttribute("src", /data:image\/png;base64,/);

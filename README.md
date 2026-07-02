@@ -21,6 +21,13 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 - Screenshot: https://olive8882-1996.github.io/kickoff-lock-agent/kickoff-lock-screenshot.png
 - Demo video: https://olive8882-1996.github.io/kickoff-lock-agent/kickoff-lock-demo.mov
 
+## Brand Assets
+
+- Primary icon: `public/assets/kickoff-lock-icon.png`
+- Browser favicon: `public/assets/kickoff-lock-icon-32.png`
+- PWA icon set: `public/assets/kickoff-lock-icon-192.png` and `public/assets/kickoff-lock-icon-512.png`
+- Apple touch icon: `public/assets/kickoff-lock-apple-touch.png`
+
 ## Data Strategy
 
 The app works without API keys.
@@ -59,6 +66,7 @@ FILECOIN_SEAL_MOCK=1 bun run seal:api:mock
 ```
 
 The API exposes `GET /health`, `POST /seal`, `GET /verify?cid=...`, and `GET /proof/:cid`. The frontend uploads the stable capsule payload, polls CID verification, and updates the proof workflow steps.
+The public verifier also includes a CID lookup panel that queries the configured seal API and displays proof status, PieceCID, provider, dataset, and retrieval URL.
 
 Key files:
 

@@ -69,6 +69,13 @@ export type FilecoinProof = {
   retrievalUrl?: string;
 };
 
+export type FilecoinLookupState = {
+  status: "idle" | "checking" | "found" | "missing" | "needs-config" | "error";
+  message: string;
+  proof?: FilecoinProof;
+  checkedAt?: string;
+};
+
 export type SealStepStatus = "queued" | "running" | "passed" | "failed" | "needs-config";
 
 export type SealStep = {

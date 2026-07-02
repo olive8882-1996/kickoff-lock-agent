@@ -50,7 +50,7 @@ import {
   syncRecordsToCloud,
   syncProfileToCloud,
 } from "./cloud";
-import { filecoinSealConfigured, runSealJob } from "./filecoinSeal";
+import { filecoinSealConfigured, lookupFilecoinProof, runSealJob } from "./filecoinSeal";
 import { createGameModeRun, getModeReadiness } from "./modes";
 import { applyRealProof, createCapsule, stableJson } from "./proof";
 import { enrichMatchWithDataProviders, loadMatchesWithFallback, sourceLabel } from "./providers";
@@ -60,6 +60,7 @@ import type {
   AppView,
   BracketPath,
   CloudSyncState,
+  FilecoinLookupState,
   GameMode,
   GameModeRun,
   LeaderboardEntry,
@@ -364,6 +365,11 @@ function App() {
   const [publicShareImageUrl, setPublicShareImageUrl] = useState("");
   const [publicRecord, setPublicRecord] = useState<MemoryRecord | undefined>();
   const [publicProofStatus, setPublicProofStatus] = useState("");
+  const [cidLookupInput, setCidLookupInput] = useState("");
+  const [cidLookupState, setCidLookupState] = useState<FilecoinLookupState>({
+    status: "idle",
+    message: "Enter a CID to query the configured Filecoin seal API.",
+  });
   const [publicProfile, setPublicProfile] = useState<PublicProfile | undefined>();
   const [publicProfileStatus, setPublicProfileStatus] = useState("");
   const [notice, setNotice] = useState("");
@@ -753,6 +759,13 @@ function App() {
   const shareToTwitter = () => {
     if (!selectedRecord) return;
     shareRecordToTwitter(selectedRecord);
+  };
+
+  const queryFilecoinCid = async () => {
+    setCidLookupState({ status: "checking", message: "Querying Filecoin seal API..." });
+    const result = await lookupFilecoinProof(cidLookupInput);
+    setCidLookupState(result);
+    setNotice(result.message);
   };
 
   const copyProofLink = async () => {
@@ -1201,6 +1214,10 @@ function App() {
           onShareImage={(record) => void generateShareImageForRecord(record, { publicPreview: true })}
           onTwitter={shareRecordToTwitter}
           matches={matches}
+          cidLookupInput={cidLookupInput}
+          cidLookupState={cidLookupState}
+          onCidLookupInput={setCidLookupInput}
+          onCidLookup={queryFilecoinCid}
         />
       )}
 
@@ -1719,6 +1736,10 @@ function VerifyDashboard({
   onShareImage,
   onTwitter,
   matches,
+  cidLookupInput,
+  cidLookupState,
+  onCidLookupInput,
+  onCidLookup,
 }: {
   records: MemoryRecord[];
   publicRecord?: MemoryRecord;
@@ -1727,6 +1748,10 @@ function VerifyDashboard({
   onShareImage: (record: MemoryRecord) => void;
   onTwitter: (record: MemoryRecord) => void;
   matches: Match[];
+  cidLookupInput: string;
+  cidLookupState: FilecoinLookupState;
+  onCidLookupInput: (value: string) => void;
+  onCidLookup: () => void;
 }) {
   const proofId = new URLSearchParams(window.location.search).get("proof");
   const localRecord = proofId
@@ -1755,6 +1780,39 @@ function VerifyDashboard({
         <span className="pill">{record ? proofSource : "missing"}</span>
       </div>
       {publicProofStatus && <div className="warning">{publicProofStatus}</div>}
+      <div className="cid-lookup">
+        <div>
+          <p className="eyebrow">Filecoin CID lookup</p>
+          <h3>Query proof status</h3>
+          <span>{cidLookupState.message}</span>
+        </div>
+        <label>
+          <span>CID</span>
+          <input
+            value={cidLookupInput}
+            onChange={(event) => onCidLookupInput(event.target.value)}
+            aria-label="Filecoin CID"
+            placeholder="bafy..."
+          />
+        </label>
+        <button onClick={onCidLookup} disabled={cidLookupState.status === "checking"}>
+          <ShieldCheck size={16} /> Query CID
+        </button>
+        {cidLookupState.proof && (
+          <div className="cid-result">
+            <p><b>Status</b><span>{cidLookupState.proof.proofStatus}</span></p>
+            <p><b>CID</b><span>{cidLookupState.proof.cid}</span></p>
+            <p><b>PieceCID</b><span>{cidLookupState.proof.pieceCid}</span></p>
+            <p><b>Provider</b><span>{cidLookupState.proof.provider}</span></p>
+            <p><b>Dataset</b><span>{cidLookupState.proof.dataSetId}</span></p>
+            {cidLookupState.proof.retrievalUrl && (
+              <a href={cidLookupState.proof.retrievalUrl} target="_blank" rel="noreferrer">
+                Open retrieval
+              </a>
+            )}
+          </div>
+        )}
+      </div>
       {!record ? (
         <div className="empty">
           <ShieldCheck size={32} />

@@ -66,6 +66,12 @@ Local smoke test without spending funds:
 FILECOIN_SEAL_MOCK=1 bun run seal:api:mock
 ```
 
+End-to-end seal workflow test without spending funds:
+
+```bash
+bun run test:e2e:seal
+```
+
 The API exposes `GET /health`, `POST /seal`, `GET /verify?cid=...`, and `GET /proof/:cid`. The frontend uploads the stable capsule payload, polls CID verification, and updates the proof workflow steps.
 The public verifier also includes a CID lookup panel that queries the configured seal API and displays proof status, PieceCID, provider, dataset, and retrieval URL.
 

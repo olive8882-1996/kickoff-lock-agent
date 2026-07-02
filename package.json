@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "test:e2e": "bun scripts/run-e2e.mjs",
+    "test:e2e:seal": "bun scripts/run-seal-e2e.mjs",
     "test:watch": "vitest",
     "preview": "vite preview --host 127.0.0.1",
     "seal:synapse": "bun scripts/seal-with-synapse.mjs",

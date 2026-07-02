@@ -10,6 +10,10 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".provider-readiness")).toContainText(/Odds/i);
   await expect(page.getByRole("button", { name: /Account/i }).last()).toBeVisible();
   await expect(page.getByRole("button", { name: /Modes/i }).last()).toBeVisible();
+  await expect(page.locator(".brand-lockup img")).toHaveJSProperty("complete", true);
+  await expect
+    .poll(async () => page.locator(".brand-lockup img").evaluate((image: HTMLImageElement) => image.naturalWidth))
+    .toBeGreaterThan(0);
 
   await page.getByRole("button", { name: /Account/i }).last().click();
   await expect(page.getByRole("heading", { name: /Profile sync center/i })).toBeVisible();
@@ -26,6 +30,7 @@ test("expanded product workflow is usable", async ({ page }) => {
   await page.getByRole("button", { name: /Seal bracket proof/i }).click();
   await expect(page.locator(".bracket-runs")).toContainText(/Bracket path sealed/i);
   await expect(page.getByText(/Agent vs Human/i)).toBeVisible();
+  await expect(page.locator(".mode-grid article").filter({ hasText: "Upset challenge" })).toContainText(/playable/i);
 
   const upcoming = page.locator(".match-card").filter({ hasText: "upcoming" }).first();
   await expect(upcoming).toBeVisible();

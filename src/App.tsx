@@ -107,9 +107,9 @@ const gameModes: GameMode[] = [
   {
     id: "upset",
     title: "Upset challenge",
-    status: "planned",
+    status: "playable",
     description: "Hunt one underdog call per matchday with a public leaderboard multiplier.",
-    progress: 35,
+    progress: 72,
     reward: "Underdog multiplier",
   },
 ];

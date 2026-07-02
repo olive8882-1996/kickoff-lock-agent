@@ -132,6 +132,26 @@ export const syncRecordsToCloud = async (profile: UserProfile, records: MemoryRe
   return { status: "synced" as const, message: `Synced ${rows.length} records to Supabase.` };
 };
 
+export const loadRecordsFromCloud = async (profile: UserProfile): Promise<MemoryRecord[]> => {
+  const session = loadSupabaseSession();
+  if (!configured || !session) throw new Error("Sign in with Supabase before pulling cloud records.");
+  const params = new URLSearchParams({
+    select: "capsule,result,seal_job,updated_at",
+    or: `(user_id.eq.${profile.id},email.eq.${profile.email})`,
+    order: "updated_at.desc",
+  });
+  const res = await fetch(restUrl(`kickoff_records?${params.toString()}`), {
+    headers: headers(session),
+  });
+  if (!res.ok) throw new Error(`Cloud history load failed: ${res.status}`);
+  const rows = (await res.json()) as any[];
+  return rows.map((row) => ({
+    capsule: row.capsule,
+    result: row.result ?? undefined,
+    sealJob: row.seal_job ?? undefined,
+  }));
+};
+
 export const loadGlobalLeaderboard = async (): Promise<LeaderboardEntry[]> => {
   const session = loadSupabaseSession();
   if (!configured || !session) return [];

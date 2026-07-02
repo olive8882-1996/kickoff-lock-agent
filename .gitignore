@@ -5,3 +5,5 @@ dist/
 .env
 *.tsbuildinfo
 node_modules/.tmp/
+test-results/
+playwright-report/

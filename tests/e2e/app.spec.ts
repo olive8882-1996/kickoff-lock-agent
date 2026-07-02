@@ -1,0 +1,32 @@
+import { expect, test } from "@playwright/test";
+
+test("expanded product workflow is usable", async ({ page }) => {
+  await page.goto("?reset=1&e2e=1");
+  await expect(page.getByRole("heading", { name: /matches/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Account/i }).last()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Modes/i }).last()).toBeVisible();
+
+  await page.getByRole("button", { name: /Account/i }).last().click();
+  await expect(page.getByRole("heading", { name: /Profile sync center/i })).toBeVisible();
+  await expect(page.getByText(/Pull cloud history/i)).toBeVisible();
+
+  await page.getByRole("button", { name: /Modes/i }).last().click();
+  await expect(page.getByRole("heading", { name: /Beyond single-match locks/i })).toBeVisible();
+  await expect(page.getByText(/Agent vs Human/i)).toBeVisible();
+
+  const upcoming = page.locator(".match-card").filter({ hasText: "upcoming" }).first();
+  await expect(upcoming).toBeVisible();
+  await upcoming.click();
+  await page.getByRole("button", { name: /Generate prediction/i }).click();
+  const lockButton = page.getByRole("button", { name: /Lock prediction/i });
+  await expect(lockButton).toBeEnabled();
+  await lockButton.click();
+
+  await page.getByRole("button", { name: /Auto seal to Filecoin/i }).click();
+  await expect(page.getByText(/Auto seal status/i)).toBeVisible();
+  await expect(page.getByText(/needs-config/i).first()).toBeVisible();
+
+  await page.getByRole("button", { name: /Generate share image/i }).click();
+  await expect(page.getByRole("heading", { name: /Social image/i })).toBeVisible();
+  await expect(page.locator(".share-preview img")).toHaveAttribute("src", /data:image\/png;base64,/);
+});

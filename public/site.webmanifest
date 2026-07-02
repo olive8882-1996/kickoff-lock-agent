@@ -1,0 +1,29 @@
+{
+  "name": "Kickoff Lock Agent",
+  "short_name": "Kickoff Lock",
+  "description": "Seal World Cup predictions before kickoff and verify them after the final whistle.",
+  "start_url": "/kickoff-lock-agent/",
+  "display": "standalone",
+  "background_color": "#050b0e",
+  "theme_color": "#050b0e",
+  "icons": [
+    {
+      "src": "assets/kickoff-lock-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/kickoff-lock-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/kickoff-lock-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

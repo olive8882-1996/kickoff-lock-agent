@@ -33,13 +33,14 @@ import {
   getCloudState,
   loadGlobalLeaderboard,
   loadProfile,
+  loadRecordsFromCloud,
   saveProfile,
   sendMagicLink,
   syncRecordsToCloud,
 } from "./cloud";
 import { filecoinSealConfigured, runSealJob } from "./filecoinSeal";
 import { applyRealProof, createCapsule, stableJson } from "./proof";
-import { loadMatchesWithFallback, sourceLabel } from "./providers";
+import { enrichMatchFromApiFootball, loadMatchesWithFallback, sourceLabel } from "./providers";
 import { scorePrediction } from "./scoring";
 import { downloadDataUrl, generateShareCard } from "./shareCard";
 import type {
@@ -455,6 +456,29 @@ function App() {
     }
   };
 
+  const pullCloudHistory = async () => {
+    setCloudState({ ...getCloudState(), status: "syncing", message: "Pulling cloud history..." });
+    try {
+      const remoteRecords = await loadRecordsFromCloud(profile);
+      const byId = new Map(records.map((record) => [record.capsule.id, record]));
+      remoteRecords.forEach((record) => byId.set(record.capsule.id, record));
+      const merged = [...byId.values()].sort(
+        (a, b) => new Date(b.capsule.sealedAt ?? b.capsule.createdAt).getTime() - new Date(a.capsule.sealedAt ?? a.capsule.createdAt).getTime(),
+      );
+      setRecords(merged);
+      setCloudState({
+        ...getCloudState(),
+        status: "synced",
+        message: `Pulled ${remoteRecords.length} cloud records.`,
+        lastSyncedAt: new Date().toISOString(),
+      });
+      setNotice(`Pulled ${remoteRecords.length} cloud records.`);
+    } catch (error) {
+      setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
+      setNotice((error as Error).message);
+    }
+  };
+
   const requestMagicLink = async () => {
     try {
       await sendMagicLink(accountEmail);
@@ -518,6 +542,17 @@ function App() {
     setDraft({ ...shownDraft, markets: nextMarkets });
   };
 
+  const enrichSelectedMatch = async () => {
+    if (!selectedMatch) return;
+    try {
+      const enriched = await enrichMatchFromApiFootball(selectedMatch);
+      setMatches(matches.map((match) => (match.id === enriched.id ? enriched : match)));
+      setNotice("Match intelligence enriched from API-Football.");
+    } catch (error) {
+      setNotice((error as Error).message);
+    }
+  };
+
   return (
     <main className="shell">
       <aside className="side-rail" aria-label="Tournament controls">
@@ -570,6 +605,10 @@ function App() {
         )}
       >
         <div className="hero-copy-block">
+          <div className="brand-lockup" aria-label="Kickoff Lock Agent brand">
+            <img src={assetUrl("kickoff-lock-icon.png")} alt="" />
+            <span>World Cup proof agent</span>
+          </div>
           <h1><span>Kickoff</span><span>Lock</span><span>Agent</span></h1>
           <p className="hero-copy">
             Lock before kickoff <i /> reveal after final whistle
@@ -724,7 +763,7 @@ function App() {
               </div>
 
               <LockWindow match={selectedMatch} lockState={lockState} />
-              <MatchIntelligence match={selectedMatch} />
+              <MatchIntelligence match={selectedMatch} onEnrich={enrichSelectedMatch} />
 
               <div className="scoreboard-lock">
                 <div className="team-tile home">{selectedMatch.homeTeam}</div>
@@ -902,6 +941,7 @@ function App() {
           onProfile={updateProfile}
           onMagicLink={requestMagicLink}
           onSync={syncToCloud}
+          onPull={pullCloudHistory}
         />
       )}
     </main>
@@ -949,11 +989,23 @@ function LockWindow({
   );
 }
 
-function MatchIntelligence({ match }: { match: Match }) {
+function MatchIntelligence({ match, onEnrich }: { match: Match; onEnrich: () => void }) {
   const insights = match.insights;
   if (!insights) {
     return (
       <div className="intel-panel">
+        <div className="intel-head">
+          <div>
+            <p className="eyebrow">Match intelligence</p>
+            <h3>Data brief</h3>
+          </div>
+          <div className="intel-actions">
+            <span>Basic provider pack</span>
+            <button onClick={onEnrich}>
+              <Radar size={15} /> Enrich
+            </button>
+          </div>
+        </div>
         <p>No intelligence pack yet. Provider data can still be locked as a basic capsule.</p>
       </div>
     );
@@ -965,7 +1017,12 @@ function MatchIntelligence({ match }: { match: Match }) {
           <p className="eyebrow">Match intelligence</p>
           <h3>Data brief</h3>
         </div>
-        <span>{insights.dataFreshness}</span>
+        <div className="intel-actions">
+          <span>{insights.dataFreshness}</span>
+          <button onClick={onEnrich}>
+            <Radar size={15} /> Enrich
+          </button>
+        </div>
       </div>
       <div className="intel-grid">
         <div>
@@ -986,6 +1043,9 @@ function MatchIntelligence({ match }: { match: Match }) {
       <div className="intel-notes">
         <p><b>H2H</b>{insights.headToHead}</p>
         <p><b>Market</b>{insights.marketLine}</p>
+        <p><b>Odds</b>{insights.oddsSnapshot ?? "Waiting for odds source"}</p>
+        <p><b>Lineup</b>{insights.lineupSource ?? "Fallback lineup pack"}</p>
+        <p><b>Injury</b>{insights.injurySource ?? "Fallback injury pack"}</p>
       </div>
     </div>
   );
@@ -1436,6 +1496,7 @@ function AccountDashboard({
   onProfile,
   onMagicLink,
   onSync,
+  onPull,
 }: {
   profile: ReturnType<typeof loadProfile>;
   cloudState: CloudSyncState;
@@ -1445,6 +1506,7 @@ function AccountDashboard({
   onProfile: (patch: Partial<ReturnType<typeof loadProfile>>) => void;
   onMagicLink: () => void;
   onSync: () => void;
+  onPull: () => void;
 }) {
   return (
     <section className="account panel">
@@ -1485,6 +1547,9 @@ function AccountDashboard({
             </button>
             <button className="primary" onClick={onSync}>
               <UploadCloud size={18} /> Sync {records.length} records
+            </button>
+            <button onClick={onPull}>
+              <Download size={18} /> Pull cloud history
             </button>
           </div>
           <div className="schema-note">

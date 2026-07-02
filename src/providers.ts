@@ -144,6 +144,89 @@ export const loadFromApiFootball = async (): Promise<ProviderResult> => {
   };
 };
 
+const apiFootballJson = async (path: string) => {
+  if (!API_FOOTBALL_KEY) throw new Error("VITE_APIFOOTBALL_KEY is not configured");
+  const res = await timeoutFetch(`${API_FOOTBALL_HOST}${path}`, 7500, {
+    "x-apisports-key": API_FOOTBALL_KEY,
+  });
+  if (!res.ok) throw new Error(`API-Football ${path} returned ${res.status}`);
+  return res.json();
+};
+
+export const enrichMatchFromApiFootball = async (match: Match): Promise<Match> => {
+  const fixtureId = match.id.startsWith("api-football-")
+    ? match.id.replace("api-football-", "")
+    : "";
+  if (!fixtureId) throw new Error("Select an API-Football fixture to enrich lineups, injuries and odds.");
+  const [lineups, injuries, odds] = await Promise.allSettled([
+    apiFootballJson(`/fixtures/lineups?fixture=${fixtureId}`),
+    apiFootballJson(`/injuries?fixture=${fixtureId}`),
+    apiFootballJson(`/odds?fixture=${fixtureId}`),
+  ]);
+  const lineupRows = lineups.status === "fulfilled" && Array.isArray(lineups.value.response)
+    ? lineups.value.response
+    : [];
+  const injuryRows = injuries.status === "fulfilled" && Array.isArray(injuries.value.response)
+    ? injuries.value.response
+    : [];
+  const oddsRows = odds.status === "fulfilled" && Array.isArray(odds.value.response)
+    ? odds.value.response
+    : [];
+  const homeLineup = lineupRows.find((row: any) => row.team?.name === match.homeTeam);
+  const awayLineup = lineupRows.find((row: any) => row.team?.name === match.awayTeam);
+  const homeInjuries = injuryRows
+    .filter((row: any) => row.team?.name === match.homeTeam)
+    .map((row: any) => row.player?.name ?? row.player?.id)
+    .filter(Boolean)
+    .slice(0, 5);
+  const awayInjuries = injuryRows
+    .filter((row: any) => row.team?.name === match.awayTeam)
+    .map((row: any) => row.player?.name ?? row.player?.id)
+    .filter(Boolean)
+    .slice(0, 5);
+  const firstBookmaker = oddsRows[0]?.bookmakers?.[0];
+  const firstBet = firstBookmaker?.bets?.[0];
+  const oddsSnapshot = firstBet?.values
+    ?.slice(0, 3)
+    ?.map((value: any) => `${value.value} ${value.odd}`)
+    ?.join(" · ");
+  return {
+    ...match,
+    insights: {
+      home: {
+        ...(match.insights?.home ?? {
+          fifaRank: 0,
+          form: [],
+          lastFiveGoalsFor: 0,
+          lastFiveGoalsAgainst: 0,
+          unavailable: [],
+          probableLineup: [],
+        }),
+        unavailable: homeInjuries.length > 0 ? homeInjuries : ["No API-reported injuries"],
+        probableLineup: homeLineup?.startXI?.map((item: any) => item.player?.name).filter(Boolean).slice(0, 11) ?? ["Lineup not published yet"],
+      },
+      away: {
+        ...(match.insights?.away ?? {
+          fifaRank: 0,
+          form: [],
+          lastFiveGoalsFor: 0,
+          lastFiveGoalsAgainst: 0,
+          unavailable: [],
+          probableLineup: [],
+        }),
+        unavailable: awayInjuries.length > 0 ? awayInjuries : ["No API-reported injuries"],
+        probableLineup: awayLineup?.startXI?.map((item: any) => item.player?.name).filter(Boolean).slice(0, 11) ?? ["Lineup not published yet"],
+      },
+      headToHead: match.insights?.headToHead ?? "H2H endpoint can be called once both team ids are available.",
+      marketLine: oddsSnapshot ? `${firstBookmaker?.name ?? "Bookmaker"} · ${firstBet?.name ?? "Odds"} · ${oddsSnapshot}` : "Odds not published for this fixture.",
+      oddsSnapshot: oddsSnapshot ?? "No odds payload returned.",
+      lineupSource: lineups.status === "fulfilled" ? "API-Football lineups endpoint" : `Lineups unavailable: ${lineups.reason}`,
+      injurySource: injuries.status === "fulfilled" ? "API-Football injuries endpoint" : `Injuries unavailable: ${injuries.reason}`,
+      dataFreshness: new Date().toISOString(),
+    },
+  };
+};
+
 export const loadSeedMatches = (): ProviderResult => ({
   source: "seed",
   matches: seedMatches,

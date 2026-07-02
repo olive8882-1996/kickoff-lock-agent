@@ -63,9 +63,12 @@ For one-click browser sealing, run the seal API on a trusted server and point th
 ```bash
 SYNAPSE_PRIVATE_KEY=0x... \
 FILECOIN_PROOF_STORE_PATH=./proofs/filecoin-proof-store.json \
+FILECOIN_SEAL_TOKEN=change-me \
 ALLOW_ORIGIN=https://your-site.example \
 bun run seal:api
 ```
+
+Set the browser build with the matching `VITE_FILECOIN_SEAL_API` and `VITE_FILECOIN_SEAL_TOKEN`. The token is optional for local demos, but recommended for production because `POST /seal` spends backend resources.
 
 Local smoke test without spending funds:
 
@@ -79,7 +82,7 @@ End-to-end seal workflow test without spending funds:
 bun run test:e2e:seal
 ```
 
-The API exposes `GET /health`, `POST /seal`, `GET /verify?cid=...`, and `GET /proof/:cid`. Each successful seal is registered by CID with payload hash, byte length, provider metadata, and checked timestamps, so the verifier only reports proof metadata for CIDs sealed by that backend instance. Set `FILECOIN_PROOF_STORE_PATH` to persist that registry across server restarts; without it, the server falls back to memory-only mode for local demos.
+The API exposes `GET /health`, `POST /seal`, `GET /verify?cid=...`, and `GET /proof/:cid`. Each successful seal is registered by CID with payload hash, byte length, provider metadata, and checked timestamps, so the verifier only reports proof metadata for CIDs sealed by that backend instance. Set `FILECOIN_PROOF_STORE_PATH` to persist that registry across server restarts; without it, the server falls back to memory-only mode for local demos. Set `FILECOIN_SEAL_TOKEN` to require a bearer token for browser upload requests while leaving public proof verification readable.
 The frontend runs a health preflight, uploads the stable capsule payload, polls CID verification, stores proof/verify URLs, and renders a Filecoin acceptance checklist for backend configuration, API health, upload acceptance, CID return, verification polling, and verifier URL readiness.
 The public verifier also includes a CID lookup panel that queries the configured seal API and displays proof status, PieceCID, provider, dataset, and retrieval URL.
 

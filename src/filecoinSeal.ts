@@ -2,6 +2,7 @@ import { stableJson } from "./proof";
 import type { FilecoinLookupState, FilecoinProof, MemoryRecord, PredictionCapsule, SealJob, SealStep } from "./types";
 
 const sealEndpoint = import.meta.env.VITE_FILECOIN_SEAL_API as string | undefined;
+const sealToken = import.meta.env.VITE_FILECOIN_SEAL_TOKEN as string | undefined;
 
 const baseSteps = (): SealStep[] => [
   {
@@ -54,6 +55,11 @@ const mark = (steps: SealStep[], ids: SealStep["id"][], status: SealStep["status
   );
 
 const wait = (ms: number) => new Promise((resolve) => globalThis.setTimeout(resolve, ms));
+
+export const sealApiHeaders = (base: Record<string, string> = {}, token = sealToken) => ({
+  ...base,
+  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+});
 
 export const sealApiUrl = (path: "health" | "seal" | "verify" | "proof", value?: string, endpoint = sealEndpoint) => {
   if (!endpoint) return "";
@@ -238,7 +244,7 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
 
   const res = await fetch(sealUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: sealApiHeaders({ "Content-Type": "application/json" }),
     body: stableJson({ capsule, result: record.result ?? null }),
   }).catch(() => undefined);
   if (!res?.ok) {

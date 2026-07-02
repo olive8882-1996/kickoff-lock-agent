@@ -44,13 +44,14 @@ const waitForHealth = async (baseUrl: string) => {
   throw new Error("Filecoin seal API did not become healthy");
 };
 
-const startServer = async (port: number, storePath: string) => {
+const startServer = async (port: number, storePath: string, token?: string) => {
   child = spawn("bun", ["server/filecoin-seal-api.mjs"], {
     cwd: process.cwd(),
     env: {
       ...process.env,
       FILECOIN_SEAL_MOCK: "1",
       FILECOIN_PROOF_STORE_PATH: storePath,
+      FILECOIN_SEAL_TOKEN: token ?? "",
       PORT: String(port),
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -103,5 +104,35 @@ describe("Filecoin seal API", () => {
 
     const missingRes = await fetch(`${baseUrl}/verify?cid=bafy-not-registered`);
     expect(missingRes.status).toBe(404);
+  }, 15_000);
+
+  it("requires the configured bearer token before accepting seal uploads", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "kickoff-filecoin-auth-"));
+    const storePath = join(tempDir, "proof-store.json");
+    const port = await getPort();
+    const baseUrl = `http://127.0.0.1:${port}`;
+    const payload = JSON.stringify({ capsule: { id: "cap-api-auth-test" }, result: null });
+
+    const health = await startServer(port, storePath, "seal-secret");
+    expect(health.authRequired).toBe(true);
+
+    const unauthorized = await fetch(`${baseUrl}/seal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+    });
+    expect(unauthorized.status).toBe(401);
+
+    const authorized = await fetch(`${baseUrl}/seal`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer seal-secret",
+      },
+      body: payload,
+    });
+    expect(authorized.ok).toBe(true);
+    const proof = (await authorized.json()) as { cid: string };
+    expect(proof.cid).toContain("bafy-mock-");
   }, 15_000);
 });

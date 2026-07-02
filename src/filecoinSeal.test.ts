@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { lookupFilecoinProof, runSealJob, sealApiUrl } from "./filecoinSeal";
+import { lookupFilecoinProof, runSealJob, sealApiHeaders, sealApiUrl } from "./filecoinSeal";
 import type { MemoryRecord } from "./types";
 
 const record: MemoryRecord = {
@@ -62,6 +62,16 @@ describe("Filecoin seal workflow", () => {
     expect(sealApiUrl("proof", "bafy123", "https://seal.example/seal")).toBe(
       "https://seal.example/proof/bafy123",
     );
+  });
+
+  it("adds a bearer token to configured seal API upload headers", () => {
+    expect(sealApiHeaders({ "Content-Type": "application/json" }, "secret-token")).toEqual({
+      "Content-Type": "application/json",
+      Authorization: "Bearer secret-token",
+    });
+    expect(sealApiHeaders({ "Content-Type": "application/json" }, undefined)).toEqual({
+      "Content-Type": "application/json",
+    });
   });
 
   it("reports needs-config for CID lookup without a seal API", async () => {

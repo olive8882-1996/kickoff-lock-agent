@@ -8,6 +8,7 @@ const port = Number(process.env.PORT ?? 8787);
 const privateKey = process.env.SYNAPSE_PRIVATE_KEY;
 const mockMode = process.env.FILECOIN_SEAL_MOCK === "1";
 const proofStorePath = process.env.FILECOIN_PROOF_STORE_PATH;
+const sealToken = process.env.FILECOIN_SEAL_TOKEN;
 const proofStore = new Map();
 
 const corsHeaders = {
@@ -30,6 +31,11 @@ const readBody = (req) =>
   });
 
 const sha256Hex = (bytes) => createHash("sha256").update(bytes).digest("hex");
+
+const isAuthorized = (req) => {
+  if (!sealToken) return true;
+  return req.headers.authorization === `Bearer ${sealToken}`;
+};
 
 const pseudoProof = async (bytes) => {
   const hex = sha256Hex(bytes);
@@ -157,6 +163,7 @@ const server = createServer(async (req, res) => {
       ok: true,
       mockMode,
       hasPrivateKey: Boolean(privateKey),
+      authRequired: Boolean(sealToken),
       service: "kickoff-lock-filecoin-seal-api",
       proofCount: proofStore.size,
       persistence: proofStorePath ? "file" : "memory",
@@ -184,6 +191,10 @@ const server = createServer(async (req, res) => {
   }
 
   try {
+    if (!isAuthorized(req)) {
+      json(res, 401, { error: "Missing or invalid seal API token" });
+      return;
+    }
     const bytes = await readBody(req);
     if (bytes.length === 0) {
       json(res, 400, { error: "Empty capsule payload" });

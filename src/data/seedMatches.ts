@@ -1,5 +1,34 @@
 import type { Match } from "../types";
 
+const insight = (
+  homeRank: number,
+  awayRank: number,
+  homeForm: string[],
+  awayForm: string[],
+  headToHead: string,
+  marketLine: string,
+): NonNullable<Match["insights"]> => ({
+  home: {
+    fifaRank: homeRank,
+    form: homeForm,
+    lastFiveGoalsFor: 8 + (homeRank % 4),
+    lastFiveGoalsAgainst: 3 + (homeRank % 3),
+    unavailable: homeRank % 2 === 0 ? ["Rotation fullback doubtful"] : ["No major absences"],
+    probableLineup: ["GK", "RB", "CB", "CB", "LB", "DM", "CM", "AM", "RW", "LW", "ST"],
+  },
+  away: {
+    fifaRank: awayRank,
+    form: awayForm,
+    lastFiveGoalsFor: 7 + (awayRank % 4),
+    lastFiveGoalsAgainst: 4 + (awayRank % 3),
+    unavailable: awayRank % 2 === 0 ? ["Starting winger monitored"] : ["No major absences"],
+    probableLineup: ["GK", "RB", "CB", "CB", "LB", "CM", "CM", "AM", "RW", "LW", "ST"],
+  },
+  headToHead,
+  marketLine,
+  dataFreshness: "Seed intelligence pack, ready for API replacement",
+});
+
 export const seedMatches: Match[] = [
   {
     id: "seed-mex-ecu-2026-r32",
@@ -12,6 +41,7 @@ export const seedMatches: Match[] = [
     homeScore: 2,
     awayScore: 0,
     venue: "Dallas",
+    insights: insight(14, 29, ["W", "D", "W", "L", "W"], ["D", "W", "L", "W", "D"], "Mexico has won two of the last four competitive meetings.", "Mexico slight favorite · under 2.5 trending"),
   },
   {
     id: "seed-france-sweden-2026-r32",
@@ -24,6 +54,7 @@ export const seedMatches: Match[] = [
     homeScore: 3,
     awayScore: 0,
     venue: "New York/New Jersey",
+    insights: insight(2, 21, ["W", "W", "D", "W", "W"], ["W", "L", "D", "W", "L"], "France controls recent knockout tempo against European mid-blocks.", "France -0.75 · clean-sheet probability elevated"),
   },
   {
     id: "seed-brazil-japan-2026-r16",
@@ -34,6 +65,7 @@ export const seedMatches: Match[] = [
     status: "upcoming",
     dataSource: "seed",
     venue: "Los Angeles",
+    insights: insight(5, 17, ["W", "W", "L", "W", "D"], ["W", "D", "W", "L", "W"], "Brazil leads the modern series but Japan has scored in three straight meetings.", "Brazil -0.5 · over 2.5 has support"),
   },
   {
     id: "seed-england-ghana-2026-r16",
@@ -44,6 +76,7 @@ export const seedMatches: Match[] = [
     status: "upcoming",
     dataSource: "seed",
     venue: "Toronto",
+    insights: insight(4, 36, ["W", "D", "W", "W", "L"], ["D", "W", "W", "L", "D"], "England's set-piece edge is the main historical separator.", "England -0.75 · both teams score balanced"),
   },
   {
     id: "seed-argentina-denmark-2026-r16",
@@ -54,6 +87,7 @@ export const seedMatches: Match[] = [
     status: "upcoming",
     dataSource: "seed",
     venue: "Miami",
+    insights: insight(1, 19, ["W", "W", "W", "D", "W"], ["W", "D", "L", "W", "W"], "Argentina has protected leads well in the previous cycle meetings.", "Argentina -0.5 · first goal heavily priced"),
   },
   {
     id: "seed-spain-morocco-2026-r16",
@@ -64,5 +98,6 @@ export const seedMatches: Match[] = [
     status: "upcoming",
     dataSource: "seed",
     venue: "Vancouver",
+    insights: insight(6, 12, ["W", "L", "W", "D", "W"], ["W", "W", "D", "L", "W"], "Morocco's transition block kept the last meeting within one goal.", "Spain -0.25 · under 3.0 favored"),
   },
 ];

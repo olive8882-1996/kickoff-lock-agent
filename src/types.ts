@@ -2,7 +2,24 @@ export type DataSource = "espn" | "worldcup26" | "seed" | "manual";
 
 export type MatchStatus = "upcoming" | "live" | "finished";
 
-export type AppView = "matches" | "predict" | "memory";
+export type AppView = "matches" | "predict" | "memory" | "verify";
+
+export type TeamInsight = {
+  fifaRank: number;
+  form: string[];
+  lastFiveGoalsFor: number;
+  lastFiveGoalsAgainst: number;
+  unavailable: string[];
+  probableLineup: string[];
+};
+
+export type MarketPick = {
+  id: "winner" | "total-goals" | "both-score" | "first-goal";
+  label: string;
+  pick: string;
+  confidence: number;
+  rationale: string;
+};
 
 export type Match = {
   id: string;
@@ -15,6 +32,13 @@ export type Match = {
   homeScore?: number;
   awayScore?: number;
   venue?: string;
+  insights?: {
+    home: TeamInsight;
+    away: TeamInsight;
+    headToHead: string;
+    marketLine: string;
+    dataFreshness: string;
+  };
 };
 
 export type PredictionDraft = {
@@ -26,6 +50,7 @@ export type PredictionDraft = {
   style: "analysis" | "fan-instinct" | "bold-call";
   reasoning: string;
   agentSummary: string;
+  markets: MarketPick[];
 };
 
 export type ProofStatus = "draft" | "sealed" | "retrievable" | "verified";
@@ -57,6 +82,7 @@ export type ScoreBreakdown = {
   winner: number;
   exactScore: number;
   goalDifference: number;
+  markets: number;
   keyPlayer: number;
   confidence: number;
   reasoning: number;
@@ -73,6 +99,7 @@ export type ResultCapsule = {
   totalScore: number;
   breakdown: ScoreBreakdown;
   explanation: string[];
+  agentReview: string[];
 };
 
 export type MemoryRecord = {

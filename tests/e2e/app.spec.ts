@@ -54,6 +54,7 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".leaderboard-readiness")).toContainText(/local fallback/i);
   await expect(page.locator(".leaderboard article")).toContainText(/locks/i);
   await expect(page.locator(".leaderboard article")).toContainText(/real proofs/i);
+  await expect(page.locator(".leaderboard article")).toContainText(/mode proofs/i);
 
   await mainNav.getByRole("button", { name: "Account" }).click();
   await page.getByRole("button", { name: /Open public profile/i }).click();

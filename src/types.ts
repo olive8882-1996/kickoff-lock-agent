@@ -203,6 +203,7 @@ export type LeaderboardEntry = {
   streak: number;
   exactHits: number;
   verifiedProofs: number;
+  modeProofs: number;
   seasonKey?: string;
   friendCode?: string;
   updatedAt?: string;

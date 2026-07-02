@@ -70,7 +70,7 @@ const friendCodeFor = (profile: UserProfile) =>
 
 const currentSeasonKey = "world-cup-run";
 
-const scoreRecords = (records: MemoryRecord[]) => {
+const scoreRecords = (records: MemoryRecord[], modeRuns: GameModeRun[] = []) => {
   const revealed = records.filter((record) => record.result);
   const averageScore =
     revealed.length > 0
@@ -91,10 +91,17 @@ const scoreRecords = (records: MemoryRecord[]) => {
     if ((record.result?.breakdown.winner ?? 0) <= 0) break;
     streak += 1;
   }
-  const xp = records.length * 120 + revealed.reduce((sum, record) => sum + (record.result?.totalScore ?? 0), 0);
+  const modeProofs = modeRuns.length;
+  const modeScoreXp = modeRuns.reduce((sum, run) => sum + (run.score ?? 0), 0);
+  const xp =
+    records.length * 120 +
+    revealed.reduce((sum, record) => sum + (record.result?.totalScore ?? 0), 0) +
+    modeProofs * 90 +
+    modeScoreXp;
   return {
     locks: records.length,
     revealed: revealed.length,
+    modeProofs,
     averageScore,
     bestScore,
     exactHits,
@@ -462,6 +469,7 @@ export const buildPublicProfile = (
       : 0;
   const bestScore = Math.max(0, ...revealed.map((record) => record.result?.totalScore ?? 0));
   const xp = records.length * 120 + revealed.reduce((sum, record) => sum + (record.result?.totalScore ?? 0), 0);
+  const modeXp = modeRuns.length * 90 + modeRuns.reduce((sum, run) => sum + (run.score ?? 0), 0);
 
   return {
     id: profile.id,
@@ -477,7 +485,7 @@ export const buildPublicProfile = (
     modeProofs: modeRuns.length,
     averageScore,
     bestScore,
-    xp: xp + modeRuns.length * 90,
+    xp: xp + modeXp,
   };
 };
 
@@ -577,6 +585,7 @@ export const loadLeaderboard = async (
     streak: Number(row.streak ?? 0),
     exactHits: Number(row.exact_hits ?? 0),
     verifiedProofs: Number(row.verified_proofs ?? 0),
+    modeProofs: Number(row.mode_proofs ?? 0),
     seasonKey: row.season_key ?? undefined,
     friendCode: row.friend_code ?? undefined,
     updatedAt: row.updated_at ?? undefined,
@@ -589,8 +598,9 @@ export const loadGlobalLeaderboard = () => loadLeaderboard("global", loadProfile
 export const buildLocalLeaderboard = (
   profile: UserProfile,
   records: MemoryRecord[],
+  modeRuns: GameModeRun[] = [],
 ): LeaderboardEntry[] => {
-  const stats = scoreRecords(records);
+  const stats = scoreRecords(records, modeRuns);
   return [
     {
       id: profile.id,

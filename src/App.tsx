@@ -533,7 +533,7 @@ function App() {
   const bestRecord = [...revealedRecords].sort(
     (a, b) => (b.result?.totalScore ?? 0) - (a.result?.totalScore ?? 0),
   )[0];
-  const localLeaderboard = buildLocalLeaderboard(profile, records);
+  const localLeaderboard = buildLocalLeaderboard(profile, records, modeRuns);
   const remoteLeaderboardIds = new Set(globalLeaderboard.map((entry) => entry.id));
   const leaderboardEntries = [
     ...globalLeaderboard,
@@ -1917,6 +1917,7 @@ function MemoryDashboard({
               <span>{entry.streak} streak</span>
               <span>{entry.exactHits} exact</span>
               <span>{entry.verifiedProofs} real proofs</span>
+              <span>{entry.modeProofs} mode proofs</span>
             </div>
           </article>
         ))}

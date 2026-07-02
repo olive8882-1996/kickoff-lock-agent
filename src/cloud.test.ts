@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   buildLeaderboardReadiness,
   buildLocalLeaderboard,
@@ -188,8 +190,18 @@ describe("local leaderboard", () => {
     expect(entry.revealed).toBe(1);
     expect(entry.exactHits).toBe(1);
     expect(entry.verifiedProofs).toBe(0);
+    expect(entry.modeProofs).toBe(0);
     expect(entry.friendCode).toBe("chengdu");
     expect(entry.source).toBe("local");
+  });
+
+  it("adds mode proof runs to local leaderboard XP", () => {
+    const [entry] = buildLocalLeaderboard(profile, [record("cap-with-mode")], [
+      modeRun("mode-scored", { status: "scored", score: 77 }),
+    ]);
+
+    expect(entry.modeProofs).toBe(1);
+    expect(entry.xp).toBe(287);
   });
 
   it("shows leaderboard backend readiness separately from local fallback rows", () => {
@@ -212,6 +224,7 @@ describe("local leaderboard", () => {
       streak: 1,
       exactHits: 0,
       verifiedProofs: 1,
+      modeProofs: 2,
       source: "global",
     };
 
@@ -345,6 +358,16 @@ describe("local leaderboard", () => {
     expect(publicProfile.averageScore).toBe(92);
     expect(publicProfile.bestScore).toBe(92);
     expect(publicProfile.xp).toBe(302);
+  });
+
+  it("documents mode proof aggregation in the Supabase leaderboard view", () => {
+    const schema = readFileSync(join(process.cwd(), "supabase.schema.sql"), "utf8");
+
+    expect(schema).toContain("mode_rows as");
+    expect(schema).toContain("from public.kickoff_mode_runs");
+    expect(schema).toContain("mode_proofs");
+    expect(schema).toContain("count(*) * 90");
+    expect(schema).toContain("full outer join mode_rows");
   });
 
   it("merges cloud history by keeping the richer capsule version", () => {

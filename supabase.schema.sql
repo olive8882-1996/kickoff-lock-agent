@@ -95,7 +95,7 @@ create index if not exists kickoff_mode_runs_scope_score_idx
   on public.kickoff_mode_runs (season_key, friend_code, score desc);
 
 create or replace view public.kickoff_leaderboard as
-with aggregate_rows as (
+with record_rows as (
   select
     user_id as id,
     season_key,
@@ -118,6 +118,44 @@ with aggregate_rows as (
     max(updated_at) as updated_at
   from public.kickoff_records
   group by user_id, season_key, friend_code
+),
+mode_rows as (
+  select
+    user_id as id,
+    season_key,
+    friend_code,
+    max(display_name) as display_name,
+    max(location) as location,
+    count(*)::integer as mode_proofs,
+    (count(*) * 90 + coalesce(sum(score), 0))::integer as mode_xp,
+    max(updated_at) as updated_at
+  from public.kickoff_mode_runs
+  group by user_id, season_key, friend_code
+),
+aggregate_rows as (
+  select
+    coalesce(record_rows.id, mode_rows.id) as id,
+    coalesce(record_rows.season_key, mode_rows.season_key) as season_key,
+    coalesce(record_rows.friend_code, mode_rows.friend_code) as friend_code,
+    coalesce(record_rows.display_name, mode_rows.display_name) as display_name,
+    coalesce(record_rows.location, mode_rows.location) as location,
+    coalesce(record_rows.locks, 0)::integer as locks,
+    coalesce(record_rows.revealed, 0)::integer as revealed,
+    coalesce(record_rows.average_score, 0)::integer as average_score,
+    coalesce(record_rows.best_score, 0)::integer as best_score,
+    coalesce(record_rows.exact_hits, 0)::integer as exact_hits,
+    coalesce(record_rows.verified_proofs, 0)::integer as verified_proofs,
+    coalesce(mode_rows.mode_proofs, 0)::integer as mode_proofs,
+    (coalesce(record_rows.xp, 0) + coalesce(mode_rows.mode_xp, 0))::integer as xp,
+    greatest(
+      coalesce(record_rows.updated_at, 'epoch'::timestamptz),
+      coalesce(mode_rows.updated_at, 'epoch'::timestamptz)
+    ) as updated_at
+  from record_rows
+  full outer join mode_rows
+    on mode_rows.id = record_rows.id
+   and mode_rows.season_key = record_rows.season_key
+   and mode_rows.friend_code = record_rows.friend_code
 ),
 ordered_results as (
   select
@@ -171,6 +209,7 @@ select
   aggregate_rows.revealed,
   aggregate_rows.exact_hits,
   aggregate_rows.verified_proofs,
+  aggregate_rows.mode_proofs,
   dense_rank() over (order by aggregate_rows.xp desc, aggregate_rows.best_score desc, aggregate_rows.updated_at asc)::integer as rank,
   aggregate_rows.updated_at
 from aggregate_rows
@@ -181,4 +220,4 @@ left join streak_rows
 order by aggregate_rows.xp desc, aggregate_rows.best_score desc, aggregate_rows.updated_at asc;
 
 comment on view public.kickoff_leaderboard is
-  'Public ranking view for Kickoff Lock Agent. Supports global, friend_code and season_key filters with locks, revealed proofs, exact hits, verified Filecoin proofs, XP and current winner streak.';
+  'Public ranking view for Kickoff Lock Agent. Supports global, friend_code and season_key filters with locks, revealed proofs, mode proofs, exact hits, verified Filecoin proofs, XP and current winner streak.';

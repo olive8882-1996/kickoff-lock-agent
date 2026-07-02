@@ -104,6 +104,8 @@ export type FilecoinProof = {
   proofStatus: ProofStatus;
   uploadedAt?: string;
   retrievalUrl?: string;
+  payloadHash?: string;
+  byteLength?: number;
 };
 
 export type FilecoinLookupState = {
@@ -145,6 +147,8 @@ export type SealJob = {
   backendHealth?: SealBackendHealth;
   proofUrl?: string;
   verifyUrl?: string;
+  uploadPayloadHash?: string;
+  uploadByteLength?: number;
   pollAttempts?: number;
   lastCheckedAt?: string;
   steps: SealStep[];

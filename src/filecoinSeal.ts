@@ -1,4 +1,4 @@
-import { stableJson } from "./proof";
+import { sha256, stableJson } from "./proof";
 import type {
   FilecoinLookupState,
   FilecoinProof,
@@ -129,6 +129,8 @@ const normalizeLookupProof = (cid: string, payload: Partial<FilecoinProof> & { c
   proofStatus: (payload.proofStatus as FilecoinProof["proofStatus"]) ?? "retrievable",
   uploadedAt: payload.uploadedAt,
   retrievalUrl: payload.retrievalUrl,
+  payloadHash: payload.payloadHash,
+  byteLength: payload.byteLength,
 });
 
 export const lookupFilecoinProof = async (cid: string): Promise<FilecoinLookupState> => {
@@ -260,10 +262,14 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
     ),
   };
 
+  const uploadPayload = stableJson({ capsule, result: record.result ?? null });
+  const uploadPayloadHash = await sha256(uploadPayload);
+  const uploadByteLength = new TextEncoder().encode(uploadPayload).byteLength;
+
   const res = await fetch(sealUrl, {
     method: "POST",
     headers: sealApiHeaders({ "Content-Type": "application/json" }),
-    body: stableJson({ capsule, result: record.result ?? null }),
+    body: uploadPayload,
   }).catch(() => undefined);
   if (!res?.ok) {
     return failJob(record, job, "upload", `Seal API returned ${res?.status ?? "no response"}.`);
@@ -272,6 +278,9 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
   const proof = (await res.json()) as Partial<FilecoinProof>;
   if (!proof.cid) {
     return failJob(record, job, "deal", "Seal API did not return a CID.");
+  }
+  if (proof.payloadHash && proof.payloadHash !== uploadPayloadHash) {
+    return failJob(record, job, "deal", "Seal API payload hash did not match the uploaded capsule payload.");
   }
   const realProof: FilecoinProof = {
     mode: "real",
@@ -282,6 +291,8 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
     proofStatus: (proof.proofStatus as FilecoinProof["proofStatus"]) ?? "verified",
     uploadedAt: new Date().toISOString(),
     retrievalUrl: proof.retrievalUrl,
+    payloadHash: proof.payloadHash ?? uploadPayloadHash,
+    byteLength: proof.byteLength ?? uploadByteLength,
   };
   job = {
     ...job,
@@ -311,6 +322,8 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
       proof: verifiedProof,
       proofUrl,
       verifyUrl,
+      uploadPayloadHash,
+      uploadByteLength,
       pollAttempts: pollResult.attempts,
       lastCheckedAt: pollResult.checkedAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),

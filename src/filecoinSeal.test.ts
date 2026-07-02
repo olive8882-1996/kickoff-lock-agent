@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createHash } from "node:crypto";
 import { lookupFilecoinProof, runSealJob, sealApiHeaders, sealApiUrl } from "./filecoinSeal";
 import type { MemoryRecord } from "./types";
 
@@ -40,6 +41,8 @@ const jsonResponse = (payload: unknown, status = 200) =>
     status,
     headers: { "Content-Type": "application/json" },
   });
+
+const sha256Hex = (value: string) => createHash("sha256").update(value).digest("hex");
 
 describe("Filecoin seal workflow", () => {
   afterEach(() => {
@@ -115,6 +118,7 @@ describe("Filecoin seal workflow", () => {
           });
         }
         if (url === "https://seal.example/seal") {
+          const payloadHash = sha256Hex(init?.body?.toString() ?? "");
           return jsonResponse({
             cid: "bafy-real-1234567890",
             pieceCid: "baga-real-1234567890",
@@ -122,6 +126,8 @@ describe("Filecoin seal workflow", () => {
             dataSetId: "dataset-1",
             proofStatus: "retrievable",
             retrievalUrl: "https://cid.ipfs.tech/#bafy-real-1234567890",
+            payloadHash,
+            byteLength: init?.body?.toString().length,
           });
         }
         if (url === "https://seal.example/verify?cid=bafy-real-1234567890") {
@@ -159,10 +165,45 @@ describe("Filecoin seal workflow", () => {
     expect(updated.sealJob?.steps.find((step) => step.id === "health")?.detail).toContain("real Synapse");
     expect(updated.sealJob?.steps.find((step) => step.id === "health")?.detail).toContain("file proof registry");
     expect(updated.sealJob?.pollAttempts).toBe(1);
+    expect(updated.sealJob?.uploadPayloadHash).toBe(updated.sealJob?.proof?.payloadHash);
+    expect(updated.sealJob?.proof?.byteLength).toBeGreaterThan(0);
+    expect(updated.sealJob?.steps.find((step) => step.id === "deal")?.status).toBe("passed");
     expect(updated.sealJob?.lastCheckedAt).toBe("2099-01-01T00:00:00.000Z");
     expect(updated.sealJob?.proofUrl).toBe("https://seal.example/proof/bafy-real-1234567890");
     expect(updated.sealJob?.verifyUrl).toBe("https://seal.example/verify?cid=bafy-real-1234567890");
     expect(updated.sealJob?.steps.every((step) => step.status === "passed")).toBe(true);
+  });
+
+  it("fails sealing when the seal API returns proof metadata for a different payload", async () => {
+    vi.stubEnv("VITE_FILECOIN_SEAL_API", "https://seal.example/seal");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === "https://seal.example/health") {
+          return jsonResponse({ ok: true, mockMode: true, persistence: "memory", authRequired: false });
+        }
+        if (url === "https://seal.example/seal") {
+          return jsonResponse({
+            cid: "bafy-wrong-payload",
+            pieceCid: "baga-wrong-payload",
+            provider: "seal-api-provider",
+            dataSetId: "dataset",
+            proofStatus: "verified",
+            payloadHash: "0".repeat(64),
+          });
+        }
+        return jsonResponse({ error: "unexpected" }, 404);
+      }),
+    );
+    const { runSealJob: runConfiguredSealJob } = await import("./filecoinSeal");
+
+    const updated = await runConfiguredSealJob(record);
+
+    expect(updated.capsule.filecoinProof.mode).toBe("demo");
+    expect(updated.sealJob?.status).toBe("failed");
+    expect(updated.sealJob?.error).toContain("payload hash");
+    expect(updated.sealJob?.steps.find((step) => step.id === "deal")?.status).toBe("failed");
   });
 
   it("stores a failed seal job when the configured backend health check fails", async () => {

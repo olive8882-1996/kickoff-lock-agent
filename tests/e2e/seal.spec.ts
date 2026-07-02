@@ -16,6 +16,7 @@ test("mock Filecoin seal flow verifies a real proof end to end", async ({ page }
   await expect(page.locator(".seal-checklist")).toContainText(/Backend configured/i);
   await expect(page.locator(".seal-checklist")).toContainText(/Health check/i);
   await expect(page.locator(".seal-checklist")).toContainText(/CID returned/i);
+  await expect(page.locator(".seal-checklist")).toContainText(/Payload hash match/i);
   await expect(page.locator(".seal-checklist")).toContainText(/Verifier URL/i);
   await expect(page.locator(".seal-checklist")).toContainText(/Backend mode/i);
   await expect(page.locator(".seal-checklist")).toContainText(/mock seal API/i);

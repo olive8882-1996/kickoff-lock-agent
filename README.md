@@ -86,7 +86,7 @@ bun run test:e2e:seal
 ```
 
 The API exposes `GET /health`, `POST /seal`, `GET /verify?cid=...`, and `GET /proof/:cid`. Each successful seal is registered by CID with payload hash, byte length, provider metadata, and checked timestamps, so the verifier only reports proof metadata for CIDs sealed by that backend instance. Set `FILECOIN_PROOF_STORE_PATH` to persist that registry across server restarts; without it, the server falls back to memory-only mode for local demos. Set `FILECOIN_SEAL_TOKEN` to require a bearer token for browser upload requests while leaving public proof verification readable. Set `FILECOIN_MAX_UPLOAD_BYTES` to cap browser seal payload size; the API rejects invalid capsule JSON and oversized uploads before invoking Synapse.
-The frontend runs a health preflight, uploads the stable capsule payload, polls CID verification, stores proof/verify URLs, and renders a Filecoin acceptance checklist for backend configuration, API health, upload acceptance, CID return, verification polling, verifier URL readiness, backend mode, proof registry persistence, and upload token enforcement.
+The frontend runs a health preflight, uploads the stable capsule payload, verifies that the seal API returns the same uploaded payload hash, polls CID verification, stores proof/verify URLs, and renders a Filecoin acceptance checklist for backend configuration, API health, upload acceptance, payload hash match, CID return, verification polling, verifier URL readiness, backend mode, proof registry persistence, and upload token enforcement.
 The seal panel deliberately distinguishes mock smoke-test sealing from a production Synapse backend with `SYNAPSE_PRIVATE_KEY`, so demo verification cannot be mistaken for a funded Filecoin upload.
 The public verifier also includes a CID lookup panel that queries the configured seal API and displays proof status, PieceCID, provider, dataset, and retrieval URL.
 
@@ -190,6 +190,7 @@ limit 10;
 21. Every selected match shows a 0-100 intelligence score, lock-risk label, and action plan derived from schedule, score, rankings, lineups, injuries, and odds coverage.
 22. Account view shows a cross-device cloud sync audit covering profile, prediction history, mode proofs, public proof links, public profile, and leaderboard backend rows.
 23. Match board shows a provider route audit proving which live/fallback data source is active and which routes need configuration.
+24. Auto seal verifies that the seal API proof metadata payload hash matches the exact uploaded stable capsule JSON before attaching the real proof.
 
 ## Submission Notes
 

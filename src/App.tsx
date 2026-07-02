@@ -1862,6 +1862,18 @@ function ProofPanel({
           passed: record.sealJob.proof?.mode === "real",
         },
         {
+          label: "Payload hash match",
+          detail:
+            record.sealJob.uploadPayloadHash && record.sealJob.proof?.payloadHash
+              ? `${record.sealJob.proof.payloadHash.slice(0, 12)}... · ${record.sealJob.uploadByteLength ?? record.sealJob.proof.byteLength ?? 0} bytes`
+              : "waiting for seal API payload hash",
+          passed: Boolean(
+            record.sealJob.uploadPayloadHash &&
+              record.sealJob.proof?.payloadHash &&
+              record.sealJob.uploadPayloadHash === record.sealJob.proof.payloadHash,
+          ),
+        },
+        {
           label: "Verification polled",
           detail: record.sealJob.pollAttempts
             ? `${record.sealJob.pollAttempts} attempt${record.sealJob.pollAttempts > 1 ? "s" : ""}`

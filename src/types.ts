@@ -48,6 +48,7 @@ export type Match = {
     headToHead: string;
     marketLine: string;
     oddsSnapshot?: string;
+    rankingSource?: string;
     lineupSource?: string;
     injurySource?: string;
     dataCoverage?: DataCoverageItem[];

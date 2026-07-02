@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { lookupFifaRanking } from "./data/fifaRankings";
 import { buildDataCoverage, loadSeedMatches, mergeOddsIntoMatch, normalizeFootballDataMatch, sourceLabel } from "./providers";
 import type { Match } from "./types";
 
 describe("provider metadata", () => {
+  it("looks up official ranking snapshot aliases", () => {
+    expect(lookupFifaRanking("USA")?.rank).toBe(17);
+    expect(lookupFifaRanking("IR Iran")?.rank).toBe(20);
+    expect(lookupFifaRanking("Côte d'Ivoire")?.rank).toBe(33);
+  });
+
   it("labels every configured source for the match board", () => {
     expect(sourceLabel("espn")).toBe("ESPN");
     expect(sourceLabel("api-football")).toBe("API-Football");
@@ -34,9 +41,20 @@ describe("provider metadata", () => {
     expect(match.status).toBe("live");
     expect(match.dataSource).toBe("football-data");
     expect(match.homeScore).toBe(2);
+    expect(match.insights?.home.fifaRank).toBe(2);
+    expect(match.insights?.away.fifaRank).toBe(24);
+    expect(match.insights?.rankingSource).toContain("2026-06-11");
     expect(match.insights?.lineupSource).toContain("Football-Data.org");
     expect(match.insights?.dataCoverage?.some((item) => item.key === "score" && item.status === "live")).toBe(true);
+    expect(match.insights?.dataCoverage?.some((item) => item.key === "rankings" && item.status === "configured")).toBe(true);
     expect(match.insights?.dataCoverage?.some((item) => item.key === "lineups" && item.status === "missing")).toBe(true);
+  });
+
+  it("applies ranking snapshot to seed continuity matches", () => {
+    const brazilJapan = loadSeedMatches().matches.find((match) => match.homeTeam === "Brazil");
+    expect(brazilJapan?.insights?.home.fifaRank).toBe(6);
+    expect(brazilJapan?.insights?.away.fifaRank).toBe(18);
+    expect(brazilJapan?.insights?.dataCoverage?.find((item) => item.key === "rankings")?.source).toContain("2026-06-11");
   });
 
   it("merges external odds into a match intelligence pack", () => {

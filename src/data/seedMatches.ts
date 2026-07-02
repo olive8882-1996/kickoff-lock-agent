@@ -26,6 +26,7 @@ const insight = (
   },
   headToHead,
   marketLine,
+  rankingSource: "FIFA/Coca-Cola Men's World Ranking snapshot, 2026-06-11",
   dataFreshness: "Seed intelligence pack, ready for API replacement",
 });
 

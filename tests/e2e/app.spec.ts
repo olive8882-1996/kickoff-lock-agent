@@ -24,6 +24,9 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(upcoming).toBeVisible();
   await upcoming.click();
   await expect(page.locator(".coverage-grid")).toContainText(/Schedule/i);
+  await expect(page.locator(".coverage-grid")).toContainText(/Rank signal/i);
+  await expect(page.locator(".intel-notes")).toContainText(/Ranking/i);
+  await expect(page.locator(".intel-notes")).toContainText(/2026-06-11/i);
   await expect(page.locator(".coverage-grid")).toContainText(/Lineups/i);
   await page.getByRole("button", { name: /Generate prediction/i }).click();
   const lockButton = page.getByRole("button", { name: /Lock prediction/i });

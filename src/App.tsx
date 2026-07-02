@@ -1388,6 +1388,7 @@ function MatchIntelligence({ match, onEnrich }: { match: Match; onEnrich: () => 
             </div>
           </div>
           <div className="intel-notes">
+            <p><b>Ranking</b>{insights.rankingSource ?? "Ranking source not attached"}</p>
             <p><b>H2H</b>{insights.headToHead}</p>
             <p><b>Market</b>{insights.marketLine}</p>
             <p><b>Odds</b>{insights.oddsSnapshot ?? "Waiting for odds source"}</p>

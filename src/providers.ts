@@ -1,4 +1,5 @@
 import { seedMatches } from "./data/seedMatches";
+import { lookupFifaRanking } from "./data/fifaRankings";
 import type { DataCoverageItem, DataCoverageStatus, DataSource, Match, ProviderResult } from "./types";
 
 const ESPN_URL =
@@ -114,7 +115,7 @@ export const buildDataCoverage = (match: Match): DataCoverageItem[] => {
       key: "rankings",
       label: "Rank signal",
       status: hasRanks ? (isFallback ? "fallback" : "configured") : "missing",
-      source: hasRanks ? provider : "Not available",
+      source: hasRanks ? (match.insights?.rankingSource ?? provider) : "Not available",
       detail: hasRanks
         ? `${match.homeTeam} ${match.insights?.home.fifaRank} · ${match.awayTeam} ${match.insights?.away.fifaRank}`
         : "No ranking feed attached",
@@ -143,15 +144,43 @@ export const buildDataCoverage = (match: Match): DataCoverageItem[] => {
   ];
 };
 
-const withCoverage = (match: Match): Match => ({
-  ...match,
-  insights: match.insights
-    ? {
-        ...match.insights,
-        dataCoverage: buildDataCoverage(match),
-      }
-    : match.insights,
-});
+const applyRankingBaseline = (match: Match): Match => {
+  if (!match.insights) return match;
+  const homeRanking = lookupFifaRanking(match.homeTeam);
+  const awayRanking = lookupFifaRanking(match.awayTeam);
+  if (!homeRanking && !awayRanking) return match;
+  const rankingSource = homeRanking?.source ?? awayRanking?.source;
+  return {
+    ...match,
+    insights: {
+      ...match.insights,
+      rankingSource,
+      home: {
+        ...match.insights.home,
+        fifaRank: homeRanking?.rank ?? match.insights.home.fifaRank,
+        form: homeRanking ? ["FIFA", "RANK", `#${homeRanking.rank}`] : match.insights.home.form,
+      },
+      away: {
+        ...match.insights.away,
+        fifaRank: awayRanking?.rank ?? match.insights.away.fifaRank,
+        form: awayRanking ? ["FIFA", "RANK", `#${awayRanking.rank}`] : match.insights.away.form,
+      },
+    },
+  };
+};
+
+const withCoverage = (match: Match): Match => {
+  const ranked = applyRankingBaseline(match);
+  return {
+    ...ranked,
+    insights: ranked.insights
+      ? {
+          ...ranked.insights,
+          dataCoverage: buildDataCoverage(ranked),
+        }
+      : ranked.insights,
+  };
+};
 
 const insightShell = (homeTeam: string, awayTeam: string, source: string, stamp = new Date().toISOString()) => ({
   home: {
@@ -271,7 +300,7 @@ export const loadFromApiFootball = async (): Promise<ProviderResult> => {
       venue: item.fixture?.venue?.name,
       insights: {
         home: {
-          fifaRank: Number(item.teams?.home?.id ?? 0),
+          fifaRank: 0,
           form: ["API", "LIVE", "FORM"],
           lastFiveGoalsFor: numberOrUndefined(item.goals?.home) ?? 0,
           lastFiveGoalsAgainst: numberOrUndefined(item.goals?.away) ?? 0,
@@ -279,7 +308,7 @@ export const loadFromApiFootball = async (): Promise<ProviderResult> => {
           probableLineup: ["Use lineups endpoint when fixture enters pre-match window"],
         },
         away: {
-          fifaRank: Number(item.teams?.away?.id ?? 0),
+          fifaRank: 0,
           form: ["API", "LIVE", "FORM"],
           lastFiveGoalsFor: numberOrUndefined(item.goals?.away) ?? 0,
           lastFiveGoalsAgainst: numberOrUndefined(item.goals?.home) ?? 0,

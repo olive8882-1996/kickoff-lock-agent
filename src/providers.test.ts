@@ -4,9 +4,11 @@ import {
   buildDataCoverage,
   buildProviderReadiness,
   loadSeedMatches,
+  mergeTheSportsDbEventDetails,
   mergeApiFootballEnrichment,
   mergeOddsIntoMatch,
   normalizeFootballDataMatch,
+  normalizeTheSportsDbEvent,
   sourceLabel,
 } from "./providers";
 import type { Match } from "./types";
@@ -56,6 +58,63 @@ describe("provider metadata", () => {
     expect(match.insights?.dataCoverage?.some((item) => item.key === "score" && item.status === "live")).toBe(true);
     expect(match.insights?.dataCoverage?.some((item) => item.key === "rankings" && item.status === "configured")).toBe(true);
     expect(match.insights?.dataCoverage?.some((item) => item.key === "lineups" && item.status === "missing")).toBe(true);
+  });
+
+  it("normalizes TheSportsDB World Cup events with live scores and rankings", () => {
+    const match = normalizeTheSportsDbEvent({
+      idEvent: "2503636",
+      strHomeTeam: "Spain",
+      strAwayTeam: "Austria",
+      intRound: "32",
+      intHomeScore: "2",
+      intAwayScore: "1",
+      strTimestamp: "2026-07-02T19:00:00",
+      strStatus: "FT",
+      strVenue: "SoFi Stadium",
+      strCity: "Inglewood, CA",
+      strCountry: "United States",
+      strEvent: "Spain vs Austria",
+    });
+
+    expect(match.id).toBe("thesportsdb-2503636");
+    expect(match.stage).toBe("Round of 32");
+    expect(match.status).toBe("finished");
+    expect(match.homeScore).toBe(2);
+    expect(match.awayScore).toBe(1);
+    expect(match.venue).toContain("SoFi Stadium");
+    expect(match.insights?.home.fifaRank).toBe(2);
+    expect(match.insights?.away.fifaRank).toBe(24);
+    expect(match.insights?.dataCoverage?.find((item) => item.key === "score")?.status).toBe("live");
+    expect(match.insights?.dataCoverage?.find((item) => item.key === "odds")?.status).toBe("missing");
+  });
+
+  it("merges TheSportsDB event lineups and stats into match coverage", () => {
+    const match = normalizeTheSportsDbEvent({
+      idEvent: "2391728",
+      strHomeTeam: "Mexico",
+      strAwayTeam: "South Africa",
+      intRound: "1",
+      intHomeScore: "2",
+      intAwayScore: "0",
+      strTimestamp: "2026-06-11T19:00:00",
+      strStatus: "FT",
+      strEvent: "Mexico vs South Africa",
+    });
+    const enriched = mergeTheSportsDbEventDetails(
+      match,
+      [
+        { strHome: "Yes", strSubstitute: "No", strPlayer: "Raul Jimenez" },
+        { strHome: "No", strSubstitute: "No", strPlayer: "Aubrey Modiba" },
+        { strHome: "Yes", strSubstitute: "Yes", strPlayer: "Bench Player" },
+      ],
+      [{ strStat: "Total Shots", intHome: "16", intAway: "3" }],
+    );
+
+    expect(enriched.insights?.home.probableLineup).toContain("Raul Jimenez");
+    expect(enriched.insights?.home.probableLineup).not.toContain("Bench Player");
+    expect(enriched.insights?.away.probableLineup).toContain("Aubrey Modiba");
+    expect(enriched.insights?.headToHead).toContain("Total Shots: 16-3");
+    expect(enriched.insights?.dataCoverage?.find((item) => item.key === "lineups")?.status).toBe("live");
   });
 
   it("applies ranking snapshot to seed continuity matches", () => {

@@ -10,6 +10,10 @@ const API_FOOTBALL_HOST = "https://v3.football.api-sports.io";
 const FOOTBALL_DATA_TOKEN = import.meta.env.VITE_FOOTBALL_DATA_TOKEN as string | undefined;
 const FOOTBALL_DATA_COMPETITION = (import.meta.env.VITE_FOOTBALL_DATA_COMPETITION as string | undefined) ?? "WC";
 const FOOTBALL_DATA_HOST = "https://api.football-data.org/v4";
+const THESPORTSDB_KEY = (import.meta.env.VITE_THESPORTSDB_KEY as string | undefined) ?? "123";
+const THESPORTSDB_LEAGUE_ID = (import.meta.env.VITE_THESPORTSDB_LEAGUE_ID as string | undefined) ?? "4429";
+const THESPORTSDB_SEASON = (import.meta.env.VITE_THESPORTSDB_SEASON as string | undefined) ?? String(new Date().getUTCFullYear());
+const THESPORTSDB_HOST = `https://www.thesportsdb.com/api/v1/json/${THESPORTSDB_KEY}`;
 const ODDS_API_KEY = import.meta.env.VITE_ODDS_API_KEY as string | undefined;
 const ODDS_API_SPORT_KEY = import.meta.env.VITE_ODDS_API_SPORT_KEY as string | undefined;
 const ODDS_API_HOST = "https://api.the-odds-api.com/v4";
@@ -50,7 +54,37 @@ const normalizeFootballDataStatus = (status?: string): Match["status"] => {
   return "upcoming";
 };
 
-const placeholderPattern = /not published|not configured|configure|unavailable|waiting|waits|not loaded|no injury feed|no odds|not returned/i;
+const normalizeTheSportsDbStatus = (status?: string): Match["status"] => {
+  const text = (status ?? "").toLowerCase();
+  if (text === "ft" || text.includes("match finished") || text.includes("full")) return "finished";
+  if (["1h", "2h", "ht", "et", "p"].includes(text) || text.includes("progress") || text.includes("live")) {
+    return "live";
+  }
+  return "upcoming";
+};
+
+const normalizeTheSportsDbKickoff = (event: any) => {
+  if (event.strTimestamp) {
+    const stamp = String(event.strTimestamp);
+    return stamp.endsWith("Z") ? stamp : `${stamp.replace(" ", "T")}Z`;
+  }
+  return new Date(`${event.dateEvent ?? ""}T${event.strTime ?? "00:00:00"}Z`).toISOString();
+};
+
+const normalizeTheSportsDbStage = (round?: string | number) => {
+  const n = Number(round);
+  if (!Number.isFinite(n)) return "FIFA World Cup";
+  if (n <= 3) return `Group matchday ${n}`;
+  if (n === 32) return "Round of 32";
+  if (n === 16) return "Round of 16";
+  if (n === 8) return "Quarterfinal";
+  if (n === 4) return "Semifinal";
+  if (n === 2) return "Third-place match";
+  if (n === 1) return "Final";
+  return `Round ${n}`;
+};
+
+const placeholderPattern = /not published|not configured|configure|unavailable|waiting|waits|not loaded|no injury feed|no odds|not returned|does not publish|no betting/i;
 
 const hasUsefulList = (items?: string[]) =>
   Boolean(items?.some((item) => item.trim() && !placeholderPattern.test(item)));
@@ -508,6 +542,78 @@ export const loadFromFootballData = async (): Promise<ProviderResult> => {
   };
 };
 
+export const normalizeTheSportsDbEvent = (event: any): Match => {
+  const homeTeam = event.strHomeTeam ?? "Home";
+  const awayTeam = event.strAwayTeam ?? "Away";
+  const homeScore = numberOrUndefined(event.intHomeScore);
+  const awayScore = numberOrUndefined(event.intAwayScore);
+  const stamp = new Date().toISOString();
+  return withCoverage({
+    id: `thesportsdb-${event.idEvent}`,
+    homeTeam,
+    awayTeam,
+    kickoffAt: normalizeTheSportsDbKickoff(event),
+    stage: normalizeTheSportsDbStage(event.intRound),
+    status: normalizeTheSportsDbStatus(event.strStatus),
+    dataSource: "thesportsdb",
+    homeScore,
+    awayScore,
+    venue: [event.strVenue, event.strCity, event.strCountry].filter(Boolean).join(" · ") || undefined,
+    insights: {
+      ...insightShell(homeTeam, awayTeam, "TheSportsDB", stamp),
+      home: {
+        ...insightShell(homeTeam, awayTeam, "TheSportsDB", stamp).home,
+        lastFiveGoalsFor: homeScore ?? 0,
+        lastFiveGoalsAgainst: awayScore ?? 0,
+      },
+      away: {
+        ...insightShell(homeTeam, awayTeam, "TheSportsDB", stamp).away,
+        lastFiveGoalsFor: awayScore ?? 0,
+        lastFiveGoalsAgainst: homeScore ?? 0,
+      },
+      headToHead: event.strEvent
+        ? `${event.strEvent} normalized from TheSportsDB event ${event.idEvent}.`
+        : `${homeTeam} vs ${awayTeam} normalized from TheSportsDB.`,
+      marketLine: "TheSportsDB does not publish betting odds; enrich with The Odds API for markets.",
+      oddsSnapshot: "Odds enrichment not loaded.",
+      lineupSource: "TheSportsDB event lineup endpoint",
+      injurySource: "No injury feed configured for TheSportsDB",
+    },
+  });
+};
+
+export const loadFromTheSportsDb = async (): Promise<ProviderResult> => {
+  const seasonUrl = `${THESPORTSDB_HOST}/eventsseason.php?id=${encodeURIComponent(THESPORTSDB_LEAGUE_ID)}&s=${encodeURIComponent(THESPORTSDB_SEASON)}`;
+  const seasonRes = await timeoutFetch(seasonUrl, 7500);
+  if (!seasonRes.ok) throw new Error(`TheSportsDB season returned ${seasonRes.status}`);
+  const seasonData = await seasonRes.json();
+  let events = Array.isArray(seasonData.events) ? seasonData.events : [];
+  let endpoint = `eventsseason ${THESPORTSDB_LEAGUE_ID}/${THESPORTSDB_SEASON}`;
+
+  if (events.length === 0) {
+    const nextRes = await timeoutFetch(
+      `${THESPORTSDB_HOST}/eventsnextleague.php?id=${encodeURIComponent(THESPORTSDB_LEAGUE_ID)}`,
+      7500,
+    );
+    if (!nextRes.ok) throw new Error(`TheSportsDB next league returned ${nextRes.status}`);
+    const nextData = await nextRes.json();
+    events = Array.isArray(nextData.events) ? nextData.events : [];
+    endpoint = `eventsnextleague ${THESPORTSDB_LEAGUE_ID}`;
+  }
+
+  const matches = events.map(normalizeTheSportsDbEvent);
+  if (matches.length === 0) throw new Error("TheSportsDB returned no World Cup events");
+  return {
+    source: "thesportsdb",
+    matches,
+    evidence: [
+      `TheSportsDB ${endpoint}`,
+      "Free v1 JSON API with schedule, score, venue, event artwork and status fields",
+      `${matches.length} TheSportsDB World Cup events normalized`,
+    ],
+  };
+};
+
 const apiFootballJson = async (path: string) => {
   if (!API_FOOTBALL_KEY) throw new Error("VITE_APIFOOTBALL_KEY is not configured");
   const res = await timeoutFetch(`${API_FOOTBALL_HOST}${path}`, 7500, {
@@ -676,6 +782,69 @@ export const enrichMatchFromApiFootball = async (match: Match): Promise<Match> =
   });
 };
 
+export const mergeTheSportsDbEventDetails = (match: Match, lineupRows: any[], statRows: any[]): Match => {
+  const starters = lineupRows.filter((row: any) => String(row.strSubstitute).toLowerCase() !== "yes");
+  const homeLineup = starters
+    .filter((row: any) => String(row.strHome).toLowerCase() === "yes")
+    .map((row: any) => row.strPlayer)
+    .filter(Boolean)
+    .slice(0, 11);
+  const awayLineup = starters
+    .filter((row: any) => String(row.strHome).toLowerCase() === "no")
+    .map((row: any) => row.strPlayer)
+    .filter(Boolean)
+    .slice(0, 11);
+  const statSummary = statRows
+    .slice(0, 4)
+    .map((row: any) => `${row.strStat}: ${row.intHome ?? "-"}-${row.intAway ?? "-"}`)
+    .join(" · ");
+  const publishedLineups = homeLineup.length > 0 || awayLineup.length > 0;
+  return withCoverage({
+    ...match,
+    insights: {
+      ...(match.insights ?? insightShell(match.homeTeam, match.awayTeam, "TheSportsDB")),
+      home: {
+        ...(match.insights?.home ?? insightShell(match.homeTeam, match.awayTeam, "TheSportsDB").home),
+        probableLineup: homeLineup.length > 0 ? homeLineup : ["Lineup not published yet"],
+      },
+      away: {
+        ...(match.insights?.away ?? insightShell(match.homeTeam, match.awayTeam, "TheSportsDB").away),
+        probableLineup: awayLineup.length > 0 ? awayLineup : ["Lineup not published yet"],
+      },
+      headToHead: statSummary
+        ? `TheSportsDB match stats · ${statSummary}`
+        : match.insights?.headToHead ?? `${match.homeTeam} vs ${match.awayTeam} TheSportsDB event.`,
+      lineupSource: publishedLineups
+        ? "TheSportsDB event lineup endpoint"
+        : "TheSportsDB lineup endpoint returned no published XI",
+      injurySource: match.insights?.injurySource ?? "No injury feed configured for TheSportsDB",
+      dataFreshness: new Date().toISOString(),
+    },
+  });
+};
+
+export const enrichMatchFromTheSportsDb = async (match: Match): Promise<Match> => {
+  const eventId = match.id.startsWith("thesportsdb-") ? match.id.replace("thesportsdb-", "") : "";
+  if (!eventId) throw new Error("Select a TheSportsDB fixture to enrich event lineups and stats.");
+  const [lineups, stats] = await Promise.allSettled([
+    timeoutFetch(`${THESPORTSDB_HOST}/lookuplineup.php?id=${encodeURIComponent(eventId)}`, 7500),
+    timeoutFetch(`${THESPORTSDB_HOST}/lookupeventstats.php?id=${encodeURIComponent(eventId)}`, 7500),
+  ]);
+  const lineupRows =
+    lineups.status === "fulfilled" && lineups.value.ok
+      ? ((await lineups.value.json()).lineup ?? [])
+      : [];
+  const statRows =
+    stats.status === "fulfilled" && stats.value.ok
+      ? ((await stats.value.json()).eventstats ?? [])
+      : [];
+  return mergeTheSportsDbEventDetails(
+    match,
+    Array.isArray(lineupRows) ? lineupRows : [],
+    Array.isArray(statRows) ? statRows : [],
+  );
+};
+
 export const enrichMatchWithDataProviders = async (match: Match): Promise<Match> => {
   const errors: string[] = [];
   if (match.id.startsWith("api-football-")) {
@@ -685,6 +854,15 @@ export const enrichMatchWithDataProviders = async (match: Match): Promise<Match>
       return oddsEnriched ? withCoverage(oddsEnriched) : enriched;
     } catch (error) {
       errors.push(`API-Football: ${(error as Error).message}`);
+    }
+  }
+  if (match.id.startsWith("thesportsdb-")) {
+    try {
+      const enriched = await enrichMatchFromTheSportsDb(match);
+      const oddsEnriched = await enrichMatchFromOddsApi(enriched).catch(() => undefined);
+      return oddsEnriched ? withCoverage(oddsEnriched) : enriched;
+    } catch (error) {
+      errors.push(`TheSportsDB: ${(error as Error).message}`);
     }
   }
   try {
@@ -742,6 +920,11 @@ export const loadMatchesWithFallback = async (
       return withSeedUpcoming(await loadFromFootballData());
     } catch (error) {
       errors.push(`Football-Data.org: ${(error as Error).message}`);
+    }
+    try {
+      return withSeedUpcoming(await loadFromTheSportsDb());
+    } catch (error) {
+      errors.push(`TheSportsDB: ${(error as Error).message}`);
     }
     try {
       return withSeedUpcoming(await loadFromEspn());

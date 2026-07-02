@@ -34,13 +34,15 @@ The app works without API keys.
 
 1. Primary when configured: API-Football for fixtures, scores, lineups, injuries and odds.
 2. Secondary when configured: Football-Data.org for fixtures, live/final scores, stage, venue and team metadata.
-3. Public fallback: ESPN scoreboard API.
-4. Fallback: worldcup26.ir.
-5. Safety net: bundled seed matches and manual result input.
+3. Default free World Cup feed: TheSportsDB v1 JSON API for season fixtures, live/final scores, venue, status and optional lineup/stat enrichment.
+4. Public fallback: ESPN scoreboard API.
+5. Fallback: worldcup26.ir.
+6. Safety net: bundled seed matches and manual result input.
 
 The Odds API can also be configured for H2H odds enrichment on non API-Football fixtures. External APIs are used for match/result convenience and data evidence; the core product mechanic is still the prediction capsule and proof flow.
 Each match now exposes a data coverage panel for schedule, score, rank signal, lineups, injuries and odds, and the match board includes a live data readiness checklist, so missing or fallback intelligence is visible instead of being presented as real live data.
 Rank signal uses a bundled FIFA/Coca-Cola Men's World Ranking snapshot from the 2026-06-11 official update as a baseline for provider feeds that do not return rankings directly. Lineups, injuries and odds remain live/configured enrichment: API-Football can supply fixture lineups, injuries and odds, while The Odds API can enrich H2H market prices for non API-Football fixtures.
+TheSportsDB defaults to the free v1 key `123`, World Cup league id `4429`, and current UTC year season; override with `VITE_THESPORTSDB_KEY`, `VITE_THESPORTSDB_LEAGUE_ID`, and `VITE_THESPORTSDB_SEASON` if TheSportsDB changes tournament IDs.
 
 ## Filecoin Strategy
 
@@ -118,6 +120,9 @@ VITE_SUPABASE_REDIRECT_URL=https://your-site.example/kickoff-lock-agent/
 VITE_APIFOOTBALL_KEY=...
 VITE_FOOTBALL_DATA_TOKEN=...
 VITE_FOOTBALL_DATA_COMPETITION=WC
+VITE_THESPORTSDB_KEY=123
+VITE_THESPORTSDB_LEAGUE_ID=4429
+VITE_THESPORTSDB_SEASON=2026
 VITE_ODDS_API_KEY=...
 VITE_ODDS_API_SPORT_KEY=...
 ```
@@ -156,7 +161,7 @@ limit 10;
 7. App calculates and explains the score.
 8. Proof card is clear and shareable with a public URL.
 9. Memory dashboard records revealed predictions.
-10. ESPN failure falls back to worldcup26 or seed data.
+10. Missing paid API keys fall back to TheSportsDB, then ESPN, worldcup26 or seed data.
 11. App works without API keys or Filecoin private key in demo mode.
 12. Demo mode is clearly labeled.
 13. Real Synapse adapter exists and is documented.

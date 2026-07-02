@@ -60,7 +60,10 @@ The generated proof JSON can be pasted into the app's "Import real proof JSON" p
 For one-click browser sealing, run the seal API on a trusted server and point the frontend at `POST /seal`:
 
 ```bash
-SYNAPSE_PRIVATE_KEY=0x... ALLOW_ORIGIN=https://your-site.example bun run seal:api
+SYNAPSE_PRIVATE_KEY=0x... \
+FILECOIN_PROOF_STORE_PATH=./proofs/filecoin-proof-store.json \
+ALLOW_ORIGIN=https://your-site.example \
+bun run seal:api
 ```
 
 Local smoke test without spending funds:
@@ -75,7 +78,7 @@ End-to-end seal workflow test without spending funds:
 bun run test:e2e:seal
 ```
 
-The API exposes `GET /health`, `POST /seal`, `GET /verify?cid=...`, and `GET /proof/:cid`. Each successful seal is registered by CID with payload hash, byte length, provider metadata, and checked timestamps, so the verifier only reports proof metadata for CIDs sealed by that backend instance. The demo server keeps this registry in memory; production deployment should put the same records in durable storage if the process can restart.
+The API exposes `GET /health`, `POST /seal`, `GET /verify?cid=...`, and `GET /proof/:cid`. Each successful seal is registered by CID with payload hash, byte length, provider metadata, and checked timestamps, so the verifier only reports proof metadata for CIDs sealed by that backend instance. Set `FILECOIN_PROOF_STORE_PATH` to persist that registry across server restarts; without it, the server falls back to memory-only mode for local demos.
 The frontend runs a health preflight, uploads the stable capsule payload, polls CID verification, stores proof/verify URLs, and renders a Filecoin acceptance checklist for backend configuration, API health, upload acceptance, CID return, verification polling, and verifier URL readiness.
 The public verifier also includes a CID lookup panel that queries the configured seal API and displays proof status, PieceCID, provider, dataset, and retrieval URL.
 

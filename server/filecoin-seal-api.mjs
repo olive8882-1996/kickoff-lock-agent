@@ -1,10 +1,13 @@
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
+import { dirname } from "node:path";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { Synapse } from "@filoz/synapse-sdk";
 
 const port = Number(process.env.PORT ?? 8787);
 const privateKey = process.env.SYNAPSE_PRIVATE_KEY;
 const mockMode = process.env.FILECOIN_SEAL_MOCK === "1";
+const proofStorePath = process.env.FILECOIN_PROOF_STORE_PATH;
 const proofStore = new Map();
 
 const corsHeaders = {
@@ -60,7 +63,44 @@ const uploadWithSynapse = async (bytes) => {
   };
 };
 
-const registerProof = (proof, bytes) => {
+const loadProofStore = async () => {
+  if (!proofStorePath) return;
+  try {
+    const raw = await readFile(proofStorePath, "utf8");
+    const parsed = JSON.parse(raw);
+    const proofs = Array.isArray(parsed) ? parsed : parsed.proofs;
+    if (!Array.isArray(proofs)) return;
+    for (const proof of proofs) {
+      if (proof?.cid) proofStore.set(String(proof.cid), proof);
+    }
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      console.warn(`Could not load Filecoin proof store at ${proofStorePath}: ${error.message}`);
+    }
+  }
+};
+
+const persistProofStore = async () => {
+  if (!proofStorePath) return;
+  await mkdir(dirname(proofStorePath), { recursive: true });
+  const tmpPath = `${proofStorePath}.tmp`;
+  await writeFile(
+    tmpPath,
+    `${JSON.stringify(
+      {
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        proofs: Array.from(proofStore.values()),
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
+  await rename(tmpPath, proofStorePath);
+};
+
+const registerProof = async (proof, bytes) => {
   if (!proof.cid) throw new Error("Seal provider did not return a CID");
   const storedProof = {
     ...proof,
@@ -72,6 +112,7 @@ const registerProof = (proof, bytes) => {
     checkedAt: new Date().toISOString(),
   };
   proofStore.set(String(proof.cid), storedProof);
+  await persistProofStore();
   return storedProof;
 };
 
@@ -118,7 +159,8 @@ const server = createServer(async (req, res) => {
       hasPrivateKey: Boolean(privateKey),
       service: "kickoff-lock-filecoin-seal-api",
       proofCount: proofStore.size,
-      persistence: "memory",
+      persistence: proofStorePath ? "file" : "memory",
+      proofStorePath: proofStorePath ? "configured" : undefined,
       endpoints: ["POST /seal", "GET /verify?cid=", "GET /proof/:cid"],
     });
     return;
@@ -148,13 +190,16 @@ const server = createServer(async (req, res) => {
       return;
     }
     const proof = mockMode ? await pseudoProof(bytes) : await uploadWithSynapse(bytes);
-    json(res, 200, registerProof(proof, bytes));
+    json(res, 200, await registerProof(proof, bytes));
   } catch (error) {
     json(res, 500, { error: error.message });
   }
 });
 
+await loadProofStore();
+
 server.listen(port, "127.0.0.1", () => {
   console.log(`Filecoin seal API listening on http://127.0.0.1:${port}`);
   console.log(mockMode ? "Mock mode enabled." : "Real Synapse mode enabled.");
+  console.log(proofStorePath ? `Proof registry loaded from ${proofStorePath}` : "Proof registry persistence: memory");
 });

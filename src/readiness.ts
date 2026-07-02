@@ -128,12 +128,13 @@ export const buildProductionReadiness = ({
   const sharingPassed = count(shareChecks);
 
   const remoteLeaderboardRows = leaderboardEntries.filter((entry) => entry.source !== "local").length;
+  const leaderboardScopes = new Set(leaderboardEntries.filter((entry) => entry.source !== "local").map((entry) => entry.source));
   const leaderboardChecks = [
     cloudState.configured,
     remoteLeaderboardRows > 0,
-    leaderboardEntries.some((entry) => entry.source === "global"),
-    leaderboardEntries.some((entry) => entry.source === "friend"),
-    leaderboardEntries.some((entry) => entry.source === "season"),
+    leaderboardScopes.has("global"),
+    leaderboardScopes.has("friend"),
+    leaderboardScopes.has("season"),
   ];
   const leaderboardPassed = count(leaderboardChecks);
 
@@ -213,7 +214,7 @@ export const buildProductionReadiness = ({
       level: levelFrom(leaderboardPassed, leaderboardChecks.length),
       passed: leaderboardPassed,
       total: leaderboardChecks.length,
-      evidence: `${remoteLeaderboardRows} remote leaderboard row${remoteLeaderboardRows === 1 ? "" : "s"} loaded`,
+      evidence: `${remoteLeaderboardRows} remote row${remoteLeaderboardRows === 1 ? "" : "s"} · scopes ${[...leaderboardScopes].join(", ") || "none"}`,
       nextAction:
         leaderboardPassed === leaderboardChecks.length
           ? "Global, friend and season scopes have remote evidence."

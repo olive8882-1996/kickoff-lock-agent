@@ -333,10 +333,50 @@ describe("local leaderboard", () => {
     const readiness = buildLeaderboardReadiness(cloudState, [remoteEntry], profile);
 
     expect(readiness.find((item) => item.key === "view")?.passed).toBe(true);
+    expect(readiness.find((item) => item.key === "global")?.passed).toBe(true);
+    expect(readiness.find((item) => item.key === "friend")?.passed).toBe(false);
+    expect(readiness.find((item) => item.key === "season")?.passed).toBe(false);
     expect(readiness.find((item) => item.key === "global")?.detail).toContain("global xp ranking");
     expect(readiness.find((item) => item.key === "friend")?.detail).toContain("chengdu");
     expect(readiness.find((item) => item.key === "season")?.detail).toContain("world-cup-run");
     expect(readiness.find((item) => item.key === "remoteRows")?.detail).toContain("1 Supabase");
+  });
+
+  it("requires remote leaderboard evidence for global, friend and season scopes", () => {
+    const cloudState: CloudSyncState = {
+      configured: true,
+      authenticated: true,
+      mode: "supabase",
+      status: "synced",
+      message: "synced",
+    };
+    const baseEntry: Omit<LeaderboardEntry, "id" | "source"> = {
+      displayName: "Remote",
+      location: "Chengdu",
+      locks: 2,
+      revealed: 1,
+      averageScore: 80,
+      bestScore: 80,
+      xp: 320,
+      streak: 1,
+      exactHits: 0,
+      verifiedProofs: 1,
+      modeProofs: 2,
+    };
+    const readiness = buildLeaderboardReadiness(
+      cloudState,
+      [
+        { ...baseEntry, id: "global-row", source: "global" },
+        { ...baseEntry, id: "friend-row", source: "friend" },
+        { ...baseEntry, id: "season-row", source: "season" },
+      ],
+      profile,
+    );
+
+    expect(readiness.find((item) => item.key === "global")?.passed).toBe(true);
+    expect(readiness.find((item) => item.key === "friend")?.passed).toBe(true);
+    expect(readiness.find((item) => item.key === "season")?.passed).toBe(true);
+    expect(readiness.find((item) => item.key === "remoteRows")?.detail).toContain("3 Supabase");
   });
 
   it("keeps leaderboard readiness honest when only local fallback is available", () => {

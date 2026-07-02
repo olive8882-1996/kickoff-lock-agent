@@ -104,6 +104,12 @@ import type {
 const STORAGE_KEY = "kickoff-lock-agent-records-v1";
 const MODE_RUNS_KEY = "kickoff-lock-agent-mode-runs-v1";
 const BRACKET_PATH_KEY = "kickoff-lock-agent-bracket-path-v1";
+const leaderboardScopes: LeaderboardScope[] = ["global", "friend", "season"];
+const emptyLeaderboardCache = (): Record<LeaderboardScope, LeaderboardEntry[]> => ({
+  global: [],
+  friend: [],
+  season: [],
+});
 
 const queryParams = () => new URLSearchParams(window.location.search);
 const e2eMode = () => queryParams().has("e2e");
@@ -416,7 +422,7 @@ function App() {
   const [bracketPath, setBracketPath] = useState<BracketPath>(loadBracketPath);
   const [profile, setProfile] = useState(loadProfile);
   const [cloudState, setCloudState] = useState<CloudSyncState>(getCloudState);
-  const [globalLeaderboard, setGlobalLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardCache, setLeaderboardCache] = useState<Record<LeaderboardScope, LeaderboardEntry[]>>(emptyLeaderboardCache);
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>("global");
   const [accountEmail, setAccountEmail] = useState(loadProfile().email);
   const [draft, setDraft] = useState<PredictionDraft>(defaultDraft);
@@ -503,7 +509,18 @@ function App() {
   const refreshLeaderboard = async (scope = leaderboardScope, nextProfile = profile) => {
     try {
       const remoteLeaderboard = await loadLeaderboard(scope, nextProfile);
-      setGlobalLeaderboard(remoteLeaderboard);
+      setLeaderboardCache((current) => ({ ...current, [scope]: remoteLeaderboard }));
+    } catch (error) {
+      setNotice((error as Error).message);
+    }
+  };
+
+  const refreshAllLeaderboards = async (nextProfile = profile) => {
+    try {
+      const results = await Promise.all(
+        leaderboardScopes.map(async (scope) => [scope, await loadLeaderboard(scope, nextProfile)] as const),
+      );
+      setLeaderboardCache(Object.fromEntries(results) as Record<LeaderboardScope, LeaderboardEntry[]>);
     } catch (error) {
       setNotice((error as Error).message);
     }
@@ -562,7 +579,7 @@ function App() {
       syncRecordsToCloud(nextProfile, merged),
       syncModeRunsToCloud(nextProfile, mergedModeRuns),
     ]);
-    await refreshLeaderboard(leaderboardScope, nextProfile);
+    await refreshAllLeaderboards(nextProfile);
     const message =
       remoteRecords.length > 0 || remoteModeRuns.length > 0
         ? `${reason} merged ${remoteRecords.length} cloud records and ${remoteModeRuns.length} mode proof runs.`
@@ -579,7 +596,7 @@ function App() {
 
   const bootstrapApp = async () => {
     await refreshMatches(false);
-    void refreshLeaderboard("global", loadProfile());
+    void refreshAllLeaderboards(loadProfile());
     const params = new URLSearchParams(window.location.search);
     const proofId = params.get("proof");
     const profileId = params.get("profile");
@@ -633,12 +650,14 @@ function App() {
     (a, b) => (b.result?.totalScore ?? 0) - (a.result?.totalScore ?? 0),
   )[0];
   const localLeaderboard = buildLocalLeaderboard(profile, records, modeRuns);
-  const remoteLeaderboardIds = new Set(globalLeaderboard.map((entry) => entry.id));
+  const remoteLeaderboard = leaderboardCache[leaderboardScope];
+  const allRemoteLeaderboard = leaderboardScopes.flatMap((scope) => leaderboardCache[scope]);
+  const remoteLeaderboardIds = new Set(remoteLeaderboard.map((entry) => entry.id));
   const leaderboardEntries = [
-    ...globalLeaderboard,
+    ...remoteLeaderboard,
     ...localLeaderboard.filter((entry) => !remoteLeaderboardIds.has(entry.id)),
   ].sort((a, b) => b.xp - a.xp);
-  const leaderboardReadiness = buildLeaderboardReadiness(cloudState, globalLeaderboard, profile);
+  const leaderboardReadiness = buildLeaderboardReadiness(cloudState, allRemoteLeaderboard, profile);
 
   const localRankIndex = leaderboardEntries.findIndex((entry) => entry.id === profile.id);
   const currentRank =
@@ -674,7 +693,7 @@ function App() {
     setCloudState({ ...state, status: "syncing", message: `${reason} Syncing cloud history...` });
     void syncRecordsToCloud(profile, nextRecords)
       .then(async (result) => {
-        await refreshLeaderboard(leaderboardScope, profile);
+        await refreshAllLeaderboards(profile);
         setCloudState({
           ...getCloudState(),
           status: result.status === "synced" ? "synced" : "offline",
@@ -694,7 +713,8 @@ function App() {
     if (!state.configured || !state.authenticated) return;
     setCloudState({ ...state, status: "syncing", message: `${reason} Syncing mode proofs...` });
     void syncModeRunsToCloud(profile, nextModeRuns)
-      .then((result) => {
+      .then(async (result) => {
+        await refreshAllLeaderboards(profile);
         setCloudState({
           ...getCloudState(),
           status: result.status === "synced" ? "synced" : "offline",
@@ -785,7 +805,7 @@ function App() {
         syncRecordsToCloud(profile, records),
         syncModeRunsToCloud(profile, modeRuns),
       ]);
-      await refreshLeaderboard(leaderboardScope, profile);
+      await refreshAllLeaderboards(profile);
       setCloudState({
         ...getCloudState(),
         status: recordSync.status === "synced" && modeSync.status === "synced" ? "synced" : "offline",
@@ -814,7 +834,7 @@ function App() {
         syncRecordsToCloud(profile, merged),
         syncModeRunsToCloud(profile, mergedModeRuns),
       ]);
-      await refreshLeaderboard(leaderboardScope, profile);
+      await refreshAllLeaderboards(profile);
       setCloudState({
         ...getCloudState(),
         status: "synced",
@@ -858,7 +878,7 @@ function App() {
       await syncProfileToCloud(profile);
       setCloudState({ ...getCloudState(), status: "synced", message: "Cloud profile saved.", lastSyncedAt: new Date().toISOString() });
       setNotice("Cloud profile saved.");
-      void refreshLeaderboard(leaderboardScope, profile);
+      void refreshAllLeaderboards(profile);
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
       setNotice((error as Error).message);
@@ -1534,7 +1554,7 @@ function App() {
           gameModes={gameModes}
           providerReadiness={providerReadiness}
           providerRouteAudit={providerRouteAudit}
-          leaderboardEntries={globalLeaderboard}
+          leaderboardEntries={allRemoteLeaderboard}
           sealEndpointConfigured={filecoinSealConfigured}
           shareImageReady={Boolean(shareImageUrl || publicShareImageUrl || publicModeShareImageUrl)}
           onEmail={setAccountEmail}

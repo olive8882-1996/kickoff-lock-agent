@@ -186,4 +186,46 @@ describe("production readiness", () => {
     expect(items.find((item) => item.key === "modes")?.passed).toBe(6);
     expect(summarizeProductionReadiness(items).score).toBeGreaterThan(90);
   });
+
+  it("does not mark leaderboard production-ready until all three scopes have remote rows", () => {
+    const items = buildProductionReadiness({
+      cloudState: {
+        configured: true,
+        authenticated: true,
+        mode: "supabase",
+        status: "synced",
+        message: "synced",
+      },
+      profile: { ...profile, id: "user-1", cloudMode: "supabase" },
+      records: [record("cap-1")],
+      modeRuns: [modeRun("bracket")],
+      gameModes,
+      providerReadiness,
+      providerRouteAudit: routeAudit,
+      leaderboardEntries: [
+        {
+          id: "global-only",
+          displayName: "Global",
+          location: "Chengdu",
+          locks: 1,
+          revealed: 1,
+          averageScore: 70,
+          bestScore: 70,
+          xp: 200,
+          streak: 1,
+          exactHits: 0,
+          verifiedProofs: 0,
+          modeProofs: 1,
+          source: "global",
+        },
+      ],
+      sealEndpointConfigured: false,
+      shareImageReady: false,
+    });
+
+    const leaderboard = items.find((item) => item.key === "leaderboard");
+    expect(leaderboard?.level).toBe("partial");
+    expect(leaderboard?.passed).toBe(3);
+    expect(leaderboard?.evidence).toContain("scopes global");
+  });
 });

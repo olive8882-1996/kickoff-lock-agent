@@ -29,6 +29,8 @@ The tournament modes were expanded beyond status cards with a knockout path buil
 
 The Account area now includes a production acceptance radar. It is intentionally strict: demo/local profile state, seed data, mock Filecoin seals, local leaderboard rows and ungenerated share cards stay visible as partial or blocked until real external evidence is present.
 
+Leaderboard backend validation was tightened so global, friend-code and season rows are fetched and cached separately. A single remote leaderboard response no longer counts as evidence for all scopes.
+
 ## Debugging Plan
 
 The final app should be checked through:

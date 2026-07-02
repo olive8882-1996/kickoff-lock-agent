@@ -719,6 +719,7 @@ export const buildCloudSyncAudit = (
   const synced = cloudState.status === "synced";
   const cloudProfile = profile.cloudMode === "supabase" && !profile.id.startsWith("local-");
   const remoteLeaderboardRows = leaderboardEntries.filter((entry) => entry.source !== "local").length;
+  const leaderboardScopes = new Set(leaderboardEntries.filter((entry) => entry.source !== "local").map((entry) => entry.source));
   const totalProofLinks = records.length + modeRuns.length;
   const blockingDetail = configured ? "sign in required" : "Supabase env missing";
 
@@ -776,9 +777,12 @@ export const buildCloudSyncAudit = (
       total: Math.max(1, remoteLeaderboardRows),
       detail:
         remoteLeaderboardRows > 0
-          ? `${remoteLeaderboardRows} remote leaderboard row${remoteLeaderboardRows === 1 ? "" : "s"} loaded`
+          ? `${remoteLeaderboardRows} remote leaderboard row${remoteLeaderboardRows === 1 ? "" : "s"} loaded · ${[...leaderboardScopes].join(", ")}`
           : "local fallback row only",
-      action: remoteLeaderboardRows > 0 ? "Global/friend/season boards have backend evidence." : "Load Supabase leaderboard rows.",
+      action:
+        leaderboardScopes.size >= 3
+          ? "Global, friend and season boards have backend evidence."
+          : "Load Supabase leaderboard rows for every scope.",
     },
   ];
 };
@@ -790,6 +794,10 @@ export const buildLeaderboardReadiness = (
 ): LeaderboardReadinessItem[] => {
   const remoteRows = remoteEntries.filter((entry) => entry.source !== "local");
   const scopes: LeaderboardScope[] = ["global", "friend", "season"];
+  const scopeCounts = scopes.reduce(
+    (counts, scope) => ({ ...counts, [scope]: remoteRows.filter((entry) => entry.source === scope).length }),
+    {} as Record<LeaderboardScope, number>,
+  );
   return [
     {
       key: "view",
@@ -804,11 +812,16 @@ export const buildLeaderboardReadiness = (
           : scope === "season"
             ? `season_key filter ready · ${currentSeasonKey}`
             : "global xp ranking ready";
+      const rows = scopeCounts[scope];
       return {
         key: scope,
         label: `${scope} scope`,
-        passed: cloudState.configured,
-        detail: cloudState.configured ? scopeDetail : "requires Supabase env vars",
+        passed: rows > 0,
+        detail: cloudState.configured
+          ? rows > 0
+            ? `${rows} remote ${scope} row${rows === 1 ? "" : "s"} · ${scopeDetail}`
+            : `no remote ${scope} rows yet · ${scopeDetail}`
+          : "requires Supabase env vars",
       } satisfies LeaderboardReadinessItem;
     }),
     {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { lookupFilecoinProof, runSealJob, sealApiUrl } from "./filecoinSeal";
 import type { MemoryRecord } from "./types";
 
@@ -35,7 +35,19 @@ const record: MemoryRecord = {
   },
 };
 
+const jsonResponse = (payload: unknown, status = 200) =>
+  new Response(JSON.stringify(payload), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+
 describe("Filecoin seal workflow", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
+
   it("marks workflow as needing configuration when no seal API exists", async () => {
     const updated = await runSealJob(record);
     expect(updated.sealJob?.status).toBe("needs-config");
@@ -43,6 +55,7 @@ describe("Filecoin seal workflow", () => {
   });
 
   it("builds proof and verify URLs from a seal endpoint", () => {
+    expect(sealApiUrl("health", undefined, "https://seal.example/seal")).toBe("https://seal.example/health");
     expect(sealApiUrl("verify", "bafy123", "https://seal.example/seal")).toBe(
       "https://seal.example/verify?cid=bafy123",
     );
@@ -55,5 +68,82 @@ describe("Filecoin seal workflow", () => {
     const result = await lookupFilecoinProof("bafy123");
     expect(result.status).toBe("needs-config");
     expect(result.message).toContain("VITE_FILECOIN_SEAL_API");
+  });
+
+  it("runs configured one-click sealing through health, upload and verification polling", async () => {
+    vi.stubEnv("VITE_FILECOIN_SEAL_API", "https://seal.example/seal");
+    const calls: Array<{ url: string; method: string; body?: string }> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        calls.push({ url, method: init?.method ?? "GET", body: init?.body?.toString() });
+        if (url === "https://seal.example/health") {
+          return jsonResponse({ ok: true, service: "kickoff-lock-filecoin-seal-api" });
+        }
+        if (url === "https://seal.example/seal") {
+          return jsonResponse({
+            cid: "bafy-real-1234567890",
+            pieceCid: "baga-real-1234567890",
+            provider: "synapse-provider",
+            dataSetId: "dataset-1",
+            proofStatus: "retrievable",
+            retrievalUrl: "https://cid.ipfs.tech/#bafy-real-1234567890",
+          });
+        }
+        if (url === "https://seal.example/verify?cid=bafy-real-1234567890") {
+          return jsonResponse({
+            cid: "bafy-real-1234567890",
+            pieceCid: "baga-real-1234567890",
+            provider: "synapse-provider",
+            dataSetId: "dataset-1",
+            proofStatus: "verified",
+            checkedAt: "2099-01-01T00:00:00.000Z",
+          });
+        }
+        return jsonResponse({ error: "unexpected" }, 404);
+      }),
+    );
+    const { runSealJob: runConfiguredSealJob } = await import("./filecoinSeal");
+
+    const updated = await runConfiguredSealJob(record);
+
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([
+      "GET https://seal.example/health",
+      "POST https://seal.example/seal",
+      "GET https://seal.example/verify?cid=bafy-real-1234567890",
+    ]);
+    expect(calls[1].body).toContain(record.capsule.payloadHash);
+    expect(updated.capsule.filecoinProof.mode).toBe("real");
+    expect(updated.capsule.filecoinProof.proofStatus).toBe("verified");
+    expect(updated.sealJob?.status).toBe("verified");
+    expect(updated.sealJob?.healthStatus).toBe("ready");
+    expect(updated.sealJob?.pollAttempts).toBe(1);
+    expect(updated.sealJob?.lastCheckedAt).toBe("2099-01-01T00:00:00.000Z");
+    expect(updated.sealJob?.proofUrl).toBe("https://seal.example/proof/bafy-real-1234567890");
+    expect(updated.sealJob?.verifyUrl).toBe("https://seal.example/verify?cid=bafy-real-1234567890");
+    expect(updated.sealJob?.steps.every((step) => step.status === "passed")).toBe(true);
+  });
+
+  it("stores a failed seal job when the configured backend health check fails", async () => {
+    vi.stubEnv("VITE_FILECOIN_SEAL_API", "https://seal.example/seal");
+    const calls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        calls.push(String(input));
+        return jsonResponse({ ok: false }, 503);
+      }),
+    );
+    const { runSealJob: runConfiguredSealJob } = await import("./filecoinSeal");
+
+    const updated = await runConfiguredSealJob(record);
+
+    expect(calls).toEqual(["https://seal.example/health"]);
+    expect(updated.capsule.filecoinProof.mode).toBe("demo");
+    expect(updated.sealJob?.status).toBe("failed");
+    expect(updated.sealJob?.healthStatus).toBe("failed");
+    expect(updated.sealJob?.error).toContain("503");
+    expect(updated.sealJob?.steps.find((step) => step.id === "health")?.status).toBe("failed");
   });
 });

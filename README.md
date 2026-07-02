@@ -73,7 +73,7 @@ End-to-end seal workflow test without spending funds:
 bun run test:e2e:seal
 ```
 
-The API exposes `GET /health`, `POST /seal`, `GET /verify?cid=...`, and `GET /proof/:cid`. The frontend uploads the stable capsule payload, polls CID verification, and updates the proof workflow steps.
+The API exposes `GET /health`, `POST /seal`, `GET /verify?cid=...`, and `GET /proof/:cid`. The frontend runs a health preflight, uploads the stable capsule payload, polls CID verification, stores proof/verify URLs, and renders a Filecoin acceptance checklist for backend configuration, API health, upload acceptance, CID return, verification polling, and verifier URL readiness.
 The public verifier also includes a CID lookup panel that queries the configured seal API and displays proof status, PieceCID, provider, dataset, and retrieval URL.
 
 Key files:

@@ -1211,6 +1211,67 @@ code {
   font-size: 0.78rem;
 }
 
+.seal-checklist {
+  display: grid;
+  gap: 7px;
+}
+
+.seal-checklist div {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 0.8fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 9px;
+  border: 1px solid rgba(255, 91, 78, 0.24);
+  background: rgba(255, 91, 78, 0.08);
+}
+
+.seal-checklist div.passed {
+  border-color: rgba(77, 217, 137, 0.28);
+  background: rgba(77, 217, 137, 0.08);
+}
+
+.seal-checklist svg {
+  color: #ff9188;
+}
+
+.seal-checklist div.passed svg {
+  color: #61d893;
+}
+
+.seal-checklist span {
+  margin: 0;
+  color: rgba(238, 247, 243, 0.72);
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.seal-checklist strong {
+  overflow-wrap: anywhere;
+  color: #eef7f3;
+  font-size: 0.76rem;
+}
+
+.seal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.seal-links a {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid rgba(241, 201, 77, 0.28);
+  border-radius: 4px;
+  color: #f1c94d;
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-decoration: none;
+}
+
 .share-preview {
   display: grid;
   gap: 10px;
@@ -2246,6 +2307,8 @@ pre {
   .leaderboard-summary,
   .leaderboard article,
   .cloud-checklist div,
+  .seal-checklist div,
+  .seal-steps article,
   .public-profile-stats,
   .lock-window,
   .coverage-grid,

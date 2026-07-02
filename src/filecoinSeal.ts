@@ -11,6 +11,12 @@ const baseSteps = (): SealStep[] => [
     detail: "Stable JSON and SHA-256 hash are ready in the capsule.",
   },
   {
+    id: "health",
+    label: "Check seal API health",
+    status: "queued",
+    detail: "Confirms the trusted sealing backend is reachable before uploading.",
+  },
+  {
     id: "upload",
     label: "Upload through Synapse",
     status: "queued",
@@ -49,10 +55,18 @@ const mark = (steps: SealStep[], ids: SealStep["id"][], status: SealStep["status
 
 const wait = (ms: number) => new Promise((resolve) => globalThis.setTimeout(resolve, ms));
 
-export const sealApiUrl = (path: "seal" | "verify" | "proof", value?: string, endpoint = sealEndpoint) => {
+export const sealApiUrl = (path: "health" | "seal" | "verify" | "proof", value?: string, endpoint = sealEndpoint) => {
   if (!endpoint) return "";
   const baseUrl = typeof window === "undefined" ? "http://127.0.0.1/" : window.location.href;
   const url = new URL(endpoint, baseUrl);
+  if (path === "health") {
+    url.pathname = url.pathname
+      .replace(/\/seal\/?$/, "/health")
+      .replace(/\/verify\/?$/, "/health")
+      .replace(/\/proof\/?.*$/, "/health");
+    url.search = "";
+    return url.toString();
+  }
   if (path === "seal") {
     url.pathname = url.pathname.replace(/\/verify\/?$/, "/seal").replace(/\/proof\/?.*$/, "/seal");
     url.search = "";
@@ -74,6 +88,23 @@ const verifyEndpoint = (cid: string) => {
   if (!url) return "";
   return url;
 };
+
+const failJob = (
+  record: MemoryRecord,
+  job: SealJob,
+  failedStep: SealStep["id"],
+  message: string,
+): MemoryRecord => ({
+  ...record,
+  sealJob: {
+    ...job,
+    status: "failed",
+    healthStatus: failedStep === "health" ? "failed" : job.healthStatus,
+    updatedAt: new Date().toISOString(),
+    steps: mark(job.steps, [failedStep], "failed", message),
+    error: message,
+  },
+});
 
 const normalizeLookupProof = (cid: string, payload: Partial<FilecoinProof> & { checkedAt?: string }): FilecoinProof => ({
   mode: "real",
@@ -121,26 +152,32 @@ export const lookupFilecoinProof = async (cid: string): Promise<FilecoinLookupSt
   }
 };
 
-const pollProofStatus = async (proof: FilecoinProof): Promise<FilecoinProof> => {
+const pollProofStatus = async (proof: FilecoinProof): Promise<{ proof: FilecoinProof; attempts: number; checkedAt?: string }> => {
   const endpoint = verifyEndpoint(proof.cid);
-  if (!endpoint) return proof;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  if (!endpoint) return { proof, attempts: 0 };
+  let checkedAt: string | undefined;
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
     const res = await fetch(endpoint).catch(() => undefined);
     if (res?.ok) {
-      const status = (await res.json()) as Partial<FilecoinProof> & { ok?: boolean };
+      const status = (await res.json()) as Partial<FilecoinProof> & { ok?: boolean; checkedAt?: string };
+      checkedAt = status.checkedAt ?? new Date().toISOString();
       if (status.proofStatus === "verified" || status.proofStatus === "retrievable") {
         return {
-          ...proof,
-          ...status,
-          mode: "real",
-          proofStatus: status.proofStatus,
-          retrievalUrl: status.retrievalUrl ?? proof.retrievalUrl,
+          proof: {
+            ...proof,
+            ...status,
+            mode: "real",
+            proofStatus: status.proofStatus,
+            retrievalUrl: status.retrievalUrl ?? proof.retrievalUrl,
+          },
+          attempts: attempt,
+          checkedAt,
         };
       }
     }
-    await wait(650);
+    await wait(450);
   }
-  return proof;
+  return { proof, attempts: 5, checkedAt };
 };
 
 export const createSealJob = (capsule: PredictionCapsule): SealJob => ({
@@ -150,9 +187,15 @@ export const createSealJob = (capsule: PredictionCapsule): SealJob => ({
   startedAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   endpoint: sealEndpoint,
+  healthStatus: sealEndpoint ? "unchecked" : "failed",
   steps: sealEndpoint
     ? mark(baseSteps(), ["payload"], "passed", "Capsule payload is deterministic and ready to upload.")
-    : mark(baseSteps(), ["upload", "deal", "poll", "verify"], "needs-config", "Set VITE_FILECOIN_SEAL_API to a trusted backend endpoint."),
+    : mark(
+        mark(baseSteps(), ["payload"], "passed", "Capsule payload is deterministic and ready to upload."),
+        ["health", "upload", "deal", "poll", "verify"],
+        "needs-config",
+        "Set VITE_FILECOIN_SEAL_API to a trusted backend endpoint.",
+      ),
 });
 
 export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> => {
@@ -164,28 +207,41 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
     ...job,
     status: "running",
     updatedAt: new Date().toISOString(),
-    steps: mark(job.steps, ["upload"], "running", "Uploading capsule payload to the configured seal API."),
+    steps: mark(job.steps, ["health"], "running", "Checking the configured seal API before upload."),
   };
 
-  const res = await fetch(sealEndpoint, {
+  const healthUrl = sealApiUrl("health");
+  const sealUrl = sealApiUrl("seal");
+  const healthRes = await fetch(healthUrl).catch(() => undefined);
+  if (!healthRes?.ok) {
+    return failJob(record, job, "health", `Seal API health check failed${healthRes ? ` with ${healthRes.status}` : ""}.`);
+  }
+
+  job = {
+    ...job,
+    healthStatus: "ready",
+    updatedAt: new Date().toISOString(),
+    steps: mark(
+      mark(job.steps, ["health"], "passed", "Seal API health check passed."),
+      ["upload"],
+      "running",
+      "Uploading capsule payload to the configured seal API.",
+    ),
+  };
+
+  const res = await fetch(sealUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: stableJson({ capsule, result: record.result ?? null }),
-  });
-  if (!res.ok) {
-    return {
-      ...record,
-      sealJob: {
-        ...job,
-        status: "failed",
-        updatedAt: new Date().toISOString(),
-        steps: mark(job.steps, ["upload"], "failed", `Seal API returned ${res.status}.`),
-        error: `Seal API returned ${res.status}`,
-      },
-    };
+  }).catch(() => undefined);
+  if (!res?.ok) {
+    return failJob(record, job, "upload", `Seal API returned ${res?.status ?? "no response"}.`);
   }
 
   const proof = (await res.json()) as Partial<FilecoinProof>;
+  if (!proof.cid) {
+    return failJob(record, job, "deal", "Seal API did not return a CID.");
+  }
   const realProof: FilecoinProof = {
     mode: "real",
     cid: String(proof.cid ?? capsule.filecoinProof.cid),
@@ -205,8 +261,11 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
       `Polling CID ${realProof.cid} for retrievability.`,
     ),
   };
-  const verifiedProof = await pollProofStatus(realProof);
+  const pollResult = await pollProofStatus(realProof);
+  const verifiedProof = pollResult.proof;
   const verified = verifiedProof.proofStatus === "verified";
+  const verifyUrl = sealApiUrl("verify", verifiedProof.cid);
+  const proofUrl = sealApiUrl("proof", verifiedProof.cid);
 
   return {
     ...record,
@@ -218,11 +277,15 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
       ...job,
       status: verified ? "verified" : "running",
       proof: verifiedProof,
+      proofUrl,
+      verifyUrl,
+      pollAttempts: pollResult.attempts,
+      lastCheckedAt: pollResult.checkedAt ?? new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       steps: verified
-        ? mark(baseSteps(), ["payload", "upload", "deal", "poll", "verify"], "passed", "CID is verified by the configured seal API.")
+        ? mark(baseSteps(), ["payload", "health", "upload", "deal", "poll", "verify"], "passed", "CID is verified by the configured seal API.")
         : mark(
-            mark(baseSteps(), ["payload", "upload", "deal", "poll"], "passed", "CID is retrievable but final verification is still pending."),
+            mark(baseSteps(), ["payload", "health", "upload", "deal", "poll"], "passed", "CID is retrievable but final verification is still pending."),
             ["verify"],
             "running",
             "Run Auto seal again to re-check final verification.",

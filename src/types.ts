@@ -91,7 +91,7 @@ export type FilecoinLookupState = {
 export type SealStepStatus = "queued" | "running" | "passed" | "failed" | "needs-config";
 
 export type SealStep = {
-  id: "payload" | "upload" | "deal" | "poll" | "verify";
+  id: "payload" | "health" | "upload" | "deal" | "poll" | "verify";
   label: string;
   status: SealStepStatus;
   detail: string;
@@ -104,6 +104,11 @@ export type SealJob = {
   startedAt: string;
   updatedAt: string;
   endpoint?: string;
+  healthStatus?: "unchecked" | "ready" | "failed";
+  proofUrl?: string;
+  verifyUrl?: string;
+  pollAttempts?: number;
+  lastCheckedAt?: string;
   steps: SealStep[];
   proof?: FilecoinProof;
   error?: string;

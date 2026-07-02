@@ -13,6 +13,11 @@ test("mock Filecoin seal flow verifies a real proof end to end", async ({ page }
   await expect(page.getByText(/Real Filecoin proof attached/i)).toBeVisible();
   await expect(page.locator(".proof-panel > .panel-head")).toContainText(/real proof/i);
   await expect(page.locator(".proof-lines")).toContainText(/verified/i);
+  await expect(page.locator(".seal-checklist")).toContainText(/Backend configured/i);
+  await expect(page.locator(".seal-checklist")).toContainText(/Health check/i);
+  await expect(page.locator(".seal-checklist")).toContainText(/CID returned/i);
+  await expect(page.locator(".seal-checklist")).toContainText(/Verifier URL/i);
+  await expect(page.locator(".seal-links")).toContainText(/Verify CID/i);
   const cid = await page.locator(".proof-lines p").filter({ hasText: /^CID/ }).locator("span").innerText();
   expect(cid).toContain("bafy-mock-");
 

@@ -754,13 +754,21 @@ function App() {
   const startFilecoinSeal = async () => {
     if (!selectedRecord) return;
     setNotice(filecoinSealConfigured ? "Starting Filecoin seal workflow..." : "Seal backend is not configured yet.");
-    const updated = await runSealJob(selectedRecord);
-    commitRecords(
-      records.map((record) => (record.capsule.id === updated.capsule.id ? updated : record)),
-      updated.sealJob?.status === "verified"
-        ? "Real Filecoin proof attached and verification state saved."
-        : "Seal workflow status saved. Configure the seal API for real uploads.",
-    );
+    try {
+      const updated = await runSealJob(selectedRecord);
+      const sealMessage =
+        updated.sealJob?.status === "verified"
+          ? "Real Filecoin proof attached and verification state saved."
+          : updated.sealJob?.status === "failed"
+            ? updated.sealJob.error ?? "Seal workflow failed."
+            : "Seal workflow status saved. Configure the seal API for real uploads.";
+      commitRecords(
+        records.map((record) => (record.capsule.id === updated.capsule.id ? updated : record)),
+        sealMessage,
+      );
+    } catch (error) {
+      setNotice((error as Error).message);
+    }
   };
 
   const generateShareImageForRecord = async (
@@ -1547,6 +1555,49 @@ function ProofPanel({
   shareImageUrl,
 }: ProofPanelProps) {
   const { capsule, result } = record;
+  const uploadStep = record.sealJob?.steps.find((step) => step.id === "upload");
+  const pollStep = record.sealJob?.steps.find((step) => step.id === "poll");
+  const sealChecks = record.sealJob
+    ? [
+        {
+          label: "Backend configured",
+          detail: record.sealJob.endpoint ?? "missing VITE_FILECOIN_SEAL_API",
+          passed: Boolean(record.sealJob.endpoint),
+        },
+        {
+          label: "Health check",
+          detail:
+            record.sealJob.healthStatus === "ready"
+              ? "seal API ready"
+              : record.sealJob.endpoint
+                ? record.sealJob.error ?? "unchecked"
+                : "missing VITE_FILECOIN_SEAL_API",
+          passed: record.sealJob.healthStatus === "ready",
+        },
+        {
+          label: "Upload accepted",
+          detail: uploadStep?.status ?? "queued",
+          passed: uploadStep?.status === "passed",
+        },
+        {
+          label: "CID returned",
+          detail: record.sealJob.proof?.cid ?? capsule.filecoinProof.cid,
+          passed: record.sealJob.proof?.mode === "real",
+        },
+        {
+          label: "Verification polled",
+          detail: record.sealJob.pollAttempts
+            ? `${record.sealJob.pollAttempts} attempt${record.sealJob.pollAttempts > 1 ? "s" : ""}`
+            : pollStep?.status ?? "not started",
+          passed: Boolean(record.sealJob.lastCheckedAt),
+        },
+        {
+          label: "Verifier URL",
+          detail: record.sealJob.verifyUrl ?? "waiting for CID",
+          passed: Boolean(record.sealJob.verifyUrl),
+        },
+      ]
+    : [];
   return (
     <>
       <div className="panel-head">
@@ -1621,6 +1672,15 @@ function ProofPanel({
             </div>
             <span className={`pill seal-${record.sealJob.status}`}>{record.sealJob.status}</span>
           </div>
+          <div className="seal-checklist" aria-label="Filecoin seal acceptance checks">
+            {sealChecks.map((check) => (
+              <div key={check.label} className={check.passed ? "passed" : ""}>
+                <CheckCircle2 size={16} />
+                <span>{check.label}</span>
+                <strong>{check.detail}</strong>
+              </div>
+            ))}
+          </div>
           {record.sealJob.steps.map((step) => (
             <article key={step.id}>
               <CheckCircle2 size={16} />
@@ -1631,6 +1691,12 @@ function ProofPanel({
               <b>{step.status}</b>
             </article>
           ))}
+          {(record.sealJob.proofUrl || record.sealJob.verifyUrl) && (
+            <div className="seal-links">
+              {record.sealJob.proofUrl && <a href={record.sealJob.proofUrl} target="_blank" rel="noreferrer">Proof metadata</a>}
+              {record.sealJob.verifyUrl && <a href={record.sealJob.verifyUrl} target="_blank" rel="noreferrer">Verify CID</a>}
+            </div>
+          )}
         </div>
       )}
       {shareImageUrl && (

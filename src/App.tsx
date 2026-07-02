@@ -53,7 +53,7 @@ import {
 import { filecoinSealConfigured, runSealJob } from "./filecoinSeal";
 import { createGameModeRun, getModeReadiness } from "./modes";
 import { applyRealProof, createCapsule, stableJson } from "./proof";
-import { enrichMatchFromApiFootball, loadMatchesWithFallback, sourceLabel } from "./providers";
+import { enrichMatchWithDataProviders, loadMatchesWithFallback, sourceLabel } from "./providers";
 import { scorePrediction } from "./scoring";
 import { downloadDataUrl, generateShareCard } from "./shareCard";
 import type {
@@ -789,9 +789,9 @@ function App() {
   const enrichSelectedMatch = async () => {
     if (!selectedMatch) return;
     try {
-      const enriched = await enrichMatchFromApiFootball(selectedMatch);
+      const enriched = await enrichMatchWithDataProviders(selectedMatch);
       setMatches(matches.map((match) => (match.id === enriched.id ? enriched : match)));
-      setNotice("Match intelligence enriched from API-Football.");
+      setNotice("Match intelligence enriched from configured live data providers.");
     } catch (error) {
       setNotice((error as Error).message);
     }

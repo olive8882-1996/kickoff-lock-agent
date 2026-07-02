@@ -1,4 +1,4 @@
-export type DataSource = "espn" | "worldcup26" | "api-football" | "thesportsdb" | "seed" | "manual";
+export type DataSource = "espn" | "worldcup26" | "api-football" | "football-data" | "thesportsdb" | "seed" | "manual";
 
 export type MatchStatus = "upcoming" | "live" | "finished";
 

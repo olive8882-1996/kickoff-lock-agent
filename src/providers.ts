@@ -6,6 +6,12 @@ const ESPN_URL =
 const WORLDCUP26_URL = "https://worldcup26.ir/get/games";
 const API_FOOTBALL_KEY = import.meta.env.VITE_APIFOOTBALL_KEY as string | undefined;
 const API_FOOTBALL_HOST = "https://v3.football.api-sports.io";
+const FOOTBALL_DATA_TOKEN = import.meta.env.VITE_FOOTBALL_DATA_TOKEN as string | undefined;
+const FOOTBALL_DATA_COMPETITION = (import.meta.env.VITE_FOOTBALL_DATA_COMPETITION as string | undefined) ?? "WC";
+const FOOTBALL_DATA_HOST = "https://api.football-data.org/v4";
+const ODDS_API_KEY = import.meta.env.VITE_ODDS_API_KEY as string | undefined;
+const ODDS_API_SPORT_KEY = import.meta.env.VITE_ODDS_API_SPORT_KEY as string | undefined;
+const ODDS_API_HOST = "https://api.the-odds-api.com/v4";
 
 const timeoutFetch = async (
   url: string,
@@ -35,6 +41,38 @@ const numberOrUndefined = (value: unknown): number | undefined => {
   const n = Number(value);
   return Number.isFinite(n) ? n : undefined;
 };
+
+const normalizeFootballDataStatus = (status?: string): Match["status"] => {
+  const text = (status ?? "").toLowerCase();
+  if (text.includes("finished") || text.includes("awarded")) return "finished";
+  if (text.includes("live") || text.includes("play") || text.includes("pause")) return "live";
+  return "upcoming";
+};
+
+const insightShell = (homeTeam: string, awayTeam: string, source: string, stamp = new Date().toISOString()) => ({
+  home: {
+    fifaRank: 0,
+    form: [source, "LIVE", "DATA"],
+    lastFiveGoalsFor: 0,
+    lastFiveGoalsAgainst: 0,
+    unavailable: ["Configure injury provider or API-Football fixture enrichment"],
+    probableLineup: ["Lineup not published by this provider"],
+  },
+  away: {
+    fifaRank: 0,
+    form: [source, "LIVE", "DATA"],
+    lastFiveGoalsFor: 0,
+    lastFiveGoalsAgainst: 0,
+    unavailable: ["Configure injury provider or API-Football fixture enrichment"],
+    probableLineup: ["Lineup not published by this provider"],
+  },
+  headToHead: `${homeTeam} vs ${awayTeam} matchup built from ${source}.`,
+  marketLine: "Market data waits for odds enrichment.",
+  oddsSnapshot: "Odds enrichment not loaded.",
+  lineupSource: `${source} match feed`,
+  injurySource: "No injury feed configured for this source",
+  dataFreshness: stamp,
+});
 
 export const loadFromEspn = async (): Promise<ProviderResult> => {
   const res = await timeoutFetch(ESPN_URL);
@@ -160,6 +198,62 @@ export const loadFromApiFootball = async (): Promise<ProviderResult> => {
   };
 };
 
+export const normalizeFootballDataMatch = (item: any): Match => {
+  const homeTeam = item.homeTeam?.shortName ?? item.homeTeam?.name ?? "Home";
+  const awayTeam = item.awayTeam?.shortName ?? item.awayTeam?.name ?? "Away";
+  const homeScore = numberOrUndefined(item.score?.fullTime?.home ?? item.score?.regularTime?.home);
+  const awayScore = numberOrUndefined(item.score?.fullTime?.away ?? item.score?.regularTime?.away);
+  const stamp = new Date().toISOString();
+  return {
+    id: `football-data-${item.id}`,
+    homeTeam,
+    awayTeam,
+    kickoffAt: item.utcDate,
+    stage: item.stage ?? item.group ?? "FIFA World Cup",
+    status: normalizeFootballDataStatus(item.status),
+    dataSource: "football-data",
+    homeScore,
+    awayScore,
+    venue: item.venue,
+    insights: {
+      ...insightShell(homeTeam, awayTeam, "Football-Data.org", stamp),
+      home: {
+        ...insightShell(homeTeam, awayTeam, "Football-Data.org", stamp).home,
+        lastFiveGoalsFor: homeScore ?? 0,
+        lastFiveGoalsAgainst: awayScore ?? 0,
+      },
+      away: {
+        ...insightShell(homeTeam, awayTeam, "Football-Data.org", stamp).away,
+        lastFiveGoalsFor: awayScore ?? 0,
+        lastFiveGoalsAgainst: homeScore ?? 0,
+      },
+    },
+  };
+};
+
+export const loadFromFootballData = async (): Promise<ProviderResult> => {
+  if (!FOOTBALL_DATA_TOKEN) throw new Error("VITE_FOOTBALL_DATA_TOKEN is not configured");
+  const season = new Date().getUTCFullYear();
+  const res = await timeoutFetch(
+    `${FOOTBALL_DATA_HOST}/competitions/${FOOTBALL_DATA_COMPETITION}/matches?season=${season}`,
+    7500,
+    { "X-Auth-Token": FOOTBALL_DATA_TOKEN },
+  );
+  if (!res.ok) throw new Error(`Football-Data.org returned ${res.status}`);
+  const data = await res.json();
+  const matches = Array.isArray(data.matches) ? data.matches.map(normalizeFootballDataMatch) : [];
+  if (matches.length === 0) throw new Error("Football-Data.org returned no matches");
+  return {
+    source: "football-data",
+    matches,
+    evidence: [
+      `Football-Data.org competition ${FOOTBALL_DATA_COMPETITION} matches endpoint`,
+      "Fixtures, live/final scores, stage, venue and team metadata",
+      `${matches.length} Football-Data.org matches normalized`,
+    ],
+  };
+};
+
 const apiFootballJson = async (path: string) => {
   if (!API_FOOTBALL_KEY) throw new Error("VITE_APIFOOTBALL_KEY is not configured");
   const res = await timeoutFetch(`${API_FOOTBALL_HOST}${path}`, 7500, {
@@ -167,6 +261,55 @@ const apiFootballJson = async (path: string) => {
   });
   if (!res.ok) throw new Error(`API-Football ${path} returned ${res.status}`);
   return res.json();
+};
+
+const teamKey = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+const oddsApiJson = async () => {
+  if (!ODDS_API_KEY || !ODDS_API_SPORT_KEY) {
+    throw new Error("VITE_ODDS_API_KEY and VITE_ODDS_API_SPORT_KEY are not configured");
+  }
+  const params = new URLSearchParams({
+    regions: "us,uk,eu",
+    markets: "h2h",
+    oddsFormat: "decimal",
+    apiKey: ODDS_API_KEY,
+  });
+  const res = await timeoutFetch(`${ODDS_API_HOST}/sports/${ODDS_API_SPORT_KEY}/odds?${params.toString()}`, 7500);
+  if (!res.ok) throw new Error(`The Odds API returned ${res.status}`);
+  return res.json();
+};
+
+export const mergeOddsIntoMatch = (match: Match, oddsRows: any[]): Match | undefined => {
+  const home = teamKey(match.homeTeam);
+  const away = teamKey(match.awayTeam);
+  const event = oddsRows.find((row) => {
+    const rowHome = teamKey(row.home_team ?? "");
+    const rowAway = teamKey(row.away_team ?? "");
+    return (rowHome.includes(home) || home.includes(rowHome)) && (rowAway.includes(away) || away.includes(rowAway));
+  });
+  const bookmaker = event?.bookmakers?.[0];
+  const market = bookmaker?.markets?.find((item: any) => item.key === "h2h") ?? bookmaker?.markets?.[0];
+  const oddsSnapshot = market?.outcomes
+    ?.slice(0, 3)
+    ?.map((outcome: any) => `${outcome.name} ${outcome.price}`)
+    ?.join(" · ");
+  if (!oddsSnapshot) return undefined;
+  return {
+    ...match,
+    insights: {
+      ...(match.insights ?? insightShell(match.homeTeam, match.awayTeam, sourceLabel(match.dataSource))),
+      marketLine: `${bookmaker?.title ?? "Bookmaker"} · ${market?.key ?? "odds"} · ${oddsSnapshot}`,
+      oddsSnapshot,
+      dataFreshness: new Date().toISOString(),
+    },
+  };
+};
+
+const enrichMatchFromOddsApi = async (match: Match): Promise<Match | undefined> => {
+  const oddsRows = await oddsApiJson();
+  if (!Array.isArray(oddsRows)) return undefined;
+  return mergeOddsIntoMatch(match, oddsRows);
 };
 
 export const enrichMatchFromApiFootball = async (match: Match): Promise<Match> => {
@@ -243,6 +386,27 @@ export const enrichMatchFromApiFootball = async (match: Match): Promise<Match> =
   };
 };
 
+export const enrichMatchWithDataProviders = async (match: Match): Promise<Match> => {
+  const errors: string[] = [];
+  if (match.id.startsWith("api-football-")) {
+    try {
+      const enriched = await enrichMatchFromApiFootball(match);
+      const oddsEnriched = await enrichMatchFromOddsApi(enriched).catch(() => undefined);
+      return oddsEnriched ?? enriched;
+    } catch (error) {
+      errors.push(`API-Football: ${(error as Error).message}`);
+    }
+  }
+  try {
+    const oddsEnriched = await enrichMatchFromOddsApi(match);
+    if (oddsEnriched) return oddsEnriched;
+    errors.push("The Odds API returned no matching event.");
+  } catch (error) {
+    errors.push(`The Odds API: ${(error as Error).message}`);
+  }
+  throw new Error(`No configured enrichment provider could enrich this fixture. ${errors.join(" ")}`);
+};
+
 export const loadSeedMatches = (): ProviderResult => ({
   source: "seed",
   matches: seedMatches,
@@ -285,6 +449,11 @@ export const loadMatchesWithFallback = async (
       errors.push(`API-Football: ${(error as Error).message}`);
     }
     try {
+      return withSeedUpcoming(await loadFromFootballData());
+    } catch (error) {
+      errors.push(`Football-Data.org: ${(error as Error).message}`);
+    }
+    try {
       return withSeedUpcoming(await loadFromEspn());
     } catch (error) {
       errors.push(`ESPN: ${(error as Error).message}`);
@@ -309,6 +478,7 @@ export const sourceLabel = (source: DataSource) => {
   if (source === "espn") return "ESPN";
   if (source === "worldcup26") return "worldcup26";
   if (source === "api-football") return "API-Football";
+  if (source === "football-data") return "Football-Data.org";
   if (source === "thesportsdb") return "TheSportsDB";
   if (source === "manual") return "Manual";
   return "Seed";

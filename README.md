@@ -25,11 +25,13 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 
 The app works without API keys.
 
-1. Primary: ESPN scoreboard API.
-2. Fallback: worldcup26.ir.
-3. Safety net: bundled seed matches and manual result input.
+1. Primary when configured: API-Football for fixtures, scores, lineups, injuries and odds.
+2. Secondary when configured: Football-Data.org for fixtures, live/final scores, stage, venue and team metadata.
+3. Public fallback: ESPN scoreboard API.
+4. Fallback: worldcup26.ir.
+5. Safety net: bundled seed matches and manual result input.
 
-External APIs are only used for match/result convenience. The core product mechanic is the prediction capsule and proof flow.
+The Odds API can also be configured for H2H odds enrichment on non API-Football fixtures. External APIs are used for match/result convenience and data evidence; the core product mechanic is still the prediction capsule and proof flow.
 
 ## Filecoin Strategy
 
@@ -61,7 +63,7 @@ The API exposes `GET /health`, `POST /seal`, `GET /verify?cid=...`, and `GET /pr
 Key files:
 
 - `src/proof.ts`: capsule hash, demo proof, real proof import.
-- `src/providers.ts`: ESPN/worldcup26/seed fallback.
+- `src/providers.ts`: API-Football, Football-Data.org, ESPN, The Odds API, worldcup26 and seed fallback.
 - `src/scoring.ts`: explainable scoring engine.
 - `src/cloud.ts`: Supabase auth, profile sync, public proof lookup, and leaderboard queries.
 - `src/bracket.ts`: knockout path builder, bracket readiness rules, and bracket proof run sealing.
@@ -97,6 +99,11 @@ Create the tables and views in `supabase.schema.sql`, then set:
 VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
 VITE_SUPABASE_REDIRECT_URL=https://your-site.example/kickoff-lock-agent/
+VITE_APIFOOTBALL_KEY=...
+VITE_FOOTBALL_DATA_TOKEN=...
+VITE_FOOTBALL_DATA_COMPETITION=WC
+VITE_ODDS_API_KEY=...
+VITE_ODDS_API_SPORT_KEY=...
 ```
 
 Public proof pages can load a capsule from Supabase by `?proof=<capsule-id>` when the record has been synced.

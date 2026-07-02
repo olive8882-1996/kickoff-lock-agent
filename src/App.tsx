@@ -7,8 +7,13 @@ import {
   FileCheck2,
   Flame,
   Gauge,
+  HelpCircle,
+  LockKeyhole,
   RefreshCcw,
   ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+  TableProperties,
   Trophy,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -232,19 +237,47 @@ function App() {
 
   return (
     <main className="shell">
+      <aside className="side-rail" aria-label="Tournament controls">
+        <div className="rail-mark">
+          <Trophy size={26} />
+        </div>
+        <button className={view === "matches" ? "active" : ""} onClick={() => setView("matches")} title="Match board">
+          <TableProperties size={20} />
+          <span>Match board</span>
+        </button>
+        <button className={view === "predict" ? "active" : ""} onClick={() => setView("predict")} title="Agent flow">
+          <Bot size={20} />
+          <span>Agent flow</span>
+        </button>
+        <button title="Proof capsule" onClick={() => setView("predict")}>
+          <FileCheck2 size={20} />
+          <span>Proof capsule</span>
+        </button>
+        <button className={view === "memory" ? "active" : ""} onClick={() => setView("memory")} title="Memory wall">
+          <Database size={20} />
+          <span>Memory wall</span>
+        </button>
+        <div className="rail-spacer" />
+        <button title="Settings">
+          <SlidersHorizontal size={20} />
+          <span>Settings</span>
+        </button>
+        <button title="Help">
+          <HelpCircle size={20} />
+          <span>Help</span>
+        </button>
+      </aside>
       <section
         className="hero"
         style={imageLayer(
           "stadium-hero.jpg",
-          "linear-gradient(90deg, rgba(3, 14, 14, 0.92) 0%, rgba(3, 14, 14, 0.72) 48%, rgba(3, 14, 14, 0.24) 100%)",
+          "linear-gradient(90deg, rgba(3, 10, 11, 0.94) 0%, rgba(3, 10, 11, 0.72) 52%, rgba(3, 10, 11, 0.16) 100%)",
         )}
       >
         <div className="hero-copy-block">
-          <h1>Kickoff Lock Agent</h1>
+          <h1><span>Kickoff</span><span>Lock</span><span>Agent</span></h1>
           <p className="hero-copy">
-            A World Cup-style matchday console for sealing bold predictions before kickoff,
-            revealing them after the final whistle, and preserving every call as a verifiable
-            Filecoin memory capsule.
+            Lock before kickoff <i /> reveal after final whistle
           </p>
           <div className="hero-signals" aria-label="Core workflow">
             <span><ShieldCheck size={18} /> Lock before kickoff</span>
@@ -254,15 +287,15 @@ function App() {
         </div>
         <div className="hero-panel">
           <div>
-            <span className="label">sealed capsules</span>
+            <span className="label">Locks</span>
             <span className="metric">{records.length}</span>
           </div>
           <div>
-            <span className="label">avg score</span>
-            <span className="metric">{averageScore}</span>
+            <span className="label">Accuracy</span>
+            <span className="metric">{averageScore}%</span>
           </div>
           <div>
-            <span className="label">match source</span>
+            <span className="label">Source</span>
             <span className="metric source-metric">{providerSource}</span>
           </div>
         </div>
@@ -339,7 +372,7 @@ function App() {
           className="panel flow-panel"
           style={imageLayer(
             "agent-desk.jpg",
-            "linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.92) 44%, rgba(255, 255, 255, 0.98) 100%)",
+            "linear-gradient(180deg, rgba(3, 8, 10, 0.9) 0%, rgba(3, 8, 10, 0.82) 45%, rgba(3, 8, 10, 0.94) 100%)",
           )}
         >
           {selectedMatch ? (
@@ -359,10 +392,25 @@ function App() {
               </div>
               <div className="panel-head">
                 <div>
-                  <p className="eyebrow">Selected match</p>
-                  <h2>{matchLabel(selectedMatch)}</h2>
+                  <p className="eyebrow">Agent flow</p>
+                  <h2>Lock window</h2>
                 </div>
-                <span className="pill">{formatDate(selectedMatch.kickoffAt)}</span>
+                <span className="pill">Active match</span>
+              </div>
+
+              <div className="scoreboard-lock">
+                <div className="team-tile home">{selectedMatch.homeTeam}</div>
+                <div className="score-tile">
+                  <strong>{shownDraft.homeScore} - {shownDraft.awayScore}</strong>
+                  <span>{shownDraft.confidence}% confidence</span>
+                </div>
+                <div className="team-tile away">{selectedMatch.awayTeam}</div>
+              </div>
+
+              <div className="agent-tabs" aria-label="Prediction sections">
+                <span className="active">Prediction</span>
+                <span>Markets</span>
+                <span>Notes</span>
               </div>
 
               <div className="agent-grid">
@@ -440,10 +488,10 @@ function App() {
 
               <div className="actions">
                 <button onClick={generatePrediction} disabled={!!selectedRecord?.capsule.locked}>
-                  <Bot size={18} /> Generate prediction
+                  <Sparkles size={18} /> Generate prediction
                 </button>
                 <button className="primary" onClick={() => void lockPrediction()} disabled={!canLock}>
-                  <ShieldCheck size={18} /> Lock before kickoff
+                  <LockKeyhole size={18} /> Lock prediction
                 </button>
               </div>
 

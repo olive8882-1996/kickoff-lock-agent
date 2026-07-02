@@ -25,6 +25,8 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".cloud-checklist")).toContainText(/Refresh token/i);
   await expect(page.locator(".cloud-checklist")).toContainText(/Public profile/i);
   await expect(page.locator(".cloud-checklist")).toContainText(/Mode proofs/i);
+  await expect(page.locator(".cloud-checklist")).toContainText(/Sync coverage/i);
+  await expect(page.locator(".cloud-status-grid")).toContainText(/Pending sync/i);
   await expect(page.getByRole("button", { name: /Continue with Google/i })).toBeVisible();
   await expect(page.getByText(/Pull cloud history/i)).toBeVisible();
 

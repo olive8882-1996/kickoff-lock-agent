@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   buildLeaderboardReadiness,
+  buildCloudSyncCoverage,
   buildLocalLeaderboard,
   buildPublicProfile,
   buildSupabaseOAuthUrl,
@@ -141,6 +142,38 @@ describe("local leaderboard", () => {
     expect(url.pathname).toBe("/auth/v1/authorize");
     expect(url.searchParams.get("provider")).toBe("google");
     expect(url.searchParams.get("redirect_to")).toBe("https://example.com/kickoff-lock-agent/");
+  });
+
+  it("reports local proofs waiting for sign-in before cloud acknowledgement", () => {
+    const cloudState: CloudSyncState = {
+      configured: true,
+      authenticated: false,
+      mode: "supabase",
+      status: "offline",
+      message: "waiting",
+    };
+
+    const coverage = buildCloudSyncCoverage(cloudState, [record("cap-pending")], [modeRun("mode-pending")]);
+
+    expect(coverage.passed).toBe(false);
+    expect(coverage.pendingItems).toBe(2);
+    expect(coverage.detail).toContain("waiting for sign-in");
+  });
+
+  it("marks local proofs acknowledged after a successful cloud sync", () => {
+    const cloudState: CloudSyncState = {
+      configured: true,
+      authenticated: true,
+      mode: "supabase",
+      status: "synced",
+      message: "synced",
+    };
+
+    const coverage = buildCloudSyncCoverage(cloudState, [record("cap-synced")], [modeRun("mode-synced")]);
+
+    expect(coverage.passed).toBe(true);
+    expect(coverage.pendingItems).toBe(0);
+    expect(coverage.detail).toContain("acknowledged by cloud");
   });
 
   it("builds an XP entry from local records", () => {

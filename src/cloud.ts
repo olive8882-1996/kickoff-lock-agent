@@ -636,6 +636,58 @@ export const buildLocalLeaderboard = (
   ];
 };
 
+export const buildCloudSyncCoverage = (
+  cloudState: CloudSyncState,
+  records: MemoryRecord[],
+  modeRuns: GameModeRun[],
+) => {
+  const localItems = records.length + modeRuns.length;
+  const canSync = cloudState.configured && cloudState.authenticated;
+  if (localItems === 0) {
+    return {
+      passed: false,
+      pendingItems: 0,
+      detail: "No local proofs yet",
+    };
+  }
+  if (!cloudState.configured) {
+    return {
+      passed: false,
+      pendingItems: localItems,
+      detail: `${localItems} local item${localItems === 1 ? "" : "s"} waiting for Supabase env`,
+    };
+  }
+  if (!cloudState.authenticated) {
+    return {
+      passed: false,
+      pendingItems: localItems,
+      detail: `${localItems} local item${localItems === 1 ? "" : "s"} waiting for sign-in`,
+    };
+  }
+  if (cloudState.status === "synced") {
+    return {
+      passed: true,
+      pendingItems: 0,
+      detail: `${localItems} local item${localItems === 1 ? "" : "s"} acknowledged by cloud`,
+    };
+  }
+  if (cloudState.status === "syncing") {
+    return {
+      passed: false,
+      pendingItems: localItems,
+      detail: `${localItems} local item${localItems === 1 ? "" : "s"} syncing now`,
+    };
+  }
+  return {
+    passed: false,
+    pendingItems: localItems,
+    detail:
+      cloudState.status === "error"
+        ? `${localItems} local item${localItems === 1 ? "" : "s"} need sync retry`
+        : `${localItems} local item${localItems === 1 ? "" : "s"} pending cloud acknowledgement`,
+  };
+};
+
 export const buildLeaderboardReadiness = (
   cloudState: CloudSyncState,
   remoteEntries: LeaderboardEntry[],

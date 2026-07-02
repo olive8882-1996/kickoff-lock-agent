@@ -38,6 +38,7 @@ import {
   buildLocalLeaderboard,
   buildLeaderboardReadiness,
   consumeSupabaseHash,
+  buildCloudSyncCoverage,
   getCloudState,
   hydrateProfileFromAuth,
   loadLeaderboard,
@@ -2518,6 +2519,7 @@ function AccountDashboard({
   onOpenProfile: () => void;
   onCopyProfileLink: () => void;
 }) {
+  const syncCoverage = buildCloudSyncCoverage(cloudState, records, modeRuns);
   const cloudChecks = [
     {
       label: "Supabase env",
@@ -2543,6 +2545,11 @@ function AccountDashboard({
       label: "Mode proofs",
       passed: cloudState.authenticated && modeRuns.length > 0,
       detail: modeRuns.length > 0 ? `${modeRuns.length} mode proof${modeRuns.length === 1 ? "" : "s"} ready` : "create a mode proof first",
+    },
+    {
+      label: "Sync coverage",
+      passed: syncCoverage.passed,
+      detail: syncCoverage.detail,
     },
     {
       label: "Public profile",
@@ -2599,6 +2606,10 @@ function AccountDashboard({
             <div>
               <span>Mode proofs</span>
               <strong>{modeRuns.length}</strong>
+            </div>
+            <div>
+              <span>Pending sync</span>
+              <strong>{syncCoverage.pendingItems}</strong>
             </div>
             <div>
               <span>Last synced</span>

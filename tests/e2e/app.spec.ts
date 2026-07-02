@@ -8,6 +8,8 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".provider-readiness")).toContainText(/Schedule/i);
   await expect(page.locator(".provider-readiness")).toContainText(/Lineups/i);
   await expect(page.locator(".provider-readiness")).toContainText(/Odds/i);
+  await expect(page.getByLabel("Live data sync status")).toContainText(/Last sync/i);
+  await expect(page.getByLabel("Live data sync status")).toContainText(/Next auto/i);
   const mainNav = page.getByRole("navigation", { name: "Main views" });
   await expect(mainNav.getByRole("button", { name: "Account" })).toBeVisible();
   await expect(mainNav.getByRole("button", { name: "Modes" })).toBeVisible();

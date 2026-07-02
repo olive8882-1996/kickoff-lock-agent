@@ -222,6 +222,8 @@ const formatDate = (iso: string) =>
     minute: "2-digit",
   }).format(new Date(iso));
 
+const AUTO_DATA_REFRESH_MS = 90_000;
+
 const matchLabel = (match: Match) => `${match.homeTeam} vs ${match.awayTeam}`;
 
 const proofUrl = (capsuleId: string) => {
@@ -356,6 +358,9 @@ function App() {
   const [providerWarning, setProviderWarning] = useState("");
   const [providerSource, setProviderSource] = useState("loading");
   const [providerEvidence, setProviderEvidence] = useState<string[]>([]);
+  const [dataRefreshStatus, setDataRefreshStatus] = useState<"idle" | "refreshing" | "error">("idle");
+  const [lastDataSyncAt, setLastDataSyncAt] = useState("");
+  const [nextDataSyncAt, setNextDataSyncAt] = useState("");
   const [forceFallback, setForceFallback] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState("");
   const [matchFilter, setMatchFilter] = useState<"all" | "live" | "today" | "upcoming">("all");
@@ -409,18 +414,40 @@ function App() {
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (forceFallback) {
+      setNextDataSyncAt("");
+      return undefined;
+    }
+    setNextDataSyncAt(new Date(Date.now() + AUTO_DATA_REFRESH_MS).toISOString());
+    const timer = window.setInterval(() => {
+      void refreshMatches(false);
+    }, AUTO_DATA_REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [forceFallback]);
+
   const refreshMatches = async (forced = forceFallback) => {
-    setProviderSource("loading");
-    const result = await loadMatchesWithFallback(forced);
-    const sorted = result.matches
-      .filter((match) => match.kickoffAt)
-      .sort((a, b) => new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime());
-    setMatches(sorted);
-    setProviderSource(sourceLabel(result.source));
-    setProviderWarning(result.warning ?? "");
-    setProviderEvidence(result.evidence ?? [`${sourceLabel(result.source)} feed loaded`, `${sorted.length} matches available`]);
-    setSelectedMatchId((current) => current || sorted.find((match) => match.status === "upcoming")?.id || sorted[0]?.id || "");
-    setBracketPath((current) => buildBracketPathFromMatches(sorted, current));
+    setDataRefreshStatus("refreshing");
+    if (providerSource === "loading") setProviderSource("loading");
+    try {
+      const result = await loadMatchesWithFallback(forced);
+      const sorted = result.matches
+        .filter((match) => match.kickoffAt)
+        .sort((a, b) => new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime());
+      const syncedAt = new Date().toISOString();
+      setMatches(sorted);
+      setProviderSource(sourceLabel(result.source));
+      setProviderWarning(result.warning ?? "");
+      setProviderEvidence(result.evidence ?? [`${sourceLabel(result.source)} feed loaded`, `${sorted.length} matches available`]);
+      setSelectedMatchId((current) => current || sorted.find((match) => match.status === "upcoming")?.id || sorted[0]?.id || "");
+      setBracketPath((current) => buildBracketPathFromMatches(sorted, current));
+      setLastDataSyncAt(syncedAt);
+      setNextDataSyncAt(forced ? "" : new Date(Date.now() + AUTO_DATA_REFRESH_MS).toISOString());
+      setDataRefreshStatus("idle");
+    } catch (error) {
+      setDataRefreshStatus("error");
+      setProviderWarning((error as Error).message);
+    }
   };
 
   const refreshLeaderboard = async (scope = leaderboardScope, nextProfile = profile) => {
@@ -1059,6 +1086,7 @@ function App() {
             <button
               className="icon-button"
               title="Refresh match data"
+              disabled={dataRefreshStatus === "refreshing"}
               onClick={() => void refreshMatches()}
             >
               <RefreshCcw size={18} />
@@ -1075,7 +1103,11 @@ function App() {
           <div className="provider-health">
             <div>
               <strong>{providerSource}</strong>
-              <span>{matches.length} matches loaded</span>
+              <span>{matches.length} matches loaded · {dataRefreshStatus}</span>
+            </div>
+            <div className="provider-sync-meta" aria-label="Live data sync status">
+              <span>Last sync {lastDataSyncAt ? formatDate(lastDataSyncAt) : "pending"}</span>
+              <span>{nextDataSyncAt ? `Next auto ${formatDate(nextDataSyncAt)}` : "Auto refresh paused"}</span>
             </div>
             {providerEvidence.map((item) => (
               <p key={item}>{item}</p>

@@ -467,6 +467,21 @@ h3 {
   font-weight: 800;
 }
 
+.provider-sync-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid rgba(238, 247, 243, 0.08);
+  background: rgba(3, 8, 10, 0.32);
+}
+
+.provider-sync-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .provider-readiness {
   display: grid;
   gap: 7px;

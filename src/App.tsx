@@ -394,7 +394,7 @@ function App() {
     <main className="shell">
       <aside className="side-rail" aria-label="Tournament controls">
         <div className="rail-mark">
-          <Trophy size={26} />
+          <img src={assetUrl("kickoff-lock-icon.png")} alt="" />
         </div>
         <button className={view === "matches" ? "active" : ""} onClick={() => setView("matches")} title="Match board">
           <TableProperties size={20} />

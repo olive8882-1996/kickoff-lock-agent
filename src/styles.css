@@ -113,6 +113,14 @@ h3 {
   color: #f1c94d;
 }
 
+.rail-mark img {
+  width: 54px;
+  height: 54px;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 0 22px rgba(241, 201, 77, 0.22);
+}
+
 .side-rail button {
   display: grid;
   place-items: center;

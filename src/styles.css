@@ -724,6 +724,101 @@ h3 {
   text-transform: uppercase;
 }
 
+.coverage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.coverage-grid article {
+  display: grid;
+  gap: 5px;
+  min-height: 102px;
+  padding: 10px;
+  border: 1px solid rgba(238, 247, 243, 0.12);
+  background: rgba(238, 247, 243, 0.055);
+}
+
+.coverage-grid article div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.coverage-grid strong {
+  min-width: 0;
+  color: #eef7f3;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.coverage-grid span {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border-radius: 3px;
+  background: rgba(238, 247, 243, 0.1);
+  color: rgba(238, 247, 243, 0.7);
+  font-size: 0.62rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.coverage-grid b,
+.coverage-grid small,
+.coverage-note {
+  color: rgba(238, 247, 243, 0.64);
+  font-size: 0.72rem;
+}
+
+.coverage-grid b {
+  color: #f1c94d;
+}
+
+.coverage-live {
+  border-color: rgba(79, 211, 109, 0.34) !important;
+}
+
+.coverage-live span {
+  background: rgba(79, 211, 109, 0.18);
+  color: #d8ffd9;
+}
+
+.coverage-configured {
+  border-color: rgba(26, 166, 255, 0.3) !important;
+}
+
+.coverage-configured span {
+  background: rgba(26, 166, 255, 0.16);
+  color: #cdeeff;
+}
+
+.coverage-fallback,
+.coverage-manual {
+  border-color: rgba(241, 201, 77, 0.32) !important;
+}
+
+.coverage-fallback span,
+.coverage-manual span {
+  background: rgba(241, 201, 77, 0.17);
+  color: #ffe8a8;
+}
+
+.coverage-missing {
+  border-color: rgba(255, 77, 64, 0.28) !important;
+}
+
+.coverage-missing span {
+  background: rgba(255, 77, 64, 0.16);
+  color: #ffb3ad;
+}
+
+.coverage-note {
+  margin: 0;
+}
+
 .intel-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1873,6 +1968,7 @@ pre {
   .memory-stats,
   .public-profile-stats,
   .lock-window,
+  .coverage-grid,
   .intel-grid,
   .market-grid,
   .verify-grid,

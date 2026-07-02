@@ -53,7 +53,7 @@ import {
 import { filecoinSealConfigured, lookupFilecoinProof, runSealJob } from "./filecoinSeal";
 import { createGameModeRun, getModeReadiness } from "./modes";
 import { applyRealProof, createCapsule, stableJson } from "./proof";
-import { enrichMatchWithDataProviders, loadMatchesWithFallback, sourceLabel } from "./providers";
+import { buildDataCoverage, enrichMatchWithDataProviders, loadMatchesWithFallback, sourceLabel } from "./providers";
 import { scorePrediction } from "./scoring";
 import { downloadDataUrl, generateShareCard } from "./shareCard";
 import type {
@@ -1310,62 +1310,62 @@ function LockWindow({
 
 function MatchIntelligence({ match, onEnrich }: { match: Match; onEnrich: () => void }) {
   const insights = match.insights;
-  if (!insights) {
-    return (
-      <div className="intel-panel">
-        <div className="intel-head">
-          <div>
-            <p className="eyebrow">Match intelligence</p>
-            <h3>Data brief</h3>
-          </div>
-          <div className="intel-actions">
-            <span>Basic provider pack</span>
-            <button onClick={onEnrich}>
-              <Radar size={15} /> Enrich
-            </button>
-          </div>
-        </div>
-        <p>No intelligence pack yet. Provider data can still be locked as a basic capsule.</p>
-      </div>
-    );
-  }
+  const dataCoverage = insights?.dataCoverage ?? buildDataCoverage(match);
   return (
     <div className="intel-panel">
       <div className="intel-head">
         <div>
           <p className="eyebrow">Match intelligence</p>
-          <h3>Data brief</h3>
+          <h3>{insights ? "Data brief" : "Provider coverage"}</h3>
         </div>
         <div className="intel-actions">
-          <span>{insights.dataFreshness}</span>
+          <span>{insights?.dataFreshness ?? `${sourceLabel(match.dataSource)} basic provider pack`}</span>
           <button onClick={onEnrich}>
             <Radar size={15} /> Enrich
           </button>
         </div>
       </div>
-      <div className="intel-grid">
-        <div>
-          <strong>{match.homeTeam}</strong>
-          <span>FIFA rank #{insights.home.fifaRank}</span>
-          <b>{insights.home.form.join(" ")}</b>
-          <small>GF/GA last five: {insights.home.lastFiveGoalsFor}/{insights.home.lastFiveGoalsAgainst}</small>
-          <small>{insights.home.unavailable.join(", ")}</small>
-        </div>
-        <div>
-          <strong>{match.awayTeam}</strong>
-          <span>FIFA rank #{insights.away.fifaRank}</span>
-          <b>{insights.away.form.join(" ")}</b>
-          <small>GF/GA last five: {insights.away.lastFiveGoalsFor}/{insights.away.lastFiveGoalsAgainst}</small>
-          <small>{insights.away.unavailable.join(", ")}</small>
-        </div>
+      <div className="coverage-grid" aria-label="Data coverage">
+        {dataCoverage.map((item) => (
+          <article key={item.key} className={`coverage-${item.status}`}>
+            <div>
+              <strong>{item.label}</strong>
+              <span>{item.status}</span>
+            </div>
+            <b>{item.source}</b>
+            <small>{item.detail}</small>
+          </article>
+        ))}
       </div>
-      <div className="intel-notes">
-        <p><b>H2H</b>{insights.headToHead}</p>
-        <p><b>Market</b>{insights.marketLine}</p>
-        <p><b>Odds</b>{insights.oddsSnapshot ?? "Waiting for odds source"}</p>
-        <p><b>Lineup</b>{insights.lineupSource ?? "Fallback lineup pack"}</p>
-        <p><b>Injury</b>{insights.injurySource ?? "Fallback injury pack"}</p>
-      </div>
+      {insights ? (
+        <>
+          <div className="intel-grid">
+            <div>
+              <strong>{match.homeTeam}</strong>
+              <span>Rank signal #{insights.home.fifaRank}</span>
+              <b>{insights.home.form.join(" ")}</b>
+              <small>GF/GA last five: {insights.home.lastFiveGoalsFor}/{insights.home.lastFiveGoalsAgainst}</small>
+              <small>{insights.home.unavailable.join(", ")}</small>
+            </div>
+            <div>
+              <strong>{match.awayTeam}</strong>
+              <span>Rank signal #{insights.away.fifaRank}</span>
+              <b>{insights.away.form.join(" ")}</b>
+              <small>GF/GA last five: {insights.away.lastFiveGoalsFor}/{insights.away.lastFiveGoalsAgainst}</small>
+              <small>{insights.away.unavailable.join(", ")}</small>
+            </div>
+          </div>
+          <div className="intel-notes">
+            <p><b>H2H</b>{insights.headToHead}</p>
+            <p><b>Market</b>{insights.marketLine}</p>
+            <p><b>Odds</b>{insights.oddsSnapshot ?? "Waiting for odds source"}</p>
+            <p><b>Lineup</b>{insights.lineupSource ?? "Fallback lineup pack"}</p>
+            <p><b>Injury</b>{insights.injurySource ?? "Fallback injury pack"}</p>
+          </div>
+        </>
+      ) : (
+        <p className="coverage-note">This provider gives enough metadata to lock a capsule, but lineup, injury and odds feeds need configured enrichment.</p>
+      )}
     </div>
   );
 }

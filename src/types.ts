@@ -13,6 +13,16 @@ export type TeamInsight = {
   probableLineup: string[];
 };
 
+export type DataCoverageStatus = "live" | "configured" | "fallback" | "manual" | "missing";
+
+export type DataCoverageItem = {
+  key: "schedule" | "score" | "rankings" | "lineups" | "injuries" | "odds";
+  label: string;
+  status: DataCoverageStatus;
+  source: string;
+  detail: string;
+};
+
 export type MarketPick = {
   id: "winner" | "total-goals" | "both-score" | "first-goal";
   label: string;
@@ -40,6 +50,7 @@ export type Match = {
     oddsSnapshot?: string;
     lineupSource?: string;
     injurySource?: string;
+    dataCoverage?: DataCoverageItem[];
     dataFreshness: string;
   };
 };

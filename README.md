@@ -39,6 +39,7 @@ The app works without API keys.
 5. Safety net: bundled seed matches and manual result input.
 
 The Odds API can also be configured for H2H odds enrichment on non API-Football fixtures. External APIs are used for match/result convenience and data evidence; the core product mechanic is still the prediction capsule and proof flow.
+Each match now exposes a data coverage panel for schedule, score, rank signal, lineups, injuries and odds, so missing or fallback intelligence is visible instead of being presented as real live data.
 
 ## Filecoin Strategy
 

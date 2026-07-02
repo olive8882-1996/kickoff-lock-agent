@@ -1,5 +1,5 @@
 import { seedMatches } from "./data/seedMatches";
-import type { DataSource, Match, ProviderResult } from "./types";
+import type { DataCoverageItem, DataCoverageStatus, DataSource, Match, ProviderResult } from "./types";
 
 const ESPN_URL =
   "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=40";
@@ -49,6 +49,110 @@ const normalizeFootballDataStatus = (status?: string): Match["status"] => {
   return "upcoming";
 };
 
+const placeholderPattern = /not published|not configured|configure|unavailable|waiting|waits|not loaded|no injury feed|no odds|not returned/i;
+
+const hasUsefulList = (items?: string[]) =>
+  Boolean(items?.some((item) => item.trim() && !placeholderPattern.test(item)));
+
+const listCoverage = (
+  source: DataSource,
+  items: string[] | undefined,
+  configuredSource: string | undefined,
+): DataCoverageStatus => {
+  if (source === "seed") return "fallback";
+  if (hasUsefulList(items)) return "live";
+  if (configuredSource && /endpoint/i.test(configuredSource) && !placeholderPattern.test(configuredSource)) return "configured";
+  return "missing";
+};
+
+const statusSource = (status: DataCoverageStatus, source: string) => {
+  if (status === "missing") return "Not available";
+  if (status === "manual") return "Manual input";
+  return source;
+};
+
+export const buildDataCoverage = (match: Match): DataCoverageItem[] => {
+  const provider = sourceLabel(match.dataSource);
+  const scoreKnown = match.homeScore !== undefined && match.awayScore !== undefined;
+  const isFallback = match.dataSource === "seed";
+  const hasRanks = Boolean(match.insights?.home.fifaRank && match.insights?.away.fifaRank);
+  const lineupStatus = listCoverage(
+    match.dataSource,
+    [...(match.insights?.home.probableLineup ?? []), ...(match.insights?.away.probableLineup ?? [])],
+    match.insights?.lineupSource,
+  );
+  const injuryStatus = listCoverage(
+    match.dataSource,
+    [...(match.insights?.home.unavailable ?? []), ...(match.insights?.away.unavailable ?? [])],
+    match.insights?.injurySource,
+  );
+  const oddsStatus: DataCoverageStatus =
+    match.dataSource === "seed"
+      ? "fallback"
+      : match.insights?.oddsSnapshot && !placeholderPattern.test(match.insights.oddsSnapshot)
+        ? "live"
+        : match.insights?.marketLine && !placeholderPattern.test(match.insights.marketLine)
+          ? "configured"
+          : "missing";
+
+  return [
+    {
+      key: "schedule",
+      label: "Schedule",
+      status: isFallback ? "fallback" : "live",
+      source: provider,
+      detail: `${match.stage}${match.venue ? ` · ${match.venue}` : ""}`,
+    },
+    {
+      key: "score",
+      label: "Score",
+      status: scoreKnown ? (isFallback ? "fallback" : "live") : "manual",
+      source: scoreKnown ? provider : "Manual reveal",
+      detail: scoreKnown ? `${match.homeScore}-${match.awayScore}` : "Awaiting live score or manual result entry",
+    },
+    {
+      key: "rankings",
+      label: "Rank signal",
+      status: hasRanks ? (isFallback ? "fallback" : "configured") : "missing",
+      source: hasRanks ? provider : "Not available",
+      detail: hasRanks
+        ? `${match.homeTeam} ${match.insights?.home.fifaRank} · ${match.awayTeam} ${match.insights?.away.fifaRank}`
+        : "No ranking feed attached",
+    },
+    {
+      key: "lineups",
+      label: "Lineups",
+      status: lineupStatus,
+      source: statusSource(lineupStatus, match.insights?.lineupSource ?? provider),
+      detail: lineupStatus === "missing" ? "Lineups not published by this provider" : "Probable or official lineup signal available",
+    },
+    {
+      key: "injuries",
+      label: "Injuries",
+      status: injuryStatus,
+      source: statusSource(injuryStatus, match.insights?.injurySource ?? provider),
+      detail: injuryStatus === "missing" ? "No injury feed attached" : "Availability signal available",
+    },
+    {
+      key: "odds",
+      label: "Odds",
+      status: oddsStatus,
+      source: statusSource(oddsStatus, match.insights?.oddsSnapshot ? "Odds feed" : provider),
+      detail: match.insights?.oddsSnapshot ?? match.insights?.marketLine ?? "No odds feed attached",
+    },
+  ];
+};
+
+const withCoverage = (match: Match): Match => ({
+  ...match,
+  insights: match.insights
+    ? {
+        ...match.insights,
+        dataCoverage: buildDataCoverage(match),
+      }
+    : match.insights,
+});
+
 const insightShell = (homeTeam: string, awayTeam: string, source: string, stamp = new Date().toISOString()) => ({
   home: {
     fifaRank: 0,
@@ -85,7 +189,7 @@ export const loadFromEspn = async (): Promise<ProviderResult> => {
     const home = competitors.find((item: any) => item.homeAway === "home") ?? competitors[0];
     const away = competitors.find((item: any) => item.homeAway === "away") ?? competitors[1];
     const statusDescription = event.status?.type?.description;
-    return {
+    return withCoverage({
       id: `espn-${event.id}`,
       homeTeam: home?.team?.displayName ?? "Home",
       awayTeam: away?.team?.displayName ?? "Away",
@@ -96,7 +200,8 @@ export const loadFromEspn = async (): Promise<ProviderResult> => {
       homeScore: numberOrUndefined(home?.score),
       awayScore: numberOrUndefined(away?.score),
       venue: competition.venue?.fullName,
-    };
+      insights: insightShell(home?.team?.displayName ?? "Home", away?.team?.displayName ?? "Away", "ESPN"),
+    });
   });
   if (matches.length === 0) throw new Error("ESPN returned no matches");
   return {
@@ -118,7 +223,7 @@ export const loadFromWorldcup26 = async (): Promise<ProviderResult> => {
   const matches: Match[] = games.map((game: any) => {
     const kickoffAt = new Date(`${game.local_date ?? ""} UTC`).toISOString();
     const finished = String(game.finished).toLowerCase() === "true";
-    return {
+    return withCoverage({
       id: `worldcup26-${game.id}`,
       homeTeam: game.home_team_name_en ?? "Home",
       awayTeam: game.away_team_name_en ?? "Away",
@@ -128,7 +233,8 @@ export const loadFromWorldcup26 = async (): Promise<ProviderResult> => {
       dataSource: "worldcup26",
       homeScore: numberOrUndefined(game.home_score),
       awayScore: numberOrUndefined(game.away_score),
-    };
+      insights: insightShell(game.home_team_name_en ?? "Home", game.away_team_name_en ?? "Away", "worldcup26"),
+    });
   });
   if (matches.length === 0) throw new Error("worldcup26 returned no matches");
   return {
@@ -151,42 +257,44 @@ export const loadFromApiFootball = async (): Promise<ProviderResult> => {
   if (!res.ok) throw new Error(`API-Football returned ${res.status}`);
   const data = await res.json();
   const fixtures = Array.isArray(data.response) ? data.response : [];
-  const matches: Match[] = fixtures.map((item: any) => ({
-    id: `api-football-${item.fixture?.id}`,
-    homeTeam: item.teams?.home?.name ?? "Home",
-    awayTeam: item.teams?.away?.name ?? "Away",
-    kickoffAt: item.fixture?.date,
-    stage: item.league?.round ?? "FIFA World Cup",
-    status: normalizeStatus(item.fixture?.status?.long),
-    dataSource: "api-football",
-    homeScore: numberOrUndefined(item.goals?.home),
-    awayScore: numberOrUndefined(item.goals?.away),
-    venue: item.fixture?.venue?.name,
-    insights: {
-      home: {
-        fifaRank: Number(item.teams?.home?.id ?? 0),
-        form: ["API", "LIVE", "FORM"],
-        lastFiveGoalsFor: numberOrUndefined(item.goals?.home) ?? 0,
-        lastFiveGoalsAgainst: numberOrUndefined(item.goals?.away) ?? 0,
-        unavailable: ["Use injuries endpoint for configured deployments"],
-        probableLineup: ["Use lineups endpoint when fixture enters pre-match window"],
+  const matches: Match[] = fixtures.map((item: any) =>
+    withCoverage({
+      id: `api-football-${item.fixture?.id}`,
+      homeTeam: item.teams?.home?.name ?? "Home",
+      awayTeam: item.teams?.away?.name ?? "Away",
+      kickoffAt: item.fixture?.date,
+      stage: item.league?.round ?? "FIFA World Cup",
+      status: normalizeStatus(item.fixture?.status?.long),
+      dataSource: "api-football",
+      homeScore: numberOrUndefined(item.goals?.home),
+      awayScore: numberOrUndefined(item.goals?.away),
+      venue: item.fixture?.venue?.name,
+      insights: {
+        home: {
+          fifaRank: Number(item.teams?.home?.id ?? 0),
+          form: ["API", "LIVE", "FORM"],
+          lastFiveGoalsFor: numberOrUndefined(item.goals?.home) ?? 0,
+          lastFiveGoalsAgainst: numberOrUndefined(item.goals?.away) ?? 0,
+          unavailable: ["Use injuries endpoint for configured deployments"],
+          probableLineup: ["Use lineups endpoint when fixture enters pre-match window"],
+        },
+        away: {
+          fifaRank: Number(item.teams?.away?.id ?? 0),
+          form: ["API", "LIVE", "FORM"],
+          lastFiveGoalsFor: numberOrUndefined(item.goals?.away) ?? 0,
+          lastFiveGoalsAgainst: numberOrUndefined(item.goals?.home) ?? 0,
+          unavailable: ["Use injuries endpoint for configured deployments"],
+          probableLineup: ["Use lineups endpoint when fixture enters pre-match window"],
+        },
+        headToHead: "API-Football can supply H2H by team ids after fixture selection.",
+        marketLine: "Odds endpoint is available when the API key plan includes odds.",
+        oddsSnapshot: "Configured API-Football fixture feed active.",
+        lineupSource: "API-Football lineups endpoint",
+        injurySource: "API-Football injuries endpoint",
+        dataFreshness: new Date().toISOString(),
       },
-      away: {
-        fifaRank: Number(item.teams?.away?.id ?? 0),
-        form: ["API", "LIVE", "FORM"],
-        lastFiveGoalsFor: numberOrUndefined(item.goals?.away) ?? 0,
-        lastFiveGoalsAgainst: numberOrUndefined(item.goals?.home) ?? 0,
-        unavailable: ["Use injuries endpoint for configured deployments"],
-        probableLineup: ["Use lineups endpoint when fixture enters pre-match window"],
-      },
-      headToHead: "API-Football can supply H2H by team ids after fixture selection.",
-      marketLine: "Odds endpoint is available when the API key plan includes odds.",
-      oddsSnapshot: "Configured API-Football fixture feed active.",
-      lineupSource: "API-Football lineups endpoint",
-      injurySource: "API-Football injuries endpoint",
-      dataFreshness: new Date().toISOString(),
-    },
-  }));
+    }),
+  );
   if (matches.length === 0) throw new Error("API-Football returned no matches");
   return {
     source: "api-football",
@@ -204,7 +312,7 @@ export const normalizeFootballDataMatch = (item: any): Match => {
   const homeScore = numberOrUndefined(item.score?.fullTime?.home ?? item.score?.regularTime?.home);
   const awayScore = numberOrUndefined(item.score?.fullTime?.away ?? item.score?.regularTime?.away);
   const stamp = new Date().toISOString();
-  return {
+  return withCoverage({
     id: `football-data-${item.id}`,
     homeTeam,
     awayTeam,
@@ -228,7 +336,7 @@ export const normalizeFootballDataMatch = (item: any): Match => {
         lastFiveGoalsAgainst: homeScore ?? 0,
       },
     },
-  };
+  });
 };
 
 export const loadFromFootballData = async (): Promise<ProviderResult> => {
@@ -295,7 +403,7 @@ export const mergeOddsIntoMatch = (match: Match, oddsRows: any[]): Match | undef
     ?.map((outcome: any) => `${outcome.name} ${outcome.price}`)
     ?.join(" · ");
   if (!oddsSnapshot) return undefined;
-  return {
+  return withCoverage({
     ...match,
     insights: {
       ...(match.insights ?? insightShell(match.homeTeam, match.awayTeam, sourceLabel(match.dataSource))),
@@ -303,7 +411,7 @@ export const mergeOddsIntoMatch = (match: Match, oddsRows: any[]): Match | undef
       oddsSnapshot,
       dataFreshness: new Date().toISOString(),
     },
-  };
+  });
 };
 
 const enrichMatchFromOddsApi = async (match: Match): Promise<Match | undefined> => {
@@ -349,7 +457,7 @@ export const enrichMatchFromApiFootball = async (match: Match): Promise<Match> =
     ?.slice(0, 3)
     ?.map((value: any) => `${value.value} ${value.odd}`)
     ?.join(" · ");
-  return {
+  return withCoverage({
     ...match,
     insights: {
       home: {
@@ -383,7 +491,7 @@ export const enrichMatchFromApiFootball = async (match: Match): Promise<Match> =
       injurySource: injuries.status === "fulfilled" ? "API-Football injuries endpoint" : `Injuries unavailable: ${injuries.reason}`,
       dataFreshness: new Date().toISOString(),
     },
-  };
+  });
 };
 
 export const enrichMatchWithDataProviders = async (match: Match): Promise<Match> => {
@@ -392,14 +500,14 @@ export const enrichMatchWithDataProviders = async (match: Match): Promise<Match>
     try {
       const enriched = await enrichMatchFromApiFootball(match);
       const oddsEnriched = await enrichMatchFromOddsApi(enriched).catch(() => undefined);
-      return oddsEnriched ?? enriched;
+      return oddsEnriched ? withCoverage(oddsEnriched) : enriched;
     } catch (error) {
       errors.push(`API-Football: ${(error as Error).message}`);
     }
   }
   try {
     const oddsEnriched = await enrichMatchFromOddsApi(match);
-    if (oddsEnriched) return oddsEnriched;
+    if (oddsEnriched) return withCoverage(oddsEnriched);
     errors.push("The Odds API returned no matching event.");
   } catch (error) {
     errors.push(`The Odds API: ${(error as Error).message}`);
@@ -409,7 +517,7 @@ export const enrichMatchWithDataProviders = async (match: Match): Promise<Match>
 
 export const loadSeedMatches = (): ProviderResult => ({
   source: "seed",
-  matches: seedMatches,
+  matches: seedMatches.map(withCoverage),
   warning: "Using bundled seed data. External score sync is unavailable.",
   evidence: [
     "Bundled offline seed schedule",

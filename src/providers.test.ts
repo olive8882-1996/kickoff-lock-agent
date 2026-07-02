@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loadSeedMatches, mergeOddsIntoMatch, normalizeFootballDataMatch, sourceLabel } from "./providers";
+import { buildDataCoverage, loadSeedMatches, mergeOddsIntoMatch, normalizeFootballDataMatch, sourceLabel } from "./providers";
 import type { Match } from "./types";
 
 describe("provider metadata", () => {
@@ -35,6 +35,8 @@ describe("provider metadata", () => {
     expect(match.dataSource).toBe("football-data");
     expect(match.homeScore).toBe(2);
     expect(match.insights?.lineupSource).toContain("Football-Data.org");
+    expect(match.insights?.dataCoverage?.some((item) => item.key === "score" && item.status === "live")).toBe(true);
+    expect(match.insights?.dataCoverage?.some((item) => item.key === "lineups" && item.status === "missing")).toBe(true);
   });
 
   it("merges external odds into a match intelligence pack", () => {
@@ -69,5 +71,56 @@ describe("provider metadata", () => {
     ]);
     expect(enriched?.insights?.oddsSnapshot).toContain("Spain 1.8");
     expect(enriched?.insights?.marketLine).toContain("DemoBook");
+    expect(enriched?.insights?.dataCoverage?.some((item) => item.key === "odds" && item.status === "live")).toBe(true);
+  });
+
+  it("marks missing live scores as manual reveal coverage", () => {
+    const coverage = buildDataCoverage({
+      id: "espn-2",
+      homeTeam: "Brazil",
+      awayTeam: "Japan",
+      kickoffAt: "2099-07-02T20:00:00Z",
+      stage: "Round of 16",
+      status: "upcoming",
+      dataSource: "espn",
+    });
+    expect(coverage.find((item) => item.key === "schedule")?.status).toBe("live");
+    expect(coverage.find((item) => item.key === "score")?.status).toBe("manual");
+    expect(coverage.find((item) => item.key === "lineups")?.status).toBe("missing");
+  });
+
+  it("does not label placeholder odds text as live odds", () => {
+    const coverage = buildDataCoverage({
+      id: "espn-3",
+      homeTeam: "Spain",
+      awayTeam: "Austria",
+      kickoffAt: "2099-07-02T20:00:00Z",
+      stage: "Round of 16",
+      status: "upcoming",
+      dataSource: "espn",
+      insights: {
+        home: {
+          fifaRank: 0,
+          form: ["ESPN"],
+          lastFiveGoalsFor: 0,
+          lastFiveGoalsAgainst: 0,
+          unavailable: ["Configure injury provider"],
+          probableLineup: ["Lineup not published by this provider"],
+        },
+        away: {
+          fifaRank: 0,
+          form: ["ESPN"],
+          lastFiveGoalsFor: 0,
+          lastFiveGoalsAgainst: 0,
+          unavailable: ["Configure injury provider"],
+          probableLineup: ["Lineup not published by this provider"],
+        },
+        headToHead: "ESPN matchup",
+        marketLine: "Market data waits for odds enrichment.",
+        oddsSnapshot: "Odds enrichment not loaded.",
+        dataFreshness: "now",
+      },
+    });
+    expect(coverage.find((item) => item.key === "odds")?.status).toBe("missing");
   });
 });

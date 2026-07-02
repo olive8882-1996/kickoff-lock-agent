@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLocalLeaderboard, buildPublicProfile } from "./cloud";
+import { buildLocalLeaderboard, buildPublicProfile, mergeMemoryRecords } from "./cloud";
 import type { MemoryRecord, UserProfile } from "./types";
 
 const profile: UserProfile = {
@@ -10,6 +10,40 @@ const profile: UserProfile = {
   createdAt: "2099-01-01T00:00:00.000Z",
   cloudMode: "local",
 };
+
+const record = (id: string, patch: Partial<MemoryRecord> = {}): MemoryRecord => ({
+  capsule: {
+    id,
+    matchId: "m1",
+    matchLabel: "A vs B",
+    kickoffAt: "2099-01-01T00:00:00.000Z",
+    createdAt: "2098-12-31T00:00:00.000Z",
+    sealedAt: "2098-12-31T00:00:00.000Z",
+    locked: true,
+    lateLock: false,
+    payloadHash: "a".repeat(64),
+    filecoinProof: {
+      mode: "demo",
+      cid: "bafy",
+      pieceCid: "piece",
+      provider: "demo",
+      dataSetId: "set",
+      proofStatus: "retrievable",
+    },
+    prediction: {
+      homeScore: 1,
+      awayScore: 0,
+      winner: "A",
+      keyPlayers: [],
+      confidence: 55,
+      style: "analysis",
+      reasoning: "Reasoning",
+      agentSummary: "Summary",
+      markets: [],
+    },
+  },
+  ...patch,
+});
 
 describe("local leaderboard", () => {
   it("builds an XP entry from local records", () => {
@@ -140,5 +174,56 @@ describe("local leaderboard", () => {
     expect(publicProfile.averageScore).toBe(92);
     expect(publicProfile.bestScore).toBe(92);
     expect(publicProfile.xp).toBe(212);
+  });
+
+  it("merges cloud history by keeping the richer capsule version", () => {
+    const local = record("cap-merge");
+    const cloud = record("cap-merge", {
+      result: {
+        id: "res-merge",
+        capsuleId: "cap-merge",
+        revealedAt: "2099-01-01T02:00:00.000Z",
+        homeScore: 1,
+        awayScore: 0,
+        keyPlayers: [],
+        source: "manual",
+        totalScore: 91,
+        breakdown: {
+          winner: 24,
+          exactScore: 24,
+          goalDifference: 12,
+          markets: 0,
+          keyPlayer: 0,
+          confidence: 10,
+          reasoning: 5,
+        },
+        explanation: [],
+        agentReview: [],
+      },
+    });
+
+    const [merged] = mergeMemoryRecords([local], [cloud]);
+    expect(merged.result?.totalScore).toBe(91);
+  });
+
+  it("does not replace a real local proof with a weaker cloud demo record", () => {
+    const local = record("cap-proof", {
+      capsule: {
+        ...record("cap-proof").capsule,
+        filecoinProof: {
+          mode: "real",
+          cid: "bafy-real",
+          pieceCid: "piece-real",
+          provider: "synapse",
+          dataSetId: "dataset",
+          proofStatus: "verified",
+        },
+      },
+    });
+    const cloud = record("cap-proof");
+
+    const [merged] = mergeMemoryRecords([local], [cloud]);
+    expect(merged.capsule.filecoinProof.mode).toBe("real");
+    expect(merged.capsule.filecoinProof.cid).toBe("bafy-real");
   });
 });

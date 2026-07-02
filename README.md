@@ -116,6 +116,7 @@ VITE_ODDS_API_SPORT_KEY=...
 ```
 
 Public proof pages can load a capsule from Supabase by `?proof=<capsule-id>` when the record has been synced.
+After a Supabase magic-link sign-in, the app automatically pulls cloud history, merges it with local records, keeps the richest capsule version, and syncs the merged history back to Supabase.
 
 ## Simple Acceptance Checklist
 

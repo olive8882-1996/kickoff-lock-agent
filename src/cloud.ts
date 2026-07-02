@@ -219,6 +219,35 @@ export const syncRecordsToCloud = async (profile: UserProfile, records: MemoryRe
   return { status: "synced" as const, message: `Synced ${rows.length} records to Supabase.` };
 };
 
+const recordCompleteness = (record: MemoryRecord) => {
+  const realProof = record.capsule.filecoinProof.mode === "real" ? 4 : 0;
+  const verifiedSeal = record.sealJob?.status === "verified" ? 3 : 0;
+  const result = record.result ? 8 : 0;
+  const timestamp = new Date(
+    record.result?.revealedAt ??
+      record.sealJob?.updatedAt ??
+      record.capsule.sealedAt ??
+      record.capsule.createdAt,
+  ).getTime();
+  return result + realProof + verifiedSeal + (Number.isFinite(timestamp) ? timestamp / 1_000_000_000_000_000 : 0);
+};
+
+const chooseRecordVersion = (current: MemoryRecord, incoming: MemoryRecord) =>
+  recordCompleteness(incoming) >= recordCompleteness(current) ? incoming : current;
+
+export const mergeMemoryRecords = (localRecords: MemoryRecord[], cloudRecords: MemoryRecord[]) => {
+  const byId = new Map<string, MemoryRecord>();
+  [...localRecords, ...cloudRecords].forEach((record) => {
+    const current = byId.get(record.capsule.id);
+    byId.set(record.capsule.id, current ? chooseRecordVersion(current, record) : record);
+  });
+  return [...byId.values()].sort(
+    (a, b) =>
+      new Date(b.result?.revealedAt ?? b.capsule.sealedAt ?? b.capsule.createdAt).getTime() -
+      new Date(a.result?.revealedAt ?? a.capsule.sealedAt ?? a.capsule.createdAt).getTime(),
+  );
+};
+
 export const loadRecordsFromCloud = async (profile: UserProfile): Promise<MemoryRecord[]> => {
   const session = loadSupabaseSession();
   if (!configured || !session) throw new Error("Sign in with Supabase before pulling cloud records.");

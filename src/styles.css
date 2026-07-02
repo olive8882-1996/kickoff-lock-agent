@@ -1499,6 +1499,35 @@ pre {
   color: rgba(238, 247, 243, 0.72);
 }
 
+.cloud-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.cloud-status-grid div {
+  display: grid;
+  gap: 4px;
+  min-height: 68px;
+  padding: 10px;
+  border: 1px solid rgba(238, 247, 243, 0.12);
+  background: rgba(3, 8, 10, 0.38);
+}
+
+.cloud-status-grid span {
+  color: rgba(238, 247, 243, 0.56);
+  font-size: 0.68rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.cloud-status-grid strong {
+  min-width: 0;
+  color: #eef7f3;
+  overflow-wrap: anywhere;
+}
+
 .mode-requirements,
 .mode-runs {
   display: grid;

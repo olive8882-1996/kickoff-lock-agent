@@ -44,6 +44,7 @@ import {
   loadPublicProfile,
   loadPublicRecord,
   loadRecordsFromCloud,
+  mergeMemoryRecords,
   saveProfile,
   sendMagicLink,
   signOutCloud,
@@ -440,6 +441,32 @@ function App() {
     }
   };
 
+  const reconcileCloudHistory = async (
+    nextProfile: typeof profile,
+    localRecords: MemoryRecord[],
+    reason: string,
+  ) => {
+    const baseState = getCloudState();
+    setCloudState({ ...baseState, status: "syncing", message: `${reason} Reconciling cloud history...` });
+    const remoteRecords = await loadRecordsFromCloud(nextProfile);
+    const merged = mergeMemoryRecords(localRecords, remoteRecords);
+    setRecords(merged);
+    const result = await syncRecordsToCloud(nextProfile, merged);
+    await refreshLeaderboard(leaderboardScope, nextProfile);
+    const message =
+      remoteRecords.length > 0
+        ? `${reason} merged ${remoteRecords.length} cloud records and synced ${merged.length} total records.`
+        : `${reason} no cloud records found; local history is ready to sync.`;
+    setCloudState({
+      ...getCloudState(),
+      status: result.status === "synced" ? "synced" : "offline",
+      message,
+      lastSyncedAt: new Date().toISOString(),
+    });
+    setNotice(message);
+    return merged;
+  };
+
   const bootstrapApp = async () => {
     await refreshMatches(false);
     const params = new URLSearchParams(window.location.search);
@@ -459,8 +486,7 @@ function App() {
       const nextProfile = await hydrateProfileFromAuth(loadProfile());
       setProfile(nextProfile);
       setAccountEmail(nextProfile.email);
-      setCloudState(getCloudState());
-      void refreshLeaderboard(leaderboardScope, nextProfile);
+      await reconcileCloudHistory(nextProfile, records, "Signed in.");
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
     }
@@ -633,19 +659,17 @@ function App() {
     setCloudState({ ...getCloudState(), status: "syncing", message: "Pulling cloud history..." });
     try {
       const remoteRecords = await loadRecordsFromCloud(profile);
-      const byId = new Map(records.map((record) => [record.capsule.id, record]));
-      remoteRecords.forEach((record) => byId.set(record.capsule.id, record));
-      const merged = [...byId.values()].sort(
-        (a, b) => new Date(b.capsule.sealedAt ?? b.capsule.createdAt).getTime() - new Date(a.capsule.sealedAt ?? a.capsule.createdAt).getTime(),
-      );
+      const merged = mergeMemoryRecords(records, remoteRecords);
       setRecords(merged);
+      await syncRecordsToCloud(profile, merged);
+      await refreshLeaderboard(leaderboardScope, profile);
       setCloudState({
         ...getCloudState(),
         status: "synced",
-        message: `Pulled ${remoteRecords.length} cloud records.`,
+        message: `Pulled ${remoteRecords.length} cloud records and synced ${merged.length} merged records.`,
         lastSyncedAt: new Date().toISOString(),
       });
-      setNotice(`Pulled ${remoteRecords.length} cloud records.`);
+      setNotice(`Pulled ${remoteRecords.length} cloud records and synced ${merged.length} merged records.`);
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
       setNotice((error as Error).message);
@@ -2155,6 +2179,24 @@ function AccountDashboard({
           <Cloud size={34} />
           <h3>{cloudState.mode === "supabase" ? "Supabase cloud sync" : "Local mode"}</h3>
           <p>{cloudState.message}</p>
+          <div className="cloud-status-grid" aria-label="Cloud sync status">
+            <div>
+              <span>Auth</span>
+              <strong>{cloudState.authenticated ? "signed in" : "local"}</strong>
+            </div>
+            <div>
+              <span>Auto reconcile</span>
+              <strong>{cloudState.authenticated ? "enabled" : "waiting"}</strong>
+            </div>
+            <div>
+              <span>Records</span>
+              <strong>{records.length}</strong>
+            </div>
+            <div>
+              <span>Last synced</span>
+              <strong>{cloudState.lastSyncedAt ? formatDate(cloudState.lastSyncedAt) : "not yet"}</strong>
+            </div>
+          </div>
           <label>
             <span>Magic link email</span>
             <input value={email} onChange={(event) => onEmail(event.target.value)} />

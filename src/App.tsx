@@ -310,6 +310,7 @@ function App() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [providerWarning, setProviderWarning] = useState("");
   const [providerSource, setProviderSource] = useState("loading");
+  const [providerEvidence, setProviderEvidence] = useState<string[]>([]);
   const [forceFallback, setForceFallback] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState("");
   const [matchFilter, setMatchFilter] = useState<"all" | "live" | "today" | "upcoming">("all");
@@ -329,6 +330,7 @@ function App() {
   const [actualKeyPlayers, setActualKeyPlayers] = useState("");
   const [proofJson, setProofJson] = useState("");
   const [shareImageUrl, setShareImageUrl] = useState("");
+  const [publicShareImageUrl, setPublicShareImageUrl] = useState("");
   const [publicRecord, setPublicRecord] = useState<MemoryRecord | undefined>();
   const [publicProofStatus, setPublicProofStatus] = useState("");
   const [notice, setNotice] = useState("");
@@ -359,6 +361,7 @@ function App() {
     setMatches(sorted);
     setProviderSource(sourceLabel(result.source));
     setProviderWarning(result.warning ?? "");
+    setProviderEvidence(result.evidence ?? [`${sourceLabel(result.source)} feed loaded`, `${sorted.length} matches available`]);
     setSelectedMatchId((current) => current || sorted.find((match) => match.status === "upcoming")?.id || sorted[0]?.id || "");
   };
 
@@ -437,6 +440,33 @@ function App() {
   const currentXp = records.length * 120 + revealedRecords.reduce((sum, record) => sum + (record.result?.totalScore ?? 0), 0);
   const canLock = !!selectedMatch && !selectedRecord?.capsule.locked && lockState?.state !== "closed";
 
+  const syncRecordsInBackground = (nextRecords: MemoryRecord[], reason: string) => {
+    const state = getCloudState();
+    if (!state.configured || !state.authenticated) return;
+    setCloudState({ ...state, status: "syncing", message: `${reason} Syncing cloud history...` });
+    void syncRecordsToCloud(profile, nextRecords)
+      .then(async (result) => {
+        await refreshLeaderboard(leaderboardScope, profile);
+        setCloudState({
+          ...getCloudState(),
+          status: result.status === "synced" ? "synced" : "offline",
+          message: result.message,
+          lastSyncedAt: new Date().toISOString(),
+        });
+        setNotice(`${reason} ${result.message}`);
+      })
+      .catch((error) => {
+        setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
+        setNotice((error as Error).message);
+      });
+  };
+
+  const commitRecords = (nextRecords: MemoryRecord[], message: string) => {
+    setRecords(nextRecords);
+    setNotice(message);
+    syncRecordsInBackground(nextRecords, message);
+  };
+
   const generatePrediction = () => {
     if (!selectedMatch) return;
     setDraft(buildAgentDraft(selectedMatch, prompt, draft));
@@ -455,8 +485,7 @@ function App() {
       winner: deriveWinner(shownDraft.homeScore, shownDraft.awayScore, selectedMatch),
     });
     const next = records.filter((record) => record.capsule.matchId !== selectedMatch.id);
-    setRecords([{ capsule }, ...next]);
-    setNotice("Prediction locked before kickoff. Public proof link is ready in the proof panel.");
+    commitRecords([{ capsule }, ...next], "Prediction locked before kickoff. Public proof link is ready in the proof panel.");
   };
 
   const revealPrediction = () => {
@@ -471,24 +500,24 @@ function App() {
         .map((item) => item.trim())
         .filter(Boolean),
     );
-    setRecords(
+    commitRecords(
       records.map((record) =>
         record.capsule.id === selectedRecord.capsule.id ? { ...record, result } : record,
       ),
+      "Revealed and scored. Proof card and tournament memory are updated.",
     );
-    setNotice("Revealed and scored. Proof card and tournament memory are updated.");
   };
 
   const importRealProof = () => {
     if (!selectedRecord) return;
     try {
       const updated = applyRealProof(selectedRecord.capsule, proofJson);
-      setRecords(
+      commitRecords(
         records.map((record) =>
           record.capsule.id === updated.id ? { ...record, capsule: updated } : record,
         ),
+        "Real proof imported and applied to this capsule.",
       );
-      setNotice("Real proof imported and applied to this capsule.");
     } catch (error) {
       setNotice((error as Error).message);
     }
@@ -597,28 +626,40 @@ function App() {
     if (!selectedRecord) return;
     setNotice(filecoinSealConfigured ? "Starting Filecoin seal workflow..." : "Seal backend is not configured yet.");
     const updated = await runSealJob(selectedRecord);
-    setRecords(records.map((record) => (record.capsule.id === updated.capsule.id ? updated : record)));
-    setNotice(
+    commitRecords(
+      records.map((record) => (record.capsule.id === updated.capsule.id ? updated : record)),
       updated.sealJob?.status === "verified"
-        ? "Real Filecoin proof attached."
-        : "Seal workflow needs a configured backend endpoint.",
+        ? "Real Filecoin proof attached and verification state saved."
+        : "Seal workflow status saved. Configure the seal API for real uploads.",
     );
+  };
+
+  const generateShareImageForRecord = async (
+    record: MemoryRecord,
+    options: { download?: boolean; publicPreview?: boolean } = {},
+  ) => {
+    const dataUrl = await generateShareCard(record);
+    if (options.publicPreview) setPublicShareImageUrl(dataUrl);
+    else setShareImageUrl(dataUrl);
+    if (options.download) downloadDataUrl(dataUrl, `${record.capsule.id}-share-card.png`);
+    setNotice("Share image generated.");
   };
 
   const generateShareImage = async () => {
     if (!selectedRecord) return;
-    const dataUrl = await generateShareCard(selectedRecord);
-    setShareImageUrl(dataUrl);
-    downloadDataUrl(dataUrl, `${selectedRecord.capsule.id}-share-card.png`);
-    setNotice("Share image generated.");
+    await generateShareImageForRecord(selectedRecord, { download: true });
+  };
+
+  const shareRecordToTwitter = (record: MemoryRecord) => {
+    const result = record.result;
+    const text = `I locked ${record.capsule.matchLabel} before kickoff: ${record.capsule.prediction.homeScore}-${record.capsule.prediction.awayScore}${result ? ` · scored ${result.totalScore}/100` : ""}. Proof: ${record.capsule.filecoinProof.cid}`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(proofUrl(record.capsule.id))}`;
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const shareToTwitter = () => {
     if (!selectedRecord) return;
-    const result = selectedRecord.result;
-    const text = `I locked ${selectedRecord.capsule.matchLabel} before kickoff: ${selectedRecord.capsule.prediction.homeScore}-${selectedRecord.capsule.prediction.awayScore}${result ? ` · scored ${result.totalScore}/100` : ""}. Proof: ${selectedRecord.capsule.filecoinProof.cid}`;
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(proofUrl(selectedRecord.capsule.id))}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    shareRecordToTwitter(selectedRecord);
   };
 
   const copyProofLink = async () => {
@@ -789,6 +830,15 @@ function App() {
             />
             Force fallback test
           </label>
+          <div className="provider-health">
+            <div>
+              <strong>{providerSource}</strong>
+              <span>{matches.length} matches loaded</span>
+            </div>
+            {providerEvidence.map((item) => (
+              <p key={item}>{item}</p>
+            ))}
+          </div>
           <div className="filter-row" aria-label="Match filters">
             {(["all", "live", "today", "upcoming"] as const).map((filter) => (
               <button
@@ -1035,6 +1085,9 @@ function App() {
           records={records}
           publicRecord={publicRecord}
           publicProofStatus={publicProofStatus}
+          shareImageUrl={publicShareImageUrl}
+          onShareImage={(record) => void generateShareImageForRecord(record, { publicPreview: true })}
+          onTwitter={shareRecordToTwitter}
           matches={matches}
         />
       )}
@@ -1532,11 +1585,17 @@ function VerifyDashboard({
   records,
   publicRecord,
   publicProofStatus,
+  shareImageUrl,
+  onShareImage,
+  onTwitter,
   matches,
 }: {
   records: MemoryRecord[];
   publicRecord?: MemoryRecord;
   publicProofStatus: string;
+  shareImageUrl: string;
+  onShareImage: (record: MemoryRecord) => void;
+  onTwitter: (record: MemoryRecord) => void;
   matches: Match[];
 }) {
   const proofId = new URLSearchParams(window.location.search).get("proof");
@@ -1580,6 +1639,14 @@ function VerifyDashboard({
             {record.result && <p>Actual {record.result.homeScore}-{record.result.awayScore} · Score {record.result.totalScore}/100</p>}
             <code>{record.capsule.payloadHash}</code>
             <code>{record.capsule.filecoinProof.cid}</code>
+            <div className="verify-actions">
+              <button onClick={() => onShareImage(record)}>
+                <ImageDown size={16} /> Generate public share image
+              </button>
+              <button onClick={() => onTwitter(record)}>
+                <Users size={16} /> Share proof to X
+              </button>
+            </div>
           </div>
           <div className="verify-checks">
             {checks.map((check) => (
@@ -1594,6 +1661,20 @@ function VerifyDashboard({
             <h3>Locked payload</h3>
             <pre>{stableJson({ capsule: record.capsule, result: record.result, match })}</pre>
           </div>
+          {shareImageUrl && (
+            <div className="verify-card public-share-card">
+              <div className="panel-head">
+                <div>
+                  <p className="eyebrow">Public proof card</p>
+                  <h3>Share image</h3>
+                </div>
+                <a href={shareImageUrl} download={`${record.capsule.id}-public-proof.png`}>
+                  <Download size={16} /> Download
+                </a>
+              </div>
+              <img src={shareImageUrl} alt="Generated public proof share card" />
+            </div>
+          )}
         </div>
       )}
     </section>

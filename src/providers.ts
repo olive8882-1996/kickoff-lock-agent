@@ -61,7 +61,15 @@ export const loadFromEspn = async (): Promise<ProviderResult> => {
     };
   });
   if (matches.length === 0) throw new Error("ESPN returned no matches");
-  return { source: "espn", matches };
+  return {
+    source: "espn",
+    matches,
+    evidence: [
+      "ESPN FIFA World Cup scoreboard endpoint",
+      "Live status, score, venue and kickoff metadata",
+      `${matches.length} ESPN events normalized`,
+    ],
+  };
 };
 
 export const loadFromWorldcup26 = async (): Promise<ProviderResult> => {
@@ -85,7 +93,15 @@ export const loadFromWorldcup26 = async (): Promise<ProviderResult> => {
     };
   });
   if (matches.length === 0) throw new Error("worldcup26 returned no matches");
-  return { source: "worldcup26", matches };
+  return {
+    source: "worldcup26",
+    matches,
+    evidence: [
+      "worldcup26 games endpoint",
+      "Schedule and finished-score fallback",
+      `${matches.length} worldcup26 games normalized`,
+    ],
+  };
 };
 
 export const loadFromApiFootball = async (): Promise<ProviderResult> => {
@@ -231,6 +247,11 @@ export const loadSeedMatches = (): ProviderResult => ({
   source: "seed",
   matches: seedMatches,
   warning: "Using bundled seed data. External score sync is unavailable.",
+  evidence: [
+    "Bundled offline seed schedule",
+    "Manual result entry remains available",
+    `${seedMatches.length} seed matches loaded`,
+  ],
 });
 
 const withSeedUpcoming = (result: ProviderResult): ProviderResult => {
@@ -241,7 +262,16 @@ const withSeedUpcoming = (result: ProviderResult): ProviderResult => {
     const key = `${match.homeTeam.toLowerCase()}-${match.awayTeam.toLowerCase()}`;
     return match.status === "upcoming" && !existing.has(key);
   });
-  return { ...result, matches: [...result.matches, ...futureSeed] };
+  return {
+    ...result,
+    matches: [...result.matches, ...futureSeed],
+    evidence: [
+      ...(result.evidence ?? []),
+      futureSeed.length > 0
+        ? `${futureSeed.length} seed upcoming matches merged for schedule continuity`
+        : "No seed merge needed",
+    ],
+  };
 };
 
 export const loadMatchesWithFallback = async (

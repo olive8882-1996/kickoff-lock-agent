@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 test("expanded product workflow is usable", async ({ page }) => {
   await page.goto("?reset=1&e2e=1");
   await expect(page.getByRole("heading", { name: /matches/i })).toBeVisible();
+  await expect(page.getByText(/matches loaded/i)).toBeVisible();
   await expect(page.getByRole("button", { name: /Account/i }).last()).toBeVisible();
   await expect(page.getByRole("button", { name: /Modes/i }).last()).toBeVisible();
 
@@ -29,4 +30,10 @@ test("expanded product workflow is usable", async ({ page }) => {
   await page.getByRole("button", { name: /Generate share image/i }).click();
   await expect(page.getByRole("heading", { name: /Social image/i })).toBeVisible();
   await expect(page.locator(".share-preview img")).toHaveAttribute("src", /data:image\/png;base64,/);
+
+  await page.getByRole("button", { name: /Open verifier/i }).click();
+  await expect(page.getByRole("heading", { name: /Proof verification/i })).toBeVisible();
+  await page.getByRole("button", { name: /Generate public share image/i }).click();
+  await expect(page.getByRole("heading", { name: /Share image/i })).toBeVisible();
+  await expect(page.locator(".public-share-card img")).toHaveAttribute("src", /data:image\/png;base64,/);
 });

@@ -92,7 +92,7 @@ h3 {
   left: max(0px, calc((100vw - 1680px) / 2));
   width: 92px;
   display: grid;
-  grid-template-rows: auto repeat(5, auto) 1fr repeat(2, auto);
+  grid-template-rows: auto repeat(7, auto) 1fr repeat(2, auto);
   gap: 4px;
   padding: 18px 10px;
   border-right: 1px solid rgba(238, 247, 243, 0.12);
@@ -172,6 +172,29 @@ h3 {
 .hero-panel {
   position: relative;
   z-index: 1;
+}
+
+.cloud-strip {
+  position: absolute;
+  right: 42px;
+  bottom: 28px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 8px 12px;
+  border: 1px solid rgba(238, 247, 243, 0.18);
+  border-radius: 8px;
+  background: rgba(3, 8, 10, 0.72);
+  color: #eef7f3;
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cloud-strip b {
+  color: #f1c94d;
 }
 
 .hero-copy {
@@ -981,6 +1004,62 @@ code {
   gap: 8px;
 }
 
+.seal-steps {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid rgba(238, 247, 243, 0.13);
+  background: rgba(3, 8, 10, 0.64);
+}
+
+.seal-steps article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid rgba(238, 247, 243, 0.1);
+  background: rgba(238, 247, 243, 0.06);
+}
+
+.seal-steps strong,
+.seal-steps b {
+  color: #f1c94d;
+}
+
+.seal-steps span {
+  display: block;
+  margin-top: 3px;
+  color: rgba(238, 247, 243, 0.62);
+  font-size: 0.78rem;
+}
+
+.share-preview {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid rgba(241, 201, 77, 0.22);
+  background: rgba(241, 201, 77, 0.08);
+}
+
+.share-preview a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #f1c94d;
+  font-size: 0.8rem;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.share-preview img {
+  display: block;
+  width: 100%;
+  border: 1px solid rgba(238, 247, 243, 0.16);
+}
+
 .proof-panel textarea,
 .proof-panel input {
   border-color: rgba(238, 247, 243, 0.2);
@@ -1103,6 +1182,89 @@ pre {
 .verify {
   margin-top: 16px;
   border: 1px solid rgba(238, 247, 243, 0.13);
+}
+
+.modes,
+.account {
+  margin-top: 16px;
+  border: 1px solid rgba(238, 247, 243, 0.13);
+}
+
+.mode-grid,
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mode-grid article,
+.profile-card,
+.cloud-card,
+.mode-rules {
+  padding: 16px;
+  border: 1px solid rgba(238, 247, 243, 0.12);
+  background: rgba(238, 247, 243, 0.07);
+}
+
+.mode-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.mode-grid h3,
+.cloud-card h3 {
+  color: #f1c94d;
+  text-transform: uppercase;
+}
+
+.mode-grid p,
+.cloud-card p,
+.mode-rules p {
+  color: rgba(238, 247, 243, 0.72);
+}
+
+.progress-track {
+  height: 8px;
+  overflow: hidden;
+  margin: 16px 0 8px;
+  border-radius: 99px;
+  background: rgba(238, 247, 243, 0.12);
+}
+
+.progress-track span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ff4d40, #f1c94d, #1aa6ff);
+}
+
+.mode-grid small {
+  display: block;
+  margin-top: 8px;
+  color: rgba(238, 247, 243, 0.6);
+}
+
+.mode-rules {
+  margin-top: 14px;
+}
+
+.profile-card,
+.cloud-card {
+  display: grid;
+  gap: 12px;
+}
+
+.schema-note {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border: 1px solid rgba(241, 201, 77, 0.2);
+  background: rgba(241, 201, 77, 0.08);
+}
+
+.schema-note strong {
+  color: #f1c94d;
 }
 
 .verify-grid {
@@ -1231,8 +1393,17 @@ pre {
   .intel-grid,
   .market-grid,
   .verify-grid,
+  .mode-grid,
+  .account-grid,
   .scoreboard-lock {
     grid-template-columns: 1fr;
+  }
+
+  .cloud-strip {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    margin-top: 14px;
   }
 
   .hero-copy i {

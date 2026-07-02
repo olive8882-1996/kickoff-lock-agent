@@ -3,11 +3,14 @@ import {
   Bot,
   CheckCircle2,
   Clock3,
+  Cloud,
   Database,
+  Download,
   FileCheck2,
   Flame,
   Gauge,
   HelpCircle,
+  ImageDown,
   Link2,
   LockKeyhole,
   Medal,
@@ -19,21 +22,72 @@ import {
   TableProperties,
   Timer,
   Trophy,
+  UploadCloud,
+  UserCircle2,
+  Users,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  buildLocalLeaderboard,
+  consumeSupabaseHash,
+  getCloudState,
+  loadGlobalLeaderboard,
+  loadProfile,
+  saveProfile,
+  sendMagicLink,
+  syncRecordsToCloud,
+} from "./cloud";
+import { filecoinSealConfigured, runSealJob } from "./filecoinSeal";
 import { applyRealProof, createCapsule, stableJson } from "./proof";
 import { loadMatchesWithFallback, sourceLabel } from "./providers";
 import { scorePrediction } from "./scoring";
+import { downloadDataUrl, generateShareCard } from "./shareCard";
 import type {
   AppView,
+  CloudSyncState,
+  GameMode,
+  LeaderboardEntry,
   Match,
   MemoryRecord,
-  PredictionCapsule,
   PredictionDraft,
-  ResultCapsule,
 } from "./types";
 
 const STORAGE_KEY = "kickoff-lock-agent-records-v1";
+
+const gameModes: GameMode[] = [
+  {
+    id: "bracket",
+    title: "Bracket path",
+    status: "playable",
+    description: "Pick quarterfinal, semifinal and final paths as a sealed tournament tree.",
+    progress: 62,
+    reward: "Pathfinder badge",
+  },
+  {
+    id: "parlay",
+    title: "Multi-match parlay",
+    status: "playable",
+    description: "Bundle three locks into one higher-risk proof capsule.",
+    progress: 48,
+    reward: "Accumulator XP",
+  },
+  {
+    id: "agent-vs-human",
+    title: "Agent vs Human",
+    status: "playable",
+    description: "Lock your instinct against the agent model and compare calibration after reveal.",
+    progress: 74,
+    reward: "Calibration score",
+  },
+  {
+    id: "upset",
+    title: "Upset challenge",
+    status: "planned",
+    description: "Hunt one underdog call per matchday with a public leaderboard multiplier.",
+    progress: 35,
+    reward: "Underdog multiplier",
+  },
+];
 
 const assetUrl = (fileName: string) => `${import.meta.env.BASE_URL}assets/${fileName}`;
 
@@ -240,6 +294,10 @@ function App() {
   const [matchFilter, setMatchFilter] = useState<"all" | "live" | "today" | "upcoming">("all");
   const [view, setView] = useState<AppView>("matches");
   const [records, setRecords] = useState<MemoryRecord[]>(loadRecords);
+  const [profile, setProfile] = useState(loadProfile);
+  const [cloudState, setCloudState] = useState<CloudSyncState>(getCloudState);
+  const [globalLeaderboard, setGlobalLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [accountEmail, setAccountEmail] = useState(loadProfile().email);
   const [draft, setDraft] = useState<PredictionDraft>(defaultDraft);
   const [now, setNow] = useState(Date.now());
   const [prompt, setPrompt] = useState("I expect a tense knockout match with one late goal.");
@@ -247,10 +305,13 @@ function App() {
   const [actualAway, setActualAway] = useState(0);
   const [actualKeyPlayers, setActualKeyPlayers] = useState("");
   const [proofJson, setProofJson] = useState("");
+  const [shareImageUrl, setShareImageUrl] = useState("");
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
     void refreshMatches(false);
+    consumeSupabaseHash();
+    setCloudState(getCloudState());
     const proofId = new URLSearchParams(window.location.search).get("proof");
     if (proofId) setView("verify");
   }, []);
@@ -301,6 +362,10 @@ function App() {
   const bestRecord = [...revealedRecords].sort(
     (a, b) => (b.result?.totalScore ?? 0) - (a.result?.totalScore ?? 0),
   )[0];
+  const leaderboardEntries = [
+    ...globalLeaderboard,
+    ...buildLocalLeaderboard(profile, records),
+  ].sort((a, b) => b.xp - a.xp);
 
   const currentRank = Math.min(99, 1 + Math.floor(records.length * 1.8 + averageScore / 8));
   const currentXp = records.length * 120 + revealedRecords.reduce((sum, record) => sum + (record.result?.totalScore ?? 0), 0);
@@ -371,6 +436,69 @@ function App() {
     setNotice(copied ? "Share text copied." : "Clipboard blocked. Share text is still visible in the proof payload.");
   };
 
+  const syncToCloud = async () => {
+    setCloudState({ ...getCloudState(), status: "syncing", message: "Syncing records to cloud..." });
+    try {
+      const result = await syncRecordsToCloud(profile, records);
+      const remoteLeaderboard = await loadGlobalLeaderboard();
+      setGlobalLeaderboard(remoteLeaderboard);
+      setCloudState({
+        ...getCloudState(),
+        status: result.status === "synced" ? "synced" : "offline",
+        message: result.message,
+        lastSyncedAt: new Date().toISOString(),
+      });
+      setNotice(result.message);
+    } catch (error) {
+      setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
+      setNotice((error as Error).message);
+    }
+  };
+
+  const requestMagicLink = async () => {
+    try {
+      await sendMagicLink(accountEmail);
+      setNotice(`Magic link sent to ${accountEmail}. Open it to enable cloud sync.`);
+    } catch (error) {
+      setNotice((error as Error).message);
+    }
+  };
+
+  const updateProfile = (patch: Partial<typeof profile>) => {
+    const next = { ...profile, ...patch };
+    setProfile(next);
+    saveProfile(next);
+    setNotice("Profile updated.");
+  };
+
+  const startFilecoinSeal = async () => {
+    if (!selectedRecord) return;
+    setNotice(filecoinSealConfigured ? "Starting Filecoin seal workflow..." : "Seal backend is not configured yet.");
+    const updated = await runSealJob(selectedRecord);
+    setRecords(records.map((record) => (record.capsule.id === updated.capsule.id ? updated : record)));
+    setNotice(
+      updated.sealJob?.status === "verified"
+        ? "Real Filecoin proof attached."
+        : "Seal workflow needs a configured backend endpoint.",
+    );
+  };
+
+  const generateShareImage = async () => {
+    if (!selectedRecord) return;
+    const dataUrl = await generateShareCard(selectedRecord);
+    setShareImageUrl(dataUrl);
+    downloadDataUrl(dataUrl, `${selectedRecord.capsule.id}-share-card.png`);
+    setNotice("Share image generated.");
+  };
+
+  const shareToTwitter = () => {
+    if (!selectedRecord) return;
+    const result = selectedRecord.result;
+    const text = `I locked ${selectedRecord.capsule.matchLabel} before kickoff: ${selectedRecord.capsule.prediction.homeScore}-${selectedRecord.capsule.prediction.awayScore}${result ? ` · scored ${result.totalScore}/100` : ""}. Proof: ${selectedRecord.capsule.filecoinProof.cid}`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(proofUrl(selectedRecord.capsule.id))}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   const copyProofLink = async () => {
     if (!selectedRecord) return;
     const copied = await copyToClipboard(proofUrl(selectedRecord.capsule.id));
@@ -415,6 +543,14 @@ function App() {
         <button className={view === "verify" ? "active" : ""} onClick={() => setView("verify")} title="Verify proof">
           <ShieldCheck size={20} />
           <span>Verify</span>
+        </button>
+        <button className={view === "modes" ? "active" : ""} onClick={() => setView("modes")} title="Game modes">
+          <Flame size={20} />
+          <span>Modes</span>
+        </button>
+        <button className={view === "account" ? "active" : ""} onClick={() => setView("account")} title="Account">
+          <UserCircle2 size={20} />
+          <span>Account</span>
         </button>
         <div className="rail-spacer" />
         <button title="Settings">
@@ -462,6 +598,11 @@ function App() {
             <span className="metric source-metric">{currentXp}</span>
           </div>
         </div>
+        <div className="cloud-strip">
+          <Cloud size={16} />
+          <span>{profile.displayName}</span>
+          <b>{cloudState.mode.toUpperCase()} · {cloudState.status}</b>
+        </div>
       </section>
 
       <nav className="tabs" aria-label="Main views">
@@ -476,6 +617,12 @@ function App() {
         </button>
         <button className={view === "verify" ? "active" : ""} onClick={() => setView("verify")}>
           <ShieldCheck size={18} /> Verify
+        </button>
+        <button className={view === "modes" ? "active" : ""} onClick={() => setView("modes")}>
+          <Flame size={18} /> Modes
+        </button>
+        <button className={view === "account" ? "active" : ""} onClick={() => setView("account")}>
+          <UserCircle2 size={18} /> Account
         </button>
       </nav>
 
@@ -718,6 +865,10 @@ function App() {
               onCopy={copyShareText}
               onCopyProofLink={copyProofLink}
               onOpenProofView={openProofView}
+              onSeal={startFilecoinSeal}
+              onShareImage={generateShareImage}
+              onTwitter={shareToTwitter}
+              shareImageUrl={shareImageUrl}
             />
           ) : (
             <div className="empty">
@@ -730,11 +881,28 @@ function App() {
       </section>
 
       {view === "memory" && (
-        <MemoryDashboard records={records} averageScore={averageScore} bestRecord={bestRecord} currentRank={currentRank} currentXp={currentXp} />
+        <MemoryDashboard records={records} averageScore={averageScore} bestRecord={bestRecord} currentRank={currentRank} currentXp={currentXp} leaderboardEntries={leaderboardEntries} />
       )}
 
       {view === "verify" && (
         <VerifyDashboard records={records} matches={matches} />
+      )}
+
+      {view === "modes" && (
+        <ModesDashboard modes={gameModes} records={records} />
+      )}
+
+      {view === "account" && (
+        <AccountDashboard
+          profile={profile}
+          cloudState={cloudState}
+          email={accountEmail}
+          records={records}
+          onEmail={setAccountEmail}
+          onProfile={updateProfile}
+          onMagicLink={requestMagicLink}
+          onSync={syncToCloud}
+        />
       )}
     </main>
   );
@@ -946,6 +1114,10 @@ type ProofPanelProps = {
   onCopy: () => void;
   onCopyProofLink: () => void;
   onOpenProofView: () => void;
+  onSeal: () => void;
+  onShareImage: () => void;
+  onTwitter: () => void;
+  shareImageUrl: string;
 };
 
 function ProofPanel({
@@ -957,6 +1129,10 @@ function ProofPanel({
   onCopy,
   onCopyProofLink,
   onOpenProofView,
+  onSeal,
+  onShareImage,
+  onTwitter,
+  shareImageUrl,
 }: ProofPanelProps) {
   const { capsule, result } = record;
   return (
@@ -1014,7 +1190,51 @@ function ProofPanel({
         <button onClick={onOpenProofView}>
           <ShieldCheck size={18} /> Open verifier
         </button>
+        <button onClick={onSeal}>
+          <UploadCloud size={18} /> Auto seal to Filecoin
+        </button>
+        <button onClick={onShareImage}>
+          <ImageDown size={18} /> Generate share image
+        </button>
+        <button onClick={onTwitter}>
+          <Users size={18} /> Share to X
+        </button>
       </div>
+      {record.sealJob && (
+        <div className="seal-steps">
+          <div className="panel-head">
+            <div>
+              <p className="eyebrow">Synapse workflow</p>
+              <h3>Auto seal status</h3>
+            </div>
+            <span className={`pill seal-${record.sealJob.status}`}>{record.sealJob.status}</span>
+          </div>
+          {record.sealJob.steps.map((step) => (
+            <article key={step.id}>
+              <CheckCircle2 size={16} />
+              <div>
+                <strong>{step.label}</strong>
+                <span>{step.detail}</span>
+              </div>
+              <b>{step.status}</b>
+            </article>
+          ))}
+        </div>
+      )}
+      {shareImageUrl && (
+        <div className="share-preview">
+          <div className="panel-head">
+            <div>
+              <p className="eyebrow">Generated share card</p>
+              <h3>Social image</h3>
+            </div>
+            <a href={shareImageUrl} download={`${capsule.id}-share-card.png`}>
+              <Download size={16} /> Download
+            </a>
+          </div>
+          <img src={shareImageUrl} alt="Generated share card preview" />
+        </div>
+      )}
       <details>
         <summary>Import real proof JSON</summary>
         <textarea value={proofJson} onChange={(event) => onProofJson(event.target.value)} placeholder='{"cid":"...","pieceCid":"...","provider":"...","dataSetId":"...","proofStatus":"verified"}' />
@@ -1034,21 +1254,21 @@ function MemoryDashboard({
   bestRecord,
   currentRank,
   currentXp,
+  leaderboardEntries,
 }: {
   records: MemoryRecord[];
   averageScore: number;
   bestRecord?: MemoryRecord;
   currentRank: number;
   currentXp: number;
+  leaderboardEntries: LeaderboardEntry[];
 }) {
   const revealed = records.filter((record) => record.result);
   const streak = records.reduce((run, record) => {
     if (!record.result) return run;
     return record.result.breakdown.winner > 0 ? run + 1 : 0;
   }, 0);
-  const leaderboard = [...revealed]
-    .sort((a, b) => (b.result?.totalScore ?? 0) - (a.result?.totalScore ?? 0))
-    .slice(0, 5);
+  const leaderboard = leaderboardEntries.slice(0, 8);
   return (
     <section className="memory panel">
       <div
@@ -1087,11 +1307,11 @@ function MemoryDashboard({
           <Medal size={22} />
         </div>
         {leaderboard.length === 0 && <p>No revealed scores yet.</p>}
-        {leaderboard.map((record, index) => (
-          <article key={record.capsule.id}>
+        {leaderboard.map((entry, index) => (
+          <article key={entry.id}>
             <b>#{index + 1}</b>
-            <span>{record.capsule.matchLabel}</span>
-            <strong>{record.result?.totalScore}/100</strong>
+            <span>{entry.displayName} · {entry.location} · {entry.source}</span>
+            <strong>{entry.xp} XP</strong>
           </article>
         ))}
       </div>
@@ -1167,6 +1387,113 @@ function VerifyDashboard({ records, matches }: { records: MemoryRecord[]; matche
           </div>
         </div>
       )}
+    </section>
+  );
+}
+
+function ModesDashboard({ modes, records }: { modes: GameMode[]; records: MemoryRecord[] }) {
+  const lockedCount = records.length;
+  return (
+    <section className="modes panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Tournament modes</p>
+          <h2>Beyond single-match locks</h2>
+        </div>
+        <span className="pill">{lockedCount} active locks</span>
+      </div>
+      <div className="mode-grid">
+        {modes.map((mode) => (
+          <article key={mode.id}>
+            <div className="mode-top">
+              <Flame size={20} />
+              <span className={`pill mode-${mode.status}`}>{mode.status}</span>
+            </div>
+            <h3>{mode.title}</h3>
+            <p>{mode.description}</p>
+            <div className="progress-track">
+              <span style={{ width: `${mode.progress}%` }} />
+            </div>
+            <b>{mode.progress}% productized</b>
+            <small>{mode.reward}</small>
+          </article>
+        ))}
+      </div>
+      <div className="mode-rules">
+        <h3>Acceptance rule</h3>
+        <p>Each mode must create a sealed capsule, produce a score after reveal, and appear on the public leaderboard before it is marked complete.</p>
+      </div>
+    </section>
+  );
+}
+
+function AccountDashboard({
+  profile,
+  cloudState,
+  email,
+  records,
+  onEmail,
+  onProfile,
+  onMagicLink,
+  onSync,
+}: {
+  profile: ReturnType<typeof loadProfile>;
+  cloudState: CloudSyncState;
+  email: string;
+  records: MemoryRecord[];
+  onEmail: (value: string) => void;
+  onProfile: (patch: Partial<ReturnType<typeof loadProfile>>) => void;
+  onMagicLink: () => void;
+  onSync: () => void;
+}) {
+  return (
+    <section className="account panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Account & cloud</p>
+          <h2>Profile sync center</h2>
+        </div>
+        <span className={`pill cloud-${cloudState.status}`}>{cloudState.status}</span>
+      </div>
+      <div className="account-grid">
+        <div className="profile-card">
+          <UserCircle2 size={42} />
+          <label>
+            <span>Display name</span>
+            <input value={profile.displayName} onChange={(event) => onProfile({ displayName: event.target.value })} />
+          </label>
+          <label>
+            <span>Email</span>
+            <input value={profile.email} onChange={(event) => onProfile({ email: event.target.value })} />
+          </label>
+          <label>
+            <span>Location</span>
+            <input value={profile.location} onChange={(event) => onProfile({ location: event.target.value })} />
+          </label>
+        </div>
+        <div className="cloud-card">
+          <Cloud size={34} />
+          <h3>{cloudState.mode === "supabase" ? "Supabase cloud sync" : "Local mode"}</h3>
+          <p>{cloudState.message}</p>
+          <label>
+            <span>Magic link email</span>
+            <input value={email} onChange={(event) => onEmail(event.target.value)} />
+          </label>
+          <div className="actions">
+            <button onClick={onMagicLink}>
+              <Link2 size={18} /> Send magic link
+            </button>
+            <button className="primary" onClick={onSync}>
+              <UploadCloud size={18} /> Sync {records.length} records
+            </button>
+          </div>
+          <div className="schema-note">
+            <strong>Required backend tables</strong>
+            <code>kickoff_records</code>
+            <code>kickoff_leaderboard</code>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

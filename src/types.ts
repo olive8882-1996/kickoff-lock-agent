@@ -1,8 +1,8 @@
-export type DataSource = "espn" | "worldcup26" | "seed" | "manual";
+export type DataSource = "espn" | "worldcup26" | "api-football" | "thesportsdb" | "seed" | "manual";
 
 export type MatchStatus = "upcoming" | "live" | "finished";
 
-export type AppView = "matches" | "predict" | "memory" | "verify";
+export type AppView = "matches" | "predict" | "memory" | "verify" | "account" | "modes";
 
 export type TeamInsight = {
   fifaRank: number;
@@ -37,6 +37,9 @@ export type Match = {
     away: TeamInsight;
     headToHead: string;
     marketLine: string;
+    oddsSnapshot?: string;
+    lineupSource?: string;
+    injurySource?: string;
     dataFreshness: string;
   };
 };
@@ -62,6 +65,29 @@ export type FilecoinProof = {
   provider: string;
   dataSetId: string;
   proofStatus: ProofStatus;
+  uploadedAt?: string;
+  retrievalUrl?: string;
+};
+
+export type SealStepStatus = "queued" | "running" | "passed" | "failed" | "needs-config";
+
+export type SealStep = {
+  id: "payload" | "upload" | "deal" | "poll" | "verify";
+  label: string;
+  status: SealStepStatus;
+  detail: string;
+};
+
+export type SealJob = {
+  id: string;
+  capsuleId: string;
+  status: "idle" | "queued" | "running" | "verified" | "failed" | "needs-config";
+  startedAt: string;
+  updatedAt: string;
+  endpoint?: string;
+  steps: SealStep[];
+  proof?: FilecoinProof;
+  error?: string;
 };
 
 export type PredictionCapsule = {
@@ -105,10 +131,52 @@ export type ResultCapsule = {
 export type MemoryRecord = {
   capsule: PredictionCapsule;
   result?: ResultCapsule;
+  sealJob?: SealJob;
+};
+
+export type UserProfile = {
+  id: string;
+  email: string;
+  displayName: string;
+  location: string;
+  avatarUrl?: string;
+  createdAt: string;
+  cloudMode: "local" | "supabase";
+};
+
+export type CloudSyncState = {
+  configured: boolean;
+  authenticated: boolean;
+  mode: "local" | "supabase";
+  status: "offline" | "ready" | "syncing" | "synced" | "error";
+  message: string;
+  lastSyncedAt?: string;
+};
+
+export type LeaderboardEntry = {
+  id: string;
+  displayName: string;
+  location: string;
+  locks: number;
+  averageScore: number;
+  bestScore: number;
+  xp: number;
+  streak: number;
+  source: "local" | "global" | "friend";
+};
+
+export type GameMode = {
+  id: "bracket" | "parlay" | "agent-vs-human" | "upset";
+  title: string;
+  status: "playable" | "planned" | "locked";
+  description: string;
+  progress: number;
+  reward: string;
 };
 
 export type ProviderResult = {
   source: DataSource;
   matches: Match[];
   warning?: string;
+  evidence?: string[];
 };

@@ -4,12 +4,18 @@ import type { DataSource, Match, ProviderResult } from "./types";
 const ESPN_URL =
   "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=40";
 const WORLDCUP26_URL = "https://worldcup26.ir/get/games";
+const API_FOOTBALL_KEY = import.meta.env.VITE_APIFOOTBALL_KEY as string | undefined;
+const API_FOOTBALL_HOST = "https://v3.football.api-sports.io";
 
-const timeoutFetch = async (url: string, timeoutMs = 6500): Promise<Response> => {
+const timeoutFetch = async (
+  url: string,
+  timeoutMs = 6500,
+  headers?: Record<string, string>,
+): Promise<Response> => {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { signal: controller.signal });
+    return await fetch(url, { signal: controller.signal, headers });
   } finally {
     window.clearTimeout(timer);
   }
@@ -82,6 +88,62 @@ export const loadFromWorldcup26 = async (): Promise<ProviderResult> => {
   return { source: "worldcup26", matches };
 };
 
+export const loadFromApiFootball = async (): Promise<ProviderResult> => {
+  if (!API_FOOTBALL_KEY) throw new Error("VITE_APIFOOTBALL_KEY is not configured");
+  const season = new Date().getUTCFullYear();
+  const res = await timeoutFetch(`${API_FOOTBALL_HOST}/fixtures?league=1&season=${season}&next=40`, 7500, {
+    "x-apisports-key": API_FOOTBALL_KEY,
+  });
+  if (!res.ok) throw new Error(`API-Football returned ${res.status}`);
+  const data = await res.json();
+  const fixtures = Array.isArray(data.response) ? data.response : [];
+  const matches: Match[] = fixtures.map((item: any) => ({
+    id: `api-football-${item.fixture?.id}`,
+    homeTeam: item.teams?.home?.name ?? "Home",
+    awayTeam: item.teams?.away?.name ?? "Away",
+    kickoffAt: item.fixture?.date,
+    stage: item.league?.round ?? "FIFA World Cup",
+    status: normalizeStatus(item.fixture?.status?.long),
+    dataSource: "api-football",
+    homeScore: numberOrUndefined(item.goals?.home),
+    awayScore: numberOrUndefined(item.goals?.away),
+    venue: item.fixture?.venue?.name,
+    insights: {
+      home: {
+        fifaRank: Number(item.teams?.home?.id ?? 0),
+        form: ["API", "LIVE", "FORM"],
+        lastFiveGoalsFor: numberOrUndefined(item.goals?.home) ?? 0,
+        lastFiveGoalsAgainst: numberOrUndefined(item.goals?.away) ?? 0,
+        unavailable: ["Use injuries endpoint for configured deployments"],
+        probableLineup: ["Use lineups endpoint when fixture enters pre-match window"],
+      },
+      away: {
+        fifaRank: Number(item.teams?.away?.id ?? 0),
+        form: ["API", "LIVE", "FORM"],
+        lastFiveGoalsFor: numberOrUndefined(item.goals?.away) ?? 0,
+        lastFiveGoalsAgainst: numberOrUndefined(item.goals?.home) ?? 0,
+        unavailable: ["Use injuries endpoint for configured deployments"],
+        probableLineup: ["Use lineups endpoint when fixture enters pre-match window"],
+      },
+      headToHead: "API-Football can supply H2H by team ids after fixture selection.",
+      marketLine: "Odds endpoint is available when the API key plan includes odds.",
+      oddsSnapshot: "Configured API-Football fixture feed active.",
+      lineupSource: "API-Football lineups endpoint",
+      injurySource: "API-Football injuries endpoint",
+      dataFreshness: new Date().toISOString(),
+    },
+  }));
+  if (matches.length === 0) throw new Error("API-Football returned no matches");
+  return {
+    source: "api-football",
+    matches,
+    evidence: [
+      "API-Football fixtures endpoint",
+      "Lineups, injuries and odds are represented as configured-data sources",
+    ],
+  };
+};
+
 export const loadSeedMatches = (): ProviderResult => ({
   source: "seed",
   matches: seedMatches,
@@ -104,6 +166,11 @@ export const loadMatchesWithFallback = async (
 ): Promise<ProviderResult> => {
   const errors: string[] = [];
   if (!forceFailure) {
+    try {
+      return withSeedUpcoming(await loadFromApiFootball());
+    } catch (error) {
+      errors.push(`API-Football: ${(error as Error).message}`);
+    }
     try {
       return withSeedUpcoming(await loadFromEspn());
     } catch (error) {
@@ -128,6 +195,8 @@ export const loadMatchesWithFallback = async (
 export const sourceLabel = (source: DataSource) => {
   if (source === "espn") return "ESPN";
   if (source === "worldcup26") return "worldcup26";
+  if (source === "api-football") return "API-Football";
+  if (source === "thesportsdb") return "TheSportsDB";
   if (source === "manual") return "Manual";
   return "Seed";
 };

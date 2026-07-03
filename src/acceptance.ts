@@ -83,9 +83,9 @@ export const ACCEPTANCE_TEST_SUITES: AcceptanceTestSuite[] = [
     id: "game-modes",
     label: "Tournament game modes",
     command: "bun run test",
-    file: "src/modes.test.ts, src/bracket.test.ts, src/modeEvidence.test.ts",
+    file: "src/modes.test.ts, src/bracket.test.ts, src/modeEvidence.test.ts, src/modeSettlement.test.ts",
     coverage: ["modes"],
-    proves: "bracket, parlay, Agent vs Human and upset proof readiness rules plus four-mode production evidence packets for Filecoin, cloud read-back, public proof links and share cards",
+    proves: "bracket, parlay, Agent vs Human and upset proof readiness rules plus four-mode production evidence packets, settlement packets, scoring/calibration/bonus XP summaries, Filecoin, cloud read-back, public proof links and share cards",
   },
   {
     id: "browser-flow",

@@ -145,6 +145,7 @@ Key files:
 - `src/bracket.ts`: knockout path builder, bracket readiness rules, and bracket proof run sealing.
 - `src/modes.ts`: bracket/parlay/agent/upset mode proof runs, including parlay tickets, agent calibration reports and upset bonus tickets.
 - `src/modeEvidence.ts`: four-mode production evidence packets for Filecoin, cloud read-back, public mode links and share cards.
+- `src/modeSettlement.ts`: mode settlement packets for parlay hits, Agent vs Human calibration, upset bonus XP and pending bracket path resolution.
 - `src/sharePublishing.ts`: batch share-card publish queue for records and mode proofs that still need production public image URLs.
 - `src/productionLaunchPacket.ts`: copyable production launch workstreams derived from the operator doctor.
 - `src/readiness.ts`: production acceptance radar for real account sync, live data, Filecoin sealing, sharing, leaderboards, modes, and automated tests.

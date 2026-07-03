@@ -77,6 +77,7 @@ import { filecoinSealConfigured, lookupFilecoinProof, runModeSealJob, runSealJob
 import { buildSealEvidencePacket, type SealEvidencePacket } from "./filecoinSealEvidence";
 import { buildLeaderboardEvidencePacket, type LeaderboardEvidencePacket } from "./leaderboardEvidence";
 import { buildModeEvidencePacket, type ModeEvidencePacket } from "./modeEvidence";
+import { buildModeSettlementPacket, type ModeSettlementPacket } from "./modeSettlement";
 import { createGameModeRun, getModeReadiness } from "./modes";
 import { buildMatchDataEvidencePacket, type MatchDataEvidencePacket } from "./matchDataEvidence";
 import { applyRealProof, applyVerifiedProof, createCapsule, stableJson } from "./proof";
@@ -3578,6 +3579,7 @@ function ModesDashboard({
   const bracketReady = isBracketPathReady(bracketPath);
   const bracketRuns = modeRuns.filter((run) => run.modeId === "bracket" && run.artifact?.kind === "bracket-path");
   const modeEvidence = buildModeEvidencePacket(modes, modeRuns, shareEvidence, cloudState.verification);
+  const modeSettlement = buildModeSettlementPacket(modeRuns);
   return (
     <section className="modes panel">
       <div className="panel-head">
@@ -3588,6 +3590,7 @@ function ModesDashboard({
         <span className="pill">{lockedCount} active locks</span>
       </div>
       <ModeEvidencePacketCard packet={modeEvidence} />
+      <ModeSettlementPacketCard packet={modeSettlement} />
       <div className="bracket-builder">
         <div className="panel-head">
           <div>
@@ -3755,6 +3758,57 @@ function ModeEvidencePacketCard({ packet }: { packet: ModeEvidencePacket }) {
             <small>Missing: {item.missing.join(", ") || "none"}</small>
           </article>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function ModeSettlementPacketCard({ packet }: { packet: ModeSettlementPacket }) {
+  const copyPacket = async () => {
+    await copyToClipboard(packet.copyText);
+  };
+  return (
+    <div className={`mode-settlement-packet ${packet.pendingRuns === 0 && packet.runs > 0 ? "passed" : ""}`} aria-label="Mode settlement packet">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Mode settlement</p>
+          <h3>Mode settlement packet</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <Trophy size={16} /> Copy settlement
+        </button>
+      </div>
+      <div className="mode-settlement-summary">
+        <div><span>Runs</span><strong>{packet.runs}</strong></div>
+        <div><span>Settled</span><strong>{packet.settledRuns}</strong></div>
+        <div><span>Avg score</span><strong>{packet.averageScore}</strong></div>
+        <div><span>Bonus XP</span><strong>{packet.bonusXp}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Next action: {packet.nextAction}</small>
+      <div className="mode-settlement-list">
+        {packet.items.length === 0 ? (
+          <article>
+            <div>
+              <Trophy size={16} />
+              <strong>No mode proof runs yet</strong>
+              <span>pending</span>
+            </div>
+            <small>Create a bracket, parlay, Agent vs Human or upset proof to start settlement tracking.</small>
+          </article>
+        ) : (
+          packet.items.slice(0, 6).map((item) => (
+            <article key={item.runId} className={item.status === "settled" ? "passed" : item.status === "scorable" ? "partial" : ""}>
+              <div>
+                <Trophy size={16} />
+                <strong>{item.title}</strong>
+                <span>{item.status}</span>
+              </div>
+              <small>{item.settled}/{item.total} settled · {item.reward}{item.score !== undefined ? ` · ${item.score}/100` : ""}</small>
+              <small>{item.summary}</small>
+            </article>
+          ))
+        )}
       </div>
     </div>
   );

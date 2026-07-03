@@ -23,7 +23,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "seal:synapse": "bun scripts/seal-with-synapse.mjs",
     "seal:api": "bun server/filecoin-seal-api.mjs",
-    "seal:api:mock": "FILECOIN_SEAL_MOCK=1 bun server/filecoin-seal-api.mjs"
+    "seal:api:mock": "FILECOIN_SEAL_MOCK=1 bun server/filecoin-seal-api.mjs",
+    "seal:production-targets": "bun scripts/run-filecoin-target-seal.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",

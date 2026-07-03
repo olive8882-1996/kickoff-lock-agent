@@ -184,6 +184,16 @@ export type SealStep = {
   detail: string;
 };
 
+export type SealPollAttempt = {
+  attempt: number;
+  checkedAt: string;
+  status: "verified" | "retrievable" | "pending" | "error";
+  proofStatus?: FilecoinProof["proofStatus"] | "missing";
+  httpStatus?: number;
+  detail: string;
+  retrievalUrl?: string;
+};
+
 export type SealBackendHealth = {
   ok: boolean;
   service?: string;
@@ -212,6 +222,7 @@ export type SealJob = {
   uploadPayloadHash?: string;
   uploadByteLength?: number;
   pollAttempts?: number;
+  pollLog?: SealPollAttempt[];
   lastCheckedAt?: string;
   proofRegistryStatus?: "unchecked" | "verified" | "failed";
   proofRegistryCheckedAt?: string;

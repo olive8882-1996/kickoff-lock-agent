@@ -23,6 +23,7 @@ test("mock Filecoin seal flow verifies a real proof end to end", async ({ page }
   await expect(page.locator(".seal-checklist")).toContainText(/Proof registry/i);
   await expect(page.locator(".seal-checklist")).toContainText(/memory storage/i);
   await expect(page.locator(".seal-checklist")).toContainText(/Registry read-back/i);
+  await expect(page.getByLabel("Auto seal status verification poll log")).toContainText(/Attempt 1/i);
   await expect(page.locator(".seal-checklist")).toContainText(/Upload auth/i);
   await expect(page.locator(".seal-checklist")).toContainText(/token not required/i);
   await expect(page.locator(".seal-checklist")).toContainText(/Upload limit/i);
@@ -59,6 +60,7 @@ test("mock Filecoin seal flow verifies a real proof end to end", async ({ page }
   await expect(modeRun).toContainText(/bafy-mock-/);
   await expect(modeRun.locator(".seal-checklist")).toContainText(/Payload hash match/i);
   await expect(modeRun.locator(".seal-checklist")).toContainText(/Registry read-back/i);
+  await expect(modeRun.getByLabel("Mode seal status verification poll log")).toContainText(/Attempt 1/i);
   await expect(modeRun.locator(".seal-evidence-packet")).toContainText(/Filecoin seal evidence packet/i);
   await expect(modeRun.locator(".seal-links")).toContainText(/Verify CID/i);
 });

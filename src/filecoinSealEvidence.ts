@@ -1,4 +1,4 @@
-import type { SealJob, SealStep } from "./types";
+import type { SealJob, SealPollAttempt, SealStep } from "./types";
 import { sealBackendProductionReady } from "./filecoinSeal";
 
 export type SealEvidencePacket = {
@@ -11,6 +11,8 @@ export type SealEvidencePacket = {
   payloadHash?: string;
   byteLength?: number;
   pollAttempts: number;
+  pollLog: SealPollAttempt[];
+  latestPoll?: SealPollAttempt;
   registryStatus: SealJob["proofRegistryStatus"];
   registryHashMatch: boolean;
   passedSteps: number;
@@ -30,6 +32,8 @@ export const buildSealEvidencePacket = (job: SealJob): SealEvidencePacket => {
   const failedSteps = job.steps.filter((step) => step.status === "failed").map((step) => step.id);
   const pendingSteps = job.steps.filter((step) => openStepStatuses.has(step.status)).map((step) => step.id);
   const productionReady = sealBackendProductionReady(job.backendHealth);
+  const pollLog = job.pollLog ?? [];
+  const latestPoll = pollLog.at(-1);
   const registryHashMatch =
     job.proofRegistryStatus === "verified" &&
     Boolean(job.proofRegistryHash && job.uploadPayloadHash && job.proofRegistryHash === job.uploadPayloadHash);
@@ -60,6 +64,7 @@ export const buildSealEvidencePacket = (job: SealJob): SealEvidencePacket => {
     `Payload hash: ${job.uploadPayloadHash ?? "missing"}`,
     `Byte length: ${job.uploadByteLength ?? job.proof?.byteLength ?? "missing"}`,
     `Poll attempts: ${job.pollAttempts ?? 0}`,
+    latestPoll ? `Latest poll: ${latestPoll.status} ${latestPoll.proofStatus ?? "unknown"} ${latestPoll.httpStatus ?? ""}`.trim() : "",
     `Registry: ${job.proofRegistryStatus ?? "unchecked"} ${registryHashMatch ? "hash-match" : "hash-pending"}`,
     `Production backend: ${productionReady ? "ready" : "not proven"}`,
     `Next action: ${nextAction}`,
@@ -79,6 +84,8 @@ export const buildSealEvidencePacket = (job: SealJob): SealEvidencePacket => {
     payloadHash: job.uploadPayloadHash ?? job.proof?.payloadHash,
     byteLength: job.uploadByteLength ?? job.proof?.byteLength,
     pollAttempts: job.pollAttempts ?? 0,
+    pollLog,
+    latestPoll,
     registryStatus: job.proofRegistryStatus,
     registryHashMatch,
     passedSteps,

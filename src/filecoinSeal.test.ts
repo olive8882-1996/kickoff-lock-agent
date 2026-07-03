@@ -204,6 +204,14 @@ describe("Filecoin seal workflow", () => {
     expect(updated.sealJob?.steps.find((step) => step.id === "health")?.detail).toContain("production-ready");
     expect(updated.sealJob?.steps.find((step) => step.id === "health")?.detail).toContain("file proof registry");
     expect(updated.sealJob?.pollAttempts).toBe(1);
+    expect(updated.sealJob?.pollLog).toEqual([
+      expect.objectContaining({
+        attempt: 1,
+        status: "verified",
+        proofStatus: "verified",
+        httpStatus: 200,
+      }),
+    ]);
     expect(updated.sealJob?.uploadPayloadHash).toBe(updated.sealJob?.proof?.payloadHash);
     expect(updated.sealJob?.proofRegistryStatus).toBe("verified");
     expect(updated.sealJob?.proofRegistryHash).toBe(updated.sealJob?.uploadPayloadHash);
@@ -215,6 +223,90 @@ describe("Filecoin seal workflow", () => {
     expect(updated.sealJob?.proofUrl).toBe("https://seal.example/proof/bafy-real-1234567890");
     expect(updated.sealJob?.verifyUrl).toBe("https://seal.example/verify?cid=bafy-real-1234567890");
     expect(updated.sealJob?.steps.every((step) => step.status === "passed")).toBe(true);
+  });
+
+  it("keeps an auditable polling log when verification is pending before becoming verified", async () => {
+    vi.stubEnv("VITE_FILECOIN_SEAL_API", "https://seal.example/seal");
+    let verifyAttempts = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "https://seal.example/health") {
+          return jsonResponse({
+            ok: true,
+            service: "kickoff-lock-filecoin-seal-api",
+            mockMode: false,
+            hasPrivateKey: true,
+            authRequired: true,
+            productionReady: true,
+            blockers: [],
+            proofCount: 8,
+            persistence: "file",
+            maxUploadBytes: 262144,
+          });
+        }
+        if (url === "https://seal.example/seal") {
+          return jsonResponse({
+            cid: "bafy-polling-real",
+            pieceCid: "baga-polling-real",
+            provider: "synapse-provider",
+            dataSetId: "dataset-polling",
+            proofStatus: "sealed",
+            payloadHash: sha256Hex(init?.body?.toString() ?? ""),
+            byteLength: init?.body?.toString().length,
+          });
+        }
+        if (url === "https://seal.example/verify?cid=bafy-polling-real") {
+          verifyAttempts += 1;
+          return verifyAttempts === 1
+            ? jsonResponse({
+                cid: "bafy-polling-real",
+                proofStatus: "sealed",
+                checkedAt: "2099-01-01T00:00:00.000Z",
+              })
+            : jsonResponse({
+                cid: "bafy-polling-real",
+                proofStatus: "verified",
+                checkedAt: "2099-01-01T00:00:01.000Z",
+              });
+        }
+        if (url === "https://seal.example/proof/bafy-polling-real") {
+          const payloadHash = sha256Hex((globalThis.fetch as any).mock.calls.find((call: any[]) => String(call[0]) === "https://seal.example/seal")?.[1]?.body?.toString() ?? "");
+          return jsonResponse({
+            cid: "bafy-polling-real",
+            pieceCid: "baga-polling-real",
+            provider: "synapse-provider",
+            dataSetId: "dataset-polling",
+            proofStatus: "verified",
+            payloadHash,
+            checkedAt: "2099-01-01T00:00:02.000Z",
+          });
+        }
+        return jsonResponse({ error: "unexpected" }, 404);
+      }),
+    );
+    const { runSealJob: runConfiguredSealJob } = await import("./filecoinSeal");
+
+    const updated = await runConfiguredSealJob(record);
+
+    expect(updated.sealJob?.status).toBe("verified");
+    expect(updated.sealJob?.pollAttempts).toBe(2);
+    expect(updated.sealJob?.pollLog).toEqual([
+      expect.objectContaining({
+        attempt: 1,
+        status: "pending",
+        proofStatus: "sealed",
+        httpStatus: 200,
+      }),
+      expect.objectContaining({
+        attempt: 2,
+        status: "verified",
+        proofStatus: "verified",
+        httpStatus: 200,
+      }),
+    ]);
+    expect(updated.sealJob?.lastCheckedAt).toBe("2099-01-01T00:00:01.000Z");
   });
 
   it("runs configured one-click sealing for a tournament mode proof", async () => {
@@ -285,6 +377,7 @@ describe("Filecoin seal workflow", () => {
     expect(updated.filecoinProof.mode).toBe("real");
     expect(updated.filecoinProof.cid).toBe("bafy-mode-real-1234567890");
     expect(updated.sealJob?.status).toBe("verified");
+    expect(updated.sealJob?.pollLog?.[0]).toEqual(expect.objectContaining({ status: "verified" }));
     expect(updated.sealJob?.proofRegistryStatus).toBe("verified");
     expect(updated.sealJob?.proofRegistryHash).toBe(updated.sealJob?.uploadPayloadHash);
     expect(updated.sealJob?.steps.find((step) => step.id === "verify")?.detail).toContain("Mode proof CID");

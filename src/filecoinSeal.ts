@@ -7,6 +7,7 @@ import type {
   PredictionCapsule,
   SealBackendHealth,
   SealJob,
+  SealPollAttempt,
   SealStep,
 } from "./types";
 
@@ -210,16 +211,40 @@ export const lookupFilecoinProof = async (cid: string): Promise<FilecoinLookupSt
   }
 };
 
-const pollProofStatus = async (proof: FilecoinProof): Promise<{ proof: FilecoinProof; attempts: number; checkedAt?: string }> => {
+const pollProofStatus = async (
+  proof: FilecoinProof,
+): Promise<{ proof: FilecoinProof; attempts: number; checkedAt?: string; pollLog: SealPollAttempt[] }> => {
   const endpoint = verifyEndpoint(proof.cid);
-  if (!endpoint) return { proof, attempts: 0 };
+  if (!endpoint) return { proof, attempts: 0, pollLog: [] };
   let checkedAt: string | undefined;
+  const pollLog: SealPollAttempt[] = [];
   for (let attempt = 1; attempt <= 5; attempt += 1) {
-    const res = await fetch(endpoint).catch(() => undefined);
+    const attemptedAt = new Date().toISOString();
+    const res = await fetch(endpoint).catch((error) => {
+      pollLog.push({
+        attempt,
+        checkedAt: attemptedAt,
+        status: "error",
+        detail: (error as Error).message,
+      });
+      return undefined;
+    });
     if (res?.ok) {
       const status = (await res.json()) as Partial<FilecoinProof> & { ok?: boolean; checkedAt?: string };
       checkedAt = status.checkedAt ?? new Date().toISOString();
       if (status.proofStatus === "verified" || status.proofStatus === "retrievable") {
+        pollLog.push({
+          attempt,
+          checkedAt,
+          status: status.proofStatus,
+          proofStatus: status.proofStatus,
+          httpStatus: res.status,
+          detail:
+            status.proofStatus === "verified"
+              ? "Seal API verified the CID."
+              : "Seal API reports the CID as retrievable.",
+          retrievalUrl: status.retrievalUrl ?? proof.retrievalUrl,
+        });
         return {
           proof: {
             ...proof,
@@ -230,12 +255,32 @@ const pollProofStatus = async (proof: FilecoinProof): Promise<{ proof: FilecoinP
           },
           attempts: attempt,
           checkedAt,
+          pollLog,
         };
       }
+      pollLog.push({
+        attempt,
+        checkedAt,
+        status: "pending",
+        proofStatus: status.proofStatus ?? "draft",
+        httpStatus: res.status,
+        detail: `Seal API returned ${status.proofStatus ?? "draft"} proof status.`,
+        retrievalUrl: status.retrievalUrl ?? proof.retrievalUrl,
+      });
+    } else if (res) {
+      checkedAt = new Date().toISOString();
+      pollLog.push({
+        attempt,
+        checkedAt,
+        status: "pending",
+        proofStatus: res.status === 404 ? "missing" : "draft",
+        httpStatus: res.status,
+        detail: `Seal API verification returned ${res.status}.`,
+      });
     }
     await wait(450);
   }
-  return { proof, attempts: 5, checkedAt };
+  return { proof, attempts: 5, checkedAt, pollLog };
 };
 
 const readProofRegistry = async (
@@ -387,6 +432,7 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
           uploadPayloadHash,
           uploadByteLength,
           pollAttempts: pollResult.attempts,
+          pollLog: pollResult.pollLog,
           lastCheckedAt: pollResult.checkedAt ?? new Date().toISOString(),
           proofRegistryStatus: "failed",
           proofRegistryCheckedAt: new Date().toISOString(),
@@ -421,6 +467,7 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
       uploadPayloadHash,
       uploadByteLength,
       pollAttempts: pollResult.attempts,
+      pollLog: pollResult.pollLog,
       lastCheckedAt: pollResult.checkedAt ?? registryResult.checkedAt,
       proofRegistryStatus: "verified",
       proofRegistryCheckedAt: registryResult.checkedAt,
@@ -556,6 +603,7 @@ export const runModeSealJob = async (run: GameModeRun): Promise<GameModeRun> => 
           uploadPayloadHash,
           uploadByteLength,
           pollAttempts: pollResult.attempts,
+          pollLog: pollResult.pollLog,
           lastCheckedAt: pollResult.checkedAt ?? new Date().toISOString(),
           proofRegistryStatus: "failed",
           proofRegistryCheckedAt: new Date().toISOString(),
@@ -587,6 +635,7 @@ export const runModeSealJob = async (run: GameModeRun): Promise<GameModeRun> => 
       uploadPayloadHash,
       uploadByteLength,
       pollAttempts: pollResult.attempts,
+      pollLog: pollResult.pollLog,
       lastCheckedAt: pollResult.checkedAt ?? registryResult.checkedAt,
       proofRegistryStatus: "verified",
       proofRegistryCheckedAt: registryResult.checkedAt,

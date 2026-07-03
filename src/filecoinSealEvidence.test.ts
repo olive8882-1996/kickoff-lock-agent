@@ -61,6 +61,24 @@ describe("Filecoin seal evidence packet", () => {
         uploadPayloadHash: "a".repeat(64),
         uploadByteLength: 2048,
         pollAttempts: 2,
+        pollLog: [
+          {
+            attempt: 1,
+            checkedAt: "2099-01-01T00:00:00.000Z",
+            status: "pending",
+            proofStatus: "sealed",
+            httpStatus: 200,
+            detail: "Seal API returned sealed proof status.",
+          },
+          {
+            attempt: 2,
+            checkedAt: "2099-01-01T00:00:01.000Z",
+            status: "verified",
+            proofStatus: "verified",
+            httpStatus: 200,
+            detail: "Seal API verified the CID.",
+          },
+        ],
         proofRegistryStatus: "verified",
         proofRegistryHash: "a".repeat(64),
         proofUrl: "https://seal.example/proof/bafy-real",
@@ -71,8 +89,11 @@ describe("Filecoin seal evidence packet", () => {
 
     expect(packet.productionReady).toBe(true);
     expect(packet.registryHashMatch).toBe(true);
+    expect(packet.latestPoll?.status).toBe("verified");
+    expect(packet.pollLog).toHaveLength(2);
     expect(packet.blockers).toEqual([]);
     expect(packet.nextAction).toContain("Seal evidence is ready");
+    expect(packet.copyText).toContain("Latest poll: verified verified 200");
     expect(packet.copyText).toContain("Production backend: ready");
   });
 

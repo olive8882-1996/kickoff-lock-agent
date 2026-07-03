@@ -2491,6 +2491,7 @@ const buildSealAcceptanceChecks = (sealJob: SealJob, fallbackCid: string): SealA
   const uploadStep = sealJob.steps.find((step) => step.id === "upload");
   const pollStep = sealJob.steps.find((step) => step.id === "poll");
   const backendHealth = sealJob.backendHealth;
+  const latestPoll = sealJob.pollLog?.at(-1);
   return [
     {
       label: "Backend configured",
@@ -2541,7 +2542,9 @@ const buildSealAcceptanceChecks = (sealJob: SealJob, fallbackCid: string): SealA
     {
       label: "Verification polled",
       detail: sealJob.pollAttempts
-        ? `${sealJob.pollAttempts} attempt${sealJob.pollAttempts > 1 ? "s" : ""}`
+        ? `${sealJob.pollAttempts} attempt${sealJob.pollAttempts > 1 ? "s" : ""} · ${
+            latestPoll ? `${latestPoll.status}${latestPoll.proofStatus ? `/${latestPoll.proofStatus}` : ""}` : "checked"
+          }`
         : pollStep?.status ?? "not started",
       passed: Boolean(sealJob.lastCheckedAt),
     },
@@ -2627,6 +2630,18 @@ function SealWorkflowPanel({
         ))}
       </div>
       <SealEvidencePacketCard packet={evidencePacket} />
+      {job.pollLog && job.pollLog.length > 0 && (
+        <div className="seal-poll-log" aria-label={`${title} verification poll log`}>
+          {job.pollLog.slice(-5).map((attempt) => (
+            <div key={`${attempt.attempt}-${attempt.checkedAt}`} className={attempt.status === "verified" || attempt.status === "retrievable" ? "passed" : ""}>
+              <Clock3 size={14} />
+              <span>Attempt {attempt.attempt}</span>
+              <strong>{attempt.status}{attempt.proofStatus ? ` · ${attempt.proofStatus}` : ""}</strong>
+              <small>{attempt.httpStatus ? `HTTP ${attempt.httpStatus} · ` : ""}{attempt.detail}</small>
+            </div>
+          ))}
+        </div>
+      )}
       {job.steps.map((step) => (
         <article key={step.id}>
           <CheckCircle2 size={16} />
@@ -2666,6 +2681,7 @@ function SealEvidencePacketCard({ packet }: { packet: SealEvidencePacket }) {
         <span>{packet.cid ?? "CID pending"}</span>
         <span>{packet.passedSteps}/{packet.totalSteps} steps</span>
         <span>{packet.pollAttempts} poll attempts</span>
+        <span>{packet.latestPoll ? `${packet.latestPoll.status}/${packet.latestPoll.proofStatus ?? "checked"}` : "poll pending"}</span>
         <span>{packet.registryHashMatch ? "registry hash match" : "registry pending"}</span>
       </div>
       <small>Next action: {packet.nextAction}</small>

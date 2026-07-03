@@ -3868,6 +3868,7 @@ pre {
 }
 
 .proof-timeline,
+.public-proof-scorecard,
 .verifier-packet {
   grid-column: 1 / -1;
 }
@@ -3974,6 +3975,92 @@ pre {
   border-radius: 4px;
   color: rgba(238, 247, 243, 0.72);
   font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.public-proof-scorecard {
+  display: grid;
+  gap: 10px;
+  border-color: rgba(34, 185, 255, 0.2);
+  background:
+    linear-gradient(135deg, rgba(34, 185, 255, 0.08), rgba(241, 201, 77, 0.045)),
+    rgba(3, 8, 10, 0.38);
+}
+
+.public-proof-scorecard.ready {
+  border-color: rgba(77, 217, 137, 0.28);
+  background:
+    linear-gradient(135deg, rgba(77, 217, 137, 0.08), rgba(34, 185, 255, 0.045)),
+    rgba(3, 8, 10, 0.38);
+}
+
+.public-proof-scorecard > p,
+.public-proof-scorecard > small {
+  margin: 0;
+  color: rgba(238, 247, 243, 0.7);
+  font-size: 0.74rem;
+  overflow-wrap: anywhere;
+}
+
+.scorecard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.scorecard-grid article {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(241, 201, 77, 0.2);
+  background: rgba(241, 201, 77, 0.055);
+}
+
+.scorecard-grid article.scorecard-passed {
+  border-color: rgba(77, 217, 137, 0.26);
+  background: rgba(77, 217, 137, 0.06);
+}
+
+.scorecard-grid article.scorecard-failed {
+  border-color: rgba(255, 77, 64, 0.24);
+  background: rgba(255, 77, 64, 0.06);
+}
+
+.scorecard-grid article > div {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.scorecard-grid svg {
+  color: #ffe8a8;
+}
+
+.scorecard-grid .scorecard-passed svg {
+  color: #d8ffd9;
+}
+
+.scorecard-grid .scorecard-failed svg {
+  color: #ffb3ad;
+}
+
+.scorecard-grid strong {
+  color: #eef7f3;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+}
+
+.scorecard-grid span,
+.scorecard-grid small {
+  color: rgba(238, 247, 243, 0.68);
+  font-size: 0.7rem;
+  overflow-wrap: anywhere;
+}
+
+.scorecard-grid span {
+  font-weight: 950;
   text-transform: uppercase;
 }
 
@@ -4352,6 +4439,8 @@ pre {
   .market-grid,
   .verify-grid,
   .verify-actions,
+  .scorecard-grid,
+  .scorecard-grid article > div,
   .cid-lookup,
   .cid-result,
   .public-proof-hero,

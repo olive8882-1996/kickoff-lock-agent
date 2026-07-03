@@ -141,6 +141,9 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".proof-facts")).toContainText(/Mode proof facts/i);
   await expect(page.getByLabel("Proof timeline")).toContainText(/Mode proof created/i);
   await expect(page.getByLabel("Proof timeline")).toContainText(/Mode share image manifest/i);
+  await expect(page.getByLabel("Public proof scorecard")).toContainText(/Public proof scorecard/i);
+  await expect(page.getByLabel("Public proof scorecard")).toContainText(/Linked locks/i);
+  await expect(page.getByLabel("Public proof scorecard")).toContainText(/Deployed public URL/i);
   await expect(page.getByLabel("Verifier packet")).toContainText(/Mode proof: Bracket path/i);
   await expect(page.locator(".locked-payload")).toContainText(/modeRun/i);
   await expect(page.getByLabel("Social metadata")).toContainText(/Mode proof/i);
@@ -168,6 +171,9 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".proof-facts")).toContainText(/Proof facts/i);
   await expect(page.getByLabel("Proof timeline")).toContainText(/Prediction locked/i);
   await expect(page.getByLabel("Proof timeline")).toContainText(/Filecoin proof attached/i);
+  await expect(page.getByLabel("Public proof scorecard")).toContainText(/Public proof scorecard/i);
+  await expect(page.getByLabel("Public proof scorecard")).toContainText(/Lock timing/i);
+  await expect(page.getByLabel("Public proof scorecard")).toContainText(/Share image manifest/i);
   await expect(page.getByLabel("Verifier packet")).toContainText(/Kickoff Lock Agent verifier packet/i);
   await expect(page.getByLabel("Verifier packet")).toContainText(/Verify:/i);
   await expect(page.getByLabel("Social metadata")).toContainText(/Prediction/i);

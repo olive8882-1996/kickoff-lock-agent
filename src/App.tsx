@@ -91,6 +91,11 @@ import {
   buildRecordVerifierPacket,
   type VerifierPacket,
 } from "./publicProofPacket";
+import {
+  buildModePublicProofScorecard,
+  buildRecordPublicProofScorecard,
+  type PublicProofScorecard,
+} from "./publicProofScorecard";
 import { buildModeProofTimeline, buildRecordProofTimeline, type ProofTimelineItem } from "./proofTimeline";
 import { buildPublicUrl } from "./publicUrls";
 import {
@@ -2979,6 +2984,12 @@ function VerifyDashboard({
     : record
       ? buildRecordProofMeta(record, publicUrl, fallbackMetaImage, recordShareArtifact)
       : undefined;
+  const modeScorecard = modeRun
+    ? buildModePublicProofScorecard(modeRun, modeRunUrl(modeRun.id), modeShareArtifact)
+    : undefined;
+  const recordScorecard = record
+    ? buildRecordPublicProofScorecard(record, publicUrl, recordShareArtifact)
+    : undefined;
   useEffect(() => {
     if (publicMeta) applyPublicProofMeta(publicMeta);
   }, [
@@ -3094,6 +3105,7 @@ function VerifyDashboard({
             ))}
           </div>
           <ProofTimelineCard items={buildModeProofTimeline(modeRun, modeShareArtifact)} />
+          {modeScorecard && <PublicProofScorecardCard scorecard={modeScorecard} />}
           <VerifierPacketCard packet={buildModeVerifierPacket(modeRun, modeRunUrl(modeRun.id), modeShareArtifact)} />
           <div className="verify-card locked-payload">
             <h3>Mode payload</h3>
@@ -3256,6 +3268,7 @@ function VerifyDashboard({
             ))}
           </div>
           <ProofTimelineCard items={buildRecordProofTimeline(record, recordShareArtifact)} />
+          {recordScorecard && <PublicProofScorecardCard scorecard={recordScorecard} />}
           <VerifierPacketCard packet={buildRecordVerifierPacket(record, publicUrl, recordShareArtifact)} />
           <div className="verify-card locked-payload">
             <h3>Locked payload</h3>
@@ -3351,6 +3364,34 @@ function ProofTimelineCard({ items }: { items: ProofTimelineItem[] }) {
           </li>
         ))}
       </ol>
+    </div>
+  );
+}
+
+function PublicProofScorecardCard({ scorecard }: { scorecard: PublicProofScorecard }) {
+  return (
+    <div className={`verify-card public-proof-scorecard ${scorecard.productionReady ? "ready" : ""}`} aria-label="Public proof scorecard">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Judging view</p>
+          <h3>Public proof scorecard</h3>
+        </div>
+        <span className="pill">{scorecard.passed}/{scorecard.total}</span>
+      </div>
+      <p>{scorecard.summary}</p>
+      <div className="scorecard-grid">
+        {scorecard.items.map((item) => (
+          <article key={item.key} className={`scorecard-${item.status}`}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{item.label}</strong>
+              <span>{item.status}</span>
+            </div>
+            <small>{item.detail}</small>
+          </article>
+        ))}
+      </div>
+      <small>Next action: {scorecard.nextAction}</small>
     </div>
   );
 }

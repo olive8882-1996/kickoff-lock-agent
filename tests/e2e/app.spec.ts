@@ -136,6 +136,11 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Leaderboard evidence packet")).toContainText(/Leaderboard evidence packet/i);
   await expect(page.getByLabel("Leaderboard evidence packet")).toContainText(/Next action/i);
   await expect(page.getByRole("button", { name: /Copy leaderboard packet/i })).toBeVisible();
+  await expect(page.getByLabel("Leaderboard season evidence packet")).toContainText(/Leaderboard season evidence/i);
+  await expect(page.getByLabel("Leaderboard season evidence packet")).toContainText(/Season XP/i);
+  await expect(page.getByLabel("Leaderboard season evidence packet")).toContainText(/Friend code/i);
+  await expect(page.getByLabel("Leaderboard season evidence packet")).toContainText(/Season key/i);
+  await expect(page.getByRole("button", { name: /Copy season packet/i })).toBeVisible();
   await expect(page.getByLabel("Leaderboard query evidence")).toContainText(/Leaderboard scope read-back/i);
   await expect(page.getByLabel("Leaderboard query evidence")).toContainText(/global/i);
   await expect(page.getByLabel("Leaderboard query evidence")).toContainText(/friend_code/i);

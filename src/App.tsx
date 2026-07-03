@@ -77,6 +77,10 @@ import { filecoinSealConfigured, lookupFilecoinProof, runModeSealJob, runSealJob
 import { buildSealEvidencePacket, type SealEvidencePacket } from "./filecoinSealEvidence";
 import { buildLeaderboardEvidencePacket, type LeaderboardEvidencePacket } from "./leaderboardEvidence";
 import {
+  buildLeaderboardSeasonEvidencePacket,
+  type LeaderboardSeasonEvidencePacket,
+} from "./leaderboardSeasonEvidence";
+import {
   buildIntelligenceEnrichmentEvidencePacket,
   type IntelligenceEnrichmentEvidencePacket,
 } from "./intelligenceEnrichmentEvidence";
@@ -376,9 +380,13 @@ const copyToClipboard = async (text: string) => {
     textarea.value = text;
     textarea.setAttribute("readonly", "true");
     textarea.style.position = "fixed";
+    textarea.style.top = "0";
+    textarea.style.left = "0";
     textarea.style.opacity = "0";
     document.body.append(textarea);
+    textarea.focus();
     textarea.select();
+    textarea.setSelectionRange(0, text.length);
     const copied = document.execCommand("copy");
     textarea.remove();
     return copied;
@@ -1951,6 +1959,7 @@ function App() {
           currentXp={currentXp}
           currentStreak={currentStreak}
           leaderboardEntries={leaderboardEntries}
+          leaderboardSeasonEntries={allRemoteLeaderboard}
           leaderboardReadiness={leaderboardReadiness}
           leaderboardScopeEvidence={allLeaderboardEvidence}
           leaderboardScope={leaderboardScope}
@@ -2821,6 +2830,7 @@ function MemoryDashboard({
   currentXp,
   currentStreak,
   leaderboardEntries,
+  leaderboardSeasonEntries,
   leaderboardReadiness,
   leaderboardScopeEvidence,
   leaderboardScope,
@@ -2835,6 +2845,7 @@ function MemoryDashboard({
   currentXp: number;
   currentStreak: number;
   leaderboardEntries: LeaderboardEntry[];
+  leaderboardSeasonEntries: LeaderboardEntry[];
   leaderboardReadiness: LeaderboardReadinessItem[];
   leaderboardScopeEvidence: LeaderboardScopeEvidence[];
   leaderboardScope: LeaderboardScope;
@@ -2844,6 +2855,11 @@ function MemoryDashboard({
   const revealed = records.filter((record) => record.result);
   const leaderboard = leaderboardEntries.slice(0, 8);
   const leaderboardPacket = buildLeaderboardEvidencePacket(profile, leaderboardScopeEvidence);
+  const leaderboardSeasonPacket = buildLeaderboardSeasonEvidencePacket({
+    profile,
+    entries: leaderboardSeasonEntries,
+    evidence: leaderboardScopeEvidence,
+  });
   return (
     <section className="memory panel">
       <div
@@ -2918,6 +2934,7 @@ function MemoryDashboard({
           ))}
         </div>
         <LeaderboardEvidencePacketCard packet={leaderboardPacket} />
+        <LeaderboardSeasonEvidencePanel packet={leaderboardSeasonPacket} />
         <LeaderboardEvidencePanel evidence={leaderboardScopeEvidence} />
         {leaderboard.length === 0 && <p>No leaderboard rows yet. Sync a revealed proof to populate this scope.</p>}
         {leaderboard.map((entry, index) => (
@@ -3550,6 +3567,61 @@ function LeaderboardEvidencePacketCard({ packet }: { packet: LeaderboardEvidence
       <small>Next action: {packet.nextAction}</small>
       <small>Missing scopes: {packet.missingScopes.join(", ") || "none"}</small>
       <code>{packet.sampleIds.join(", ") || "no remote samples"}</code>
+    </div>
+  );
+}
+
+function LeaderboardSeasonEvidencePanel({ packet }: { packet: LeaderboardSeasonEvidencePacket }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPacket = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <div className={`leaderboard-season-packet ${packet.ready ? "passed" : ""}`} aria-label="Leaderboard season evidence packet">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Season claim</p>
+          <h3>Leaderboard season evidence</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <Link2 size={16} /> {copyStatus === "copied" ? "Copied season packet" : copyStatus === "manual" ? "Packet text shown" : "Copy season packet"}
+        </button>
+      </div>
+      <div className="leaderboard-packet-summary">
+        <div><span>Scopes</span><strong>{packet.passedScopes}/{packet.totalScopes}</strong></div>
+        <div><span>Best rank</span><strong>{packet.bestRank ? `#${packet.bestRank}` : "--"}</strong></div>
+        <div><span>Season XP</span><strong>{packet.seasonXp}</strong></div>
+      </div>
+      <div className="leaderboard-packet-summary">
+        <div><span>Real proofs</span><strong>{packet.verifiedProofs}</strong></div>
+        <div><span>Mode proofs</span><strong>{packet.modeProofs}</strong></div>
+        <div><span>Exact hits</span><strong>{packet.exactHits}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Friend code: {packet.friendCode}</small>
+      <small>Season key: {packet.seasonKey}</small>
+      <small>Next action: {packet.nextAction}</small>
+      {copyStatus === "manual" && (
+        <label className="leaderboard-copy-fallback">
+          <span>Manual packet copy</span>
+          <textarea
+            aria-label="Manual packet copy"
+            readOnly
+            value={packet.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="leaderboard-season-checks">
+        {packet.checks.map((check) => (
+          <div key={check.key} className={check.passed ? "passed" : ""}>
+            <CheckCircle2 size={15} />
+            <span>{check.label}</span>
+            <strong>{check.detail}</strong>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -4199,6 +4271,11 @@ function AccountDashboard({
     verification,
     source: profile.cloudMode === "supabase" ? "cloud-readback" : "local-preview",
   });
+  const leaderboardSeasonPacket = buildLeaderboardSeasonEvidencePacket({
+    profile,
+    entries: leaderboardEntries,
+    evidence: leaderboardScopeEvidence,
+  });
   const publicProfileArchiveCount =
     (verification?.publicProfileRecordIds?.length ?? 0) +
     (verification?.publicProfileModeRunIds?.length ?? 0) +
@@ -4389,6 +4466,7 @@ function AccountDashboard({
           <ProductionLaunchPacketPanel packet={productionLaunchPacket} />
           <ProductionEvidencePanel evidence={productionEvidence} status={productionEvidenceStatus} />
           <CloudReadbackLedger verification={verification} records={records} modeRuns={modeRuns} shareEvidence={shareEvidence} />
+          <LeaderboardSeasonEvidencePanel packet={leaderboardSeasonPacket} />
           <LeaderboardEvidencePanel evidence={leaderboardScopeEvidence} />
           <ShareArtifactLedger
             records={records}

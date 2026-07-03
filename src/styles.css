@@ -2136,7 +2136,8 @@ pre {
   background: rgba(34, 185, 255, 0.052);
 }
 
-.leaderboard-packet {
+.leaderboard-packet,
+.leaderboard-season-packet {
   display: grid;
   gap: 9px;
   margin: 8px 0;
@@ -2147,18 +2148,21 @@ pre {
     rgba(3, 8, 10, 0.34);
 }
 
-.leaderboard-packet.passed {
+.leaderboard-packet.passed,
+.leaderboard-season-packet.passed {
   border-color: rgba(77, 217, 137, 0.26);
   background:
     linear-gradient(135deg, rgba(77, 217, 137, 0.08), rgba(34, 185, 255, 0.045)),
     rgba(3, 8, 10, 0.34);
 }
 
-.leaderboard-packet .panel-head {
+.leaderboard-packet .panel-head,
+.leaderboard-season-packet .panel-head {
   margin-bottom: 0;
 }
 
-.leaderboard-packet .panel-head button {
+.leaderboard-packet .panel-head button,
+.leaderboard-season-packet .panel-head button {
   min-height: 34px;
   padding: 0 10px;
   border: 1px solid rgba(241, 201, 77, 0.26);
@@ -2188,7 +2192,11 @@ pre {
 .leaderboard-packet span,
 .leaderboard-packet p,
 .leaderboard-packet small,
-.leaderboard-packet code {
+.leaderboard-packet code,
+.leaderboard-season-packet span,
+.leaderboard-season-packet p,
+.leaderboard-season-packet small,
+.leaderboard-season-packet code {
   min-width: 0;
   margin: 0;
   color: rgba(238, 247, 243, 0.68);
@@ -2196,13 +2204,59 @@ pre {
   overflow-wrap: anywhere;
 }
 
-.leaderboard-packet span {
+.leaderboard-packet span,
+.leaderboard-season-packet span {
   font-weight: 950;
   text-transform: uppercase;
 }
 
-.leaderboard-packet strong {
+.leaderboard-packet strong,
+.leaderboard-season-packet strong {
   color: #eef7f3;
+}
+
+.leaderboard-season-checks {
+  display: grid;
+  gap: 7px;
+}
+
+.leaderboard-copy-fallback {
+  display: grid;
+  gap: 6px;
+}
+
+.leaderboard-copy-fallback textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  border: 1px solid rgba(241, 201, 77, 0.24);
+  border-radius: 4px;
+  background: rgba(3, 8, 10, 0.72);
+  color: #eef7f3;
+  font: 0.72rem/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.leaderboard-season-checks div {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 0.7fr) minmax(0, 1.3fr);
+  gap: 8px;
+  align-items: center;
+  padding: 9px;
+  border: 1px solid rgba(255, 91, 78, 0.22);
+  background: rgba(255, 91, 78, 0.06);
+}
+
+.leaderboard-season-checks div.passed {
+  border-color: rgba(77, 217, 137, 0.26);
+  background: rgba(77, 217, 137, 0.06);
+}
+
+.leaderboard-season-checks svg {
+  color: #ff9188;
+}
+
+.leaderboard-season-checks div.passed svg {
+  color: #61d893;
 }
 
 .mode-evidence-packet,
@@ -4981,6 +5035,7 @@ pre {
   .leaderboard-packet-summary,
   .leaderboard > article,
   .leaderboard-readiness div,
+  .leaderboard-season-checks div,
   .leaderboard-evidence article > div,
   .provider-readiness article,
   .provider-route-audit article div,

@@ -74,6 +74,7 @@ import {
   verifyCloudSyncReadback,
 } from "./cloud";
 import { filecoinSealConfigured, lookupFilecoinProof, runModeSealJob, runSealJob, sealBackendProductionReady } from "./filecoinSeal";
+import { buildSealEvidencePacket, type SealEvidencePacket } from "./filecoinSealEvidence";
 import { createGameModeRun, getModeReadiness } from "./modes";
 import { buildMatchDataEvidencePacket, type MatchDataEvidencePacket } from "./matchDataEvidence";
 import { applyRealProof, applyVerifiedProof, createCapsule, stableJson } from "./proof";
@@ -2562,6 +2563,7 @@ function SealWorkflowPanel({
   compact?: boolean;
 }) {
   const sealChecks = buildSealAcceptanceChecks(job, fallbackCid);
+  const evidencePacket = buildSealEvidencePacket(job);
   return (
     <div className={`seal-steps ${compact ? "compact" : ""}`}>
       <div className="panel-head">
@@ -2580,6 +2582,7 @@ function SealWorkflowPanel({
           </div>
         ))}
       </div>
+      <SealEvidencePacketCard packet={evidencePacket} />
       {job.steps.map((step) => (
         <article key={step.id}>
           <CheckCircle2 size={16} />
@@ -2597,6 +2600,33 @@ function SealWorkflowPanel({
         </div>
       )}
     </div>
+  );
+}
+
+function SealEvidencePacketCard({ packet }: { packet: SealEvidencePacket }) {
+  const copyPacket = async () => {
+    await navigator.clipboard?.writeText(packet.copyText);
+  };
+  return (
+    <section className={`seal-evidence-packet ${packet.productionReady ? "ready" : ""}`} aria-label="Filecoin seal evidence packet">
+      <div className="seal-evidence-head">
+        <div>
+          <strong>Filecoin seal evidence packet</strong>
+          <span>{packet.summary}</span>
+        </div>
+        <button onClick={copyPacket}>
+          <FileCheck2 size={15} /> Copy seal evidence
+        </button>
+      </div>
+      <div className="seal-evidence-grid">
+        <span>{packet.cid ?? "CID pending"}</span>
+        <span>{packet.passedSteps}/{packet.totalSteps} steps</span>
+        <span>{packet.pollAttempts} poll attempts</span>
+        <span>{packet.registryHashMatch ? "registry hash match" : "registry pending"}</span>
+      </div>
+      <small>Next action: {packet.nextAction}</small>
+      {packet.blockers.length > 0 && <small>Blockers: {packet.blockers.join(", ")}</small>}
+    </section>
   );
 }
 

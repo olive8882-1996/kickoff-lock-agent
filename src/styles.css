@@ -1780,6 +1780,61 @@ code {
   font-size: 0.76rem;
 }
 
+.seal-evidence-packet {
+  display: grid;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid rgba(34, 185, 255, 0.2);
+  background: rgba(34, 185, 255, 0.055);
+}
+
+.seal-evidence-packet.ready {
+  border-color: rgba(77, 217, 137, 0.26);
+  background: rgba(77, 217, 137, 0.06);
+}
+
+.seal-evidence-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.seal-evidence-head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.seal-evidence-head strong {
+  color: #eef7f3;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+}
+
+.seal-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.seal-evidence-grid span {
+  min-width: 0;
+  margin: 0;
+  padding: 7px;
+  border: 1px solid rgba(238, 247, 243, 0.1);
+  background: rgba(3, 8, 10, 0.32);
+  color: rgba(238, 247, 243, 0.72);
+  font-size: 0.68rem;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.seal-evidence-packet small {
+  color: rgba(238, 247, 243, 0.68);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
 .seal-links {
   display: flex;
   flex-wrap: wrap;
@@ -4284,6 +4339,8 @@ pre {
   .production-evidence-grid article > div,
   .readback-ledger article > div,
   .seal-checklist div,
+  .seal-evidence-head,
+  .seal-evidence-grid,
   .seal-steps article,
   .public-profile-stats,
   .lock-window,

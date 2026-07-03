@@ -51,9 +51,9 @@ export const ACCEPTANCE_TEST_SUITES: AcceptanceTestSuite[] = [
     id: "cloud-account",
     label: "Cloud account and read-back",
     command: "bun run test",
-    file: "src/cloud.test.ts, src/accountHandoff.test.ts, src/leaderboardEvidence.test.ts, src/readiness.test.ts, src/productionDoctor.test.ts, src/supabaseProductionDoctor.test.ts, src/productionTargetSeed.test.ts",
+    file: "src/cloud.test.ts, src/accountHandoff.test.ts, src/leaderboardEvidence.test.ts, src/productionLaunchPacket.test.ts, src/readiness.test.ts, src/productionDoctor.test.ts, src/supabaseProductionDoctor.test.ts, src/productionTargetSeed.test.ts",
     coverage: ["cloud-readback"],
-    proves: "Supabase session handling, history merge, current-user leaderboard scope checks, leaderboard evidence packets, account handoff packet readiness, public mode proof gates, public share image URL read-back, strict cloud read-back readiness, acceptance evidence freshness rejection, external production evidence summaries, production verification target env generation, explicit Supabase target-row checks, Supabase production target seed row generation, Supabase production doctor REST/Storage/leaderboard checks, production operator doctor grouping and production radar external-evidence gating",
+    proves: "Supabase session handling, history merge, current-user leaderboard scope checks, leaderboard evidence packets, account handoff packet readiness, production launch packets, public mode proof gates, public share image URL read-back, strict cloud read-back readiness, acceptance evidence freshness rejection, external production evidence summaries, production verification target env generation, explicit Supabase target-row checks, Supabase production target seed row generation, Supabase production doctor REST/Storage/leaderboard checks, production operator doctor grouping and production radar external-evidence gating",
   },
   {
     id: "live-data",

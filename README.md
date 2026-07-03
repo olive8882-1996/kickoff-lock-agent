@@ -16,6 +16,7 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 - Sign in with Supabase Google OAuth or magic links to sync profile, prediction history, public proof links, and global/friend/season leaderboards.
 - Verify cloud sync by reading profile, records, mode proof runs, share card manifests, public share image URLs, content fingerprints, public proof links, and public profile archive contents back from Supabase instead of trusting write-only success.
 - Use the Account handoff packet to copy the current cross-device readiness state, public profile URL, pending sync count, production verification env and next missing account step.
+- Use the Production launch packet to copy the remaining real-service workstreams, missing runtime env, target verification env and focused doctor commands.
 - Verify leaderboard backend health with per-scope query evidence for global, friend-code, and season filters, including current-user presence, instead of trusting stale rows or local fallback rankings.
 - Copy a leaderboard evidence packet that summarizes global/friend/season scope filters, remote row counts, current-user presence, sample IDs and the next missing scope.
 - Inspect a structured realtime-data evidence packet for every sync: active route, match counts, per-signal live/configured/fallback/missing coverage, sample fixtures, warning state, and production-readiness status.
@@ -142,6 +143,7 @@ Key files:
 - `src/bracket.ts`: knockout path builder, bracket readiness rules, and bracket proof run sealing.
 - `src/modes.ts`: bracket/parlay/agent/upset mode proof runs, including parlay tickets, agent calibration reports and upset bonus tickets.
 - `src/modeEvidence.ts`: four-mode production evidence packets for Filecoin, cloud read-back, public mode links and share cards.
+- `src/productionLaunchPacket.ts`: copyable production launch workstreams derived from the operator doctor.
 - `src/readiness.ts`: production acceptance radar for real account sync, live data, Filecoin sealing, sharing, leaderboards, modes, and automated tests.
 - `src/acceptance.ts`: explicit acceptance test manifest and run-evidence summary covering scoring, proof hashes, cloud read-back, providers, share cards, Filecoin API, modes, browser E2E and seal E2E.
 - `scripts/seal-with-synapse.mjs`: real Synapse/Filecoin adapter.

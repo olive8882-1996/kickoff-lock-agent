@@ -118,6 +118,7 @@ import {
   type ProductionEvidencePacket,
 } from "./productionEvidence";
 import { buildProductionDoctorReport, type ProductionDoctorReport } from "./productionDoctor";
+import { buildProductionLaunchPacket, type ProductionLaunchPacket } from "./productionLaunchPacket";
 import { buildProductionReadiness, summarizeProductionReadiness } from "./readiness";
 import {
   buildRuntimeConfigReadiness,
@@ -4003,6 +4004,7 @@ function AccountDashboard({
     { ...import.meta.env, ...parseEnvText(productionVerifyEnv) },
     productionEvidence,
   );
+  const productionLaunchPacket = buildProductionLaunchPacket(productionDoctor);
   const accountHandoff = buildAccountHandoffPacket({
     profile,
     cloudState,
@@ -4197,6 +4199,7 @@ function AccountDashboard({
           <ProductionVerifyTargetsPanel envText={productionVerifyEnv} />
           <AccountHandoffPanel packet={accountHandoff} />
           <ProductionDoctorPanel report={productionDoctor} />
+          <ProductionLaunchPacketPanel packet={productionLaunchPacket} />
           <ProductionEvidencePanel evidence={productionEvidence} status={productionEvidenceStatus} />
           <CloudReadbackLedger verification={verification} records={records} modeRuns={modeRuns} shareEvidence={shareEvidence} />
           <LeaderboardEvidencePanel evidence={leaderboardScopeEvidence} />
@@ -4422,6 +4425,51 @@ function ProductionDoctorPanel({ report }: { report: ProductionDoctorReport }) {
           ))}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function ProductionLaunchPacketPanel({ packet }: { packet: ProductionLaunchPacket }) {
+  const copyPacket = async () => {
+    await copyToClipboard(packet.copyText);
+  };
+  return (
+    <div className={`production-launch-packet ${packet.ready ? "passed" : ""}`} aria-label="Production launch packet">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Launch packet</p>
+          <h3>Production launch packet</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <Link2 size={16} /> Copy launch packet
+        </button>
+      </div>
+      <div className="production-launch-summary">
+        <div><span>Runtime</span><strong>{packet.runtime}</strong></div>
+        <div><span>Evidence</span><strong>{packet.evidence}</strong></div>
+        <div><span>Open</span><strong>{packet.openSteps}/{packet.totalSteps}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Next action: {packet.nextAction}</small>
+      <div className="production-launch-commands">
+        {packet.commands.map((command) => (
+          <code key={command}>{command}</code>
+        ))}
+      </div>
+      <div className="production-launch-grid">
+        {packet.steps.map((step) => (
+          <article key={step.id} className={`launch-${step.status}`}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{step.label}</strong>
+              <span>{step.status}</span>
+            </div>
+            <small>Command: {step.command}</small>
+            <small>Runtime env: {step.missingEnv.join(", ") || "none"}</small>
+            <small>Target env: {step.targetEnv.join(", ") || "none"}</small>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }

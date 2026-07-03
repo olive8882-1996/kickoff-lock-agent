@@ -66,6 +66,10 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Account handoff packet")).toContainText(/Cloud read-back/i);
   await expect(page.getByLabel("Account handoff packet")).toContainText(/Next action/i);
   await expect(page.getByRole("button", { name: /Copy handoff/i })).toBeVisible();
+  await expect(page.getByLabel("Production launch packet")).toContainText(/Production launch packet/i);
+  await expect(page.getByLabel("Production launch packet")).toContainText(/Next action/i);
+  await expect(page.getByRole("button", { name: /Copy launch packet/i })).toBeVisible();
+  await expect(page.getByLabel("Production launch packet")).toContainText(/doctor:production/i);
   await expect(page.getByLabel("Leaderboard query evidence")).toContainText(/Leaderboard scope read-back/i);
   await expect(page.getByLabel("Share artifact ledger")).toContainText(/Publishable proof cards/i);
   await expect(page.getByLabel("Production acceptance")).toContainText(/真实成品验收雷达/i);

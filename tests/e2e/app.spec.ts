@@ -16,6 +16,8 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Realtime data evidence")).toContainText(/Realtime evidence packet/i);
   await expect(page.getByLabel("Realtime data evidence")).toContainText(/matches/i);
   await expect(page.getByLabel("Realtime data evidence")).toContainText(/Schedule/i);
+  await expect(page.getByLabel("Intelligence enrichment packet")).toContainText(/Enrichment evidence packet/i);
+  await expect(page.getByLabel("Intelligence enrichment packet")).toContainText(/Lineups/i);
   await expect(page.getByLabel("Provider route audit")).toContainText(/Provider route audit/i);
   await expect(page.getByLabel("Provider route audit")).toContainText(/API-Football/i);
   await expect(page.getByLabel("Provider route audit")).toContainText(/Seed continuity/i);
@@ -76,6 +78,8 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Realtime production data packet")).toContainText(/Production data packet/i);
   await expect(page.getByLabel("Realtime production data packet")).toContainText(/Signals/i);
   await expect(page.getByRole("button", { name: /Copy data packet/i })).toBeVisible();
+  await expect(page.getByLabel("Intelligence enrichment packet")).toContainText(/Enrichment evidence packet/i);
+  await expect(page.getByRole("button", { name: /Copy enrichment/i })).toBeVisible();
   await expect(page.getByLabel("Leaderboard query evidence")).toContainText(/Leaderboard scope read-back/i);
   await expect(page.getByLabel("Share artifact ledger")).toContainText(/Publishable proof cards/i);
   await expect(page.getByRole("button", { name: /Publish missing cards/i })).toBeVisible();

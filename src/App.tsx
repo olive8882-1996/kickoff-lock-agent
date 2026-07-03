@@ -76,6 +76,10 @@ import {
 import { filecoinSealConfigured, lookupFilecoinProof, runModeSealJob, runSealJob, sealBackendProductionReady } from "./filecoinSeal";
 import { buildSealEvidencePacket, type SealEvidencePacket } from "./filecoinSealEvidence";
 import { buildLeaderboardEvidencePacket, type LeaderboardEvidencePacket } from "./leaderboardEvidence";
+import {
+  buildIntelligenceEnrichmentEvidencePacket,
+  type IntelligenceEnrichmentEvidencePacket,
+} from "./intelligenceEnrichmentEvidence";
 import { buildModeEvidencePacket, type ModeEvidencePacket } from "./modeEvidence";
 import { buildModeSettlementPacket, type ModeSettlementPacket } from "./modeSettlement";
 import { createGameModeRun, getModeReadiness } from "./modes";
@@ -955,6 +959,10 @@ function App() {
     enrichmentAudit: providerEnrichmentAudit,
     now,
   });
+  const intelligenceEnrichmentEvidence = buildIntelligenceEnrichmentEvidencePacket({
+    audit: providerEnrichmentAudit,
+    health: providerHealth,
+  });
   const runtimeConfigReadiness = buildRuntimeConfigReadiness(import.meta.env);
   const runtimeConfigSummary = summarizeRuntimeConfigReadiness(runtimeConfigReadiness);
   const productionReadiness = buildProductionReadiness({
@@ -1700,6 +1708,7 @@ function App() {
           </div>
           <ProviderHealthPanel health={providerHealth} />
           {realtimeDataAudit && <RealtimeDataAuditPanel audit={realtimeDataAudit} />}
+          <IntelligenceEnrichmentEvidencePanel packet={intelligenceEnrichmentEvidence} />
           <ProviderRouteAudit items={providerRouteAudit} />
           <ProviderReadiness items={providerReadiness} />
           <div className="filter-row" aria-label="Match filters">
@@ -2029,6 +2038,7 @@ function App() {
           productionEvidenceStatus={productionEvidenceStatus}
           runtimeConfigReadiness={runtimeConfigReadiness}
           runtimeConfigSummary={runtimeConfigSummary}
+          intelligenceEnrichmentEvidence={intelligenceEnrichmentEvidence}
           onEmail={setAccountEmail}
           onProfile={updateProfile}
           onMagicLink={requestMagicLink}
@@ -4057,6 +4067,7 @@ function AccountDashboard({
   productionEvidenceStatus,
   runtimeConfigReadiness,
   runtimeConfigSummary,
+  intelligenceEnrichmentEvidence,
   onEmail,
   onProfile,
   onMagicLink,
@@ -4091,6 +4102,7 @@ function AccountDashboard({
   productionEvidenceStatus: string;
   runtimeConfigReadiness: RuntimeConfigItem[];
   runtimeConfigSummary: RuntimeConfigSummary;
+  intelligenceEnrichmentEvidence: IntelligenceEnrichmentEvidencePacket;
   onEmail: (value: string) => void;
   onProfile: (patch: Partial<ReturnType<typeof loadProfile>>) => void;
   onMagicLink: () => void;
@@ -4373,6 +4385,7 @@ function AccountDashboard({
           <ProfileArchiveEvidencePanel packet={profileArchiveEvidence} />
           <ProductionDoctorPanel report={productionDoctor} />
           <RealtimeDataEvidencePacketPanel packet={realtimeDataEvidence} />
+          <IntelligenceEnrichmentEvidencePanel packet={intelligenceEnrichmentEvidence} />
           <ProductionLaunchPacketPanel packet={productionLaunchPacket} />
           <ProductionEvidencePanel evidence={productionEvidence} status={productionEvidenceStatus} />
           <CloudReadbackLedger verification={verification} records={records} modeRuns={modeRuns} shareEvidence={shareEvidence} />
@@ -4645,6 +4658,50 @@ function RealtimeDataEvidencePacketPanel({ packet }: { packet: RealtimeDataEvide
             </div>
             <small>{signal.provider} · {signal.sample}</small>
             <p>{signal.action}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function IntelligenceEnrichmentEvidencePanel({ packet }: { packet: IntelligenceEnrichmentEvidencePacket }) {
+  const copyPacket = async () => {
+    await copyToClipboard(packet.copyText);
+  };
+  return (
+    <div
+      className={`intelligence-enrichment-packet ${packet.productionReady ? "passed" : ""}`}
+      aria-label="Intelligence enrichment packet"
+    >
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Intelligence layer</p>
+          <h3>Enrichment evidence packet</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <Radar size={16} /> Copy enrichment
+        </button>
+      </div>
+      <div className="intelligence-enrichment-summary">
+        <div><span>Endpoints</span><strong>{packet.requiredReady}/{packet.requiredTotal}</strong></div>
+        <div><span>Fixtures</span><strong>{packet.attemptedFixtures}/{packet.totalFixtures}</strong></div>
+        <div><span>Live rows</span><strong>{packet.liveSignals}</strong></div>
+        <div><span>Source</span><strong>{packet.source}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Next action: {packet.nextAction}</small>
+      <div className="intelligence-enrichment-grid">
+        {packet.items.map((item) => (
+          <article key={item.key} className={item.productionReady ? "data-ready" : "data-gap"}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{item.label}</strong>
+              <span>{item.productionReady ? "verified" : "pending"}</span>
+            </div>
+            <small>{item.detail}</small>
+            <small>{item.endpoint}</small>
+            <p>{item.sampleIds.length > 0 ? `Samples ${item.sampleIds.join(", ")}` : item.action}</p>
           </article>
         ))}
       </div>

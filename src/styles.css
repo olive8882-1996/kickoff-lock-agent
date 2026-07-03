@@ -2977,7 +2977,8 @@ pre {
 }
 
 .production-launch-packet,
-.realtime-data-evidence-packet {
+.realtime-data-evidence-packet,
+.intelligence-enrichment-packet {
   display: grid;
   gap: 10px;
   margin: 12px 0;
@@ -2989,7 +2990,8 @@ pre {
 }
 
 .production-launch-packet.passed,
-.realtime-data-evidence-packet.passed {
+.realtime-data-evidence-packet.passed,
+.intelligence-enrichment-packet.passed {
   border-color: rgba(77, 217, 137, 0.28);
   background:
     linear-gradient(135deg, rgba(77, 217, 137, 0.08), rgba(34, 185, 255, 0.045)),
@@ -2997,12 +2999,14 @@ pre {
 }
 
 .production-launch-packet .panel-head,
-.realtime-data-evidence-packet .panel-head {
+.realtime-data-evidence-packet .panel-head,
+.intelligence-enrichment-packet .panel-head {
   margin-bottom: 0;
 }
 
 .production-launch-packet .panel-head button,
-.realtime-data-evidence-packet .panel-head button {
+.realtime-data-evidence-packet .panel-head button,
+.intelligence-enrichment-packet .panel-head button {
   min-height: 34px;
   padding: 0 10px;
   border: 1px solid rgba(34, 185, 255, 0.3);
@@ -3017,7 +3021,9 @@ pre {
 .production-launch-summary,
 .production-launch-grid,
 .realtime-data-evidence-summary,
-.realtime-data-evidence-grid {
+.realtime-data-evidence-grid,
+.intelligence-enrichment-summary,
+.intelligence-enrichment-grid {
   display: grid;
   gap: 8px;
 }
@@ -3026,14 +3032,17 @@ pre {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.realtime-data-evidence-summary {
+.realtime-data-evidence-summary,
+.intelligence-enrichment-summary {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .production-launch-summary div,
 .production-launch-grid article,
 .realtime-data-evidence-summary div,
-.realtime-data-evidence-grid article {
+.realtime-data-evidence-grid article,
+.intelligence-enrichment-summary div,
+.intelligence-enrichment-grid article {
   min-width: 0;
   padding: 10px;
   border: 1px solid rgba(238, 247, 243, 0.1);
@@ -3041,12 +3050,14 @@ pre {
 }
 
 .production-launch-grid,
-.realtime-data-evidence-grid {
+.realtime-data-evidence-grid,
+.intelligence-enrichment-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .production-launch-grid article,
-.realtime-data-evidence-grid article {
+.realtime-data-evidence-grid article,
+.intelligence-enrichment-grid article {
   display: grid;
   gap: 6px;
   border-color: rgba(255, 91, 78, 0.2);
@@ -3063,18 +3074,21 @@ pre {
   background: rgba(241, 201, 77, 0.052);
 }
 
-.realtime-data-evidence-grid article.data-ready {
+.realtime-data-evidence-grid article.data-ready,
+.intelligence-enrichment-grid article.data-ready {
   border-color: rgba(77, 217, 137, 0.24);
   background: rgba(77, 217, 137, 0.06);
 }
 
-.realtime-data-evidence-grid article.data-gap {
+.realtime-data-evidence-grid article.data-gap,
+.intelligence-enrichment-grid article.data-gap {
   border-color: rgba(241, 201, 77, 0.2);
   background: rgba(241, 201, 77, 0.052);
 }
 
 .production-launch-grid article > div,
-.realtime-data-evidence-grid article > div {
+.realtime-data-evidence-grid article > div,
+.intelligence-enrichment-grid article > div {
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr) auto;
   gap: 8px;
@@ -3100,7 +3114,10 @@ pre {
 .production-launch-packet code,
 .realtime-data-evidence-packet span,
 .realtime-data-evidence-packet small,
-.realtime-data-evidence-packet p {
+.realtime-data-evidence-packet p,
+.intelligence-enrichment-packet span,
+.intelligence-enrichment-packet small,
+.intelligence-enrichment-packet p {
   min-width: 0;
   margin: 0;
   color: rgba(238, 247, 243, 0.68);
@@ -3111,13 +3128,15 @@ pre {
 }
 
 .production-launch-packet span,
-.realtime-data-evidence-packet span {
+.realtime-data-evidence-packet span,
+.intelligence-enrichment-packet span {
   font-weight: 950;
   text-transform: uppercase;
 }
 
 .production-launch-packet strong,
-.realtime-data-evidence-packet strong {
+.realtime-data-evidence-packet strong,
+.intelligence-enrichment-packet strong {
   min-width: 0;
   color: #eef7f3;
   overflow-wrap: anywhere;
@@ -4987,6 +5006,9 @@ pre {
   .realtime-data-evidence-summary,
   .realtime-data-evidence-grid,
   .realtime-data-evidence-grid article > div,
+  .intelligence-enrichment-summary,
+  .intelligence-enrichment-grid,
+  .intelligence-enrichment-grid article > div,
   .production-evidence-grid,
   .production-evidence-grid article > div,
   .readback-ledger article > div,

@@ -38,6 +38,7 @@ import {
   summarizeAcceptanceRunEvidence,
   type AcceptanceEvidencePacket,
 } from "./acceptance";
+import { buildAccountHandoffPacket, type AccountHandoffPacket } from "./accountHandoff";
 import {
   buildPublicProfile,
   buildCloudSyncAudit,
@@ -3848,6 +3849,16 @@ function AccountDashboard({
     { ...import.meta.env, ...parseEnvText(productionVerifyEnv) },
     productionEvidence,
   );
+  const accountHandoff = buildAccountHandoffPacket({
+    profile,
+    cloudState,
+    records,
+    modeRuns,
+    shareEvidence,
+    productionVerifyEnv,
+    publicProfileUrl: profileUrl(profile.id),
+    missingRuntimeEnv: productionDoctor.runtime.missingEnvKeys,
+  });
   const publicProfileArchiveCount =
     (verification?.publicProfileRecordIds?.length ?? 0) +
     (verification?.publicProfileModeRunIds?.length ?? 0) +
@@ -4030,6 +4041,7 @@ function AccountDashboard({
           </div>
           <RuntimeConfigPanel items={runtimeConfigReadiness} summary={runtimeConfigSummary} />
           <ProductionVerifyTargetsPanel envText={productionVerifyEnv} />
+          <AccountHandoffPanel packet={accountHandoff} />
           <ProductionDoctorPanel report={productionDoctor} />
           <ProductionEvidencePanel evidence={productionEvidence} status={productionEvidenceStatus} />
           <CloudReadbackLedger verification={verification} records={records} modeRuns={modeRuns} shareEvidence={shareEvidence} />
@@ -4154,6 +4166,57 @@ function ProductionVerifyTargetsPanel({ envText }: { envText: string }) {
         <span>Paste into <code>.env.production.local</code>, fill blanks, then run <code>bun run verify:production</code>.</span>
       </div>
       <pre>{envText}</pre>
+    </div>
+  );
+}
+
+function AccountHandoffPanel({ packet }: { packet: AccountHandoffPacket }) {
+  const copyHandoff = async () => {
+    await navigator.clipboard?.writeText(packet.copyText);
+  };
+  return (
+    <div className={`account-handoff ${packet.crossDeviceReady ? "ready" : ""}`} aria-label="Account handoff packet">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Cross-device handoff</p>
+          <h3>Account handoff packet</h3>
+        </div>
+        <span className="pill">{packet.crossDeviceReady ? "ready" : "pending"}</span>
+      </div>
+      <div className="account-handoff-summary">
+        <div>
+          <span>Cloud read-back</span>
+          <strong>{packet.cloudReadBackArtifacts}/{packet.localArtifacts}</strong>
+        </div>
+        <div>
+          <span>Pending sync</span>
+          <strong>{packet.pendingSyncItems}</strong>
+        </div>
+        <div>
+          <span>Verify env</span>
+          <strong>{packet.envFilled}/{packet.envTotal}</strong>
+        </div>
+      </div>
+      <p>{packet.summary}</p>
+      <div className="account-handoff-actions">
+        <button onClick={copyHandoff}>
+          <FileCheck2 size={16} /> Copy handoff
+        </button>
+        <code>{packet.publicProfileUrl}</code>
+      </div>
+      <div className="account-handoff-checks">
+        {packet.checklist.map((item) => (
+          <article key={item.key} className={`handoff-${item.status}`}>
+            <div>
+              <CheckCircle2 size={15} />
+              <strong>{item.label}</strong>
+              <span>{item.status}</span>
+            </div>
+            <small>{item.detail}</small>
+          </article>
+        ))}
+      </div>
+      <small>Next action: {packet.nextAction}</small>
     </div>
   );
 }

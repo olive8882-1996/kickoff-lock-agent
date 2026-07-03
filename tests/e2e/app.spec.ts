@@ -62,6 +62,10 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Cloud read-back ledger")).toContainText(/Share manifest rows/i);
   await expect(page.getByLabel("Cloud read-back ledger")).toContainText(/Content fingerprints/i);
   await expect(page.getByLabel("Cloud read-back ledger")).toContainText(/Anonymous proof links/i);
+  await expect(page.getByLabel("Account handoff packet")).toContainText(/Cross-device handoff/i);
+  await expect(page.getByLabel("Account handoff packet")).toContainText(/Cloud read-back/i);
+  await expect(page.getByLabel("Account handoff packet")).toContainText(/Next action/i);
+  await expect(page.getByRole("button", { name: /Copy handoff/i })).toBeVisible();
   await expect(page.getByLabel("Leaderboard query evidence")).toContainText(/Leaderboard scope read-back/i);
   await expect(page.getByLabel("Share artifact ledger")).toContainText(/Publishable proof cards/i);
   await expect(page.getByLabel("Production acceptance")).toContainText(/真实成品验收雷达/i);

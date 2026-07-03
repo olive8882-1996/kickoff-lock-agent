@@ -40,6 +40,10 @@ import {
 } from "./acceptance";
 import { buildAccountHandoffPacket, type AccountHandoffPacket } from "./accountHandoff";
 import {
+  buildAccountRecoveryEvidencePacket,
+  type AccountRecoveryEvidencePacket,
+} from "./accountRecoveryEvidence";
+import {
   buildPublicProfile,
   buildCloudSyncAudit,
   buildLocalLeaderboard,
@@ -4402,6 +4406,15 @@ function AccountDashboard({
     publicProfileUrl: profileUrl(profile.id),
     missingRuntimeEnv: productionDoctor.runtime.missingEnvKeys,
   });
+  const accountRecovery = buildAccountRecoveryEvidencePacket({
+    profile,
+    cloudState,
+    records,
+    modeRuns,
+    shareEvidence,
+    leaderboardScopeEvidence,
+    publicProfileUrl: profileUrl(profile.id),
+  });
   const profileArchiveEvidence = buildProfileArchiveEvidencePacket({
     profile: buildPublicProfile(profile, records, modeRuns, shareEvidence),
     profileUrl: profileUrl(profile.id),
@@ -4596,6 +4609,7 @@ function AccountDashboard({
           <RuntimeConfigPanel items={runtimeConfigReadiness} summary={runtimeConfigSummary} />
           <ProductionVerifyTargetsPanel envText={productionVerifyEnv} />
           <AccountHandoffPanel packet={accountHandoff} />
+          <AccountRecoveryEvidencePanel packet={accountRecovery} />
           <ProfileArchiveEvidencePanel packet={profileArchiveEvidence} />
           <ProductionDoctorPanel report={productionDoctor} />
           <RealtimeDataEvidencePacketPanel packet={realtimeDataEvidence} />
@@ -4781,6 +4795,75 @@ function AccountHandoffPanel({ packet }: { packet: AccountHandoffPacket }) {
         ))}
       </div>
       <small>Next action: {packet.nextAction}</small>
+    </div>
+  );
+}
+
+function AccountRecoveryEvidencePanel({ packet }: { packet: AccountRecoveryEvidencePacket }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPacket = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <div
+      className={`account-recovery-evidence ${packet.ready ? "ready" : ""}`}
+      aria-label="Cross-device recovery evidence"
+    >
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Recovery rehearsal</p>
+          <h3>Cross-device recovery evidence</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <Download size={16} /> {copyStatus === "copied" ? "Copied recovery" : copyStatus === "manual" ? "Recovery text shown" : "Copy recovery"}
+        </button>
+      </div>
+      <div className="account-recovery-summary">
+        <div>
+          <span>Checks</span>
+          <strong>{packet.recoveryScore}</strong>
+        </div>
+        <div>
+          <span>Cloud artifacts</span>
+          <strong>{packet.recoveredArtifacts}/{packet.expectedArtifacts}</strong>
+        </div>
+        <div>
+          <span>Anonymous</span>
+          <strong>{packet.anonymousArtifacts}</strong>
+        </div>
+        <div>
+          <span>Fingerprints</span>
+          <strong>{packet.fingerprintMatches}/{packet.expectedArtifacts}</strong>
+        </div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Leaderboard scopes: {packet.leaderboardScopes.length > 0 ? packet.leaderboardScopes.join(", ") : "none yet"}</small>
+      <small>Next action: {packet.nextAction}</small>
+      {copyStatus === "manual" && (
+        <label className="account-recovery-copy">
+          <span>Manual recovery copy</span>
+          <textarea
+            aria-label="Manual recovery copy"
+            readOnly
+            value={packet.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="account-recovery-steps">
+        {packet.steps.map((step) => (
+          <article key={step.key} className={`recovery-${step.status}`}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{step.label}</strong>
+              <span>{step.status}</span>
+            </div>
+            <small>{step.detail}</small>
+            <p>{step.status === "passed" ? "Ready for recovery proof." : step.action}</p>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }

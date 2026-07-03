@@ -3490,6 +3490,142 @@ pre {
   color: #ffb3ad;
 }
 
+.account-recovery-evidence {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid rgba(34, 185, 255, 0.18);
+  background:
+    linear-gradient(135deg, rgba(34, 185, 255, 0.08), rgba(77, 217, 137, 0.045)),
+    rgba(3, 8, 10, 0.34);
+}
+
+.account-recovery-evidence.ready {
+  border-color: rgba(79, 211, 109, 0.28);
+  background:
+    linear-gradient(135deg, rgba(79, 211, 109, 0.08), rgba(34, 185, 255, 0.05)),
+    rgba(3, 8, 10, 0.34);
+}
+
+.account-recovery-evidence .panel-head {
+  margin-bottom: 0;
+}
+
+.account-recovery-evidence .panel-head button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(34, 185, 255, 0.3);
+  border-radius: 4px;
+  background: rgba(34, 185, 255, 0.1);
+  color: #9bdfff;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.account-recovery-summary,
+.account-recovery-steps {
+  display: grid;
+  gap: 8px;
+}
+
+.account-recovery-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.account-recovery-steps {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.account-recovery-summary div,
+.account-recovery-steps article {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(238, 247, 243, 0.1);
+  background: rgba(3, 8, 10, 0.36);
+}
+
+.account-recovery-steps article {
+  display: grid;
+  gap: 6px;
+  border-color: rgba(241, 201, 77, 0.2);
+  background: rgba(241, 201, 77, 0.055);
+}
+
+.account-recovery-steps article.recovery-passed {
+  border-color: rgba(79, 211, 109, 0.24);
+  background: rgba(79, 211, 109, 0.055);
+}
+
+.account-recovery-steps article.recovery-blocked {
+  border-color: rgba(255, 77, 64, 0.24);
+  background: rgba(255, 77, 64, 0.055);
+}
+
+.account-recovery-steps article > div {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.account-recovery-evidence span,
+.account-recovery-evidence small,
+.account-recovery-evidence p {
+  min-width: 0;
+  margin: 0;
+  color: rgba(238, 247, 243, 0.68);
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.account-recovery-evidence span {
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.account-recovery-evidence strong {
+  min-width: 0;
+  color: #eef7f3;
+  overflow-wrap: anywhere;
+}
+
+.account-recovery-summary strong {
+  color: #f1c94d;
+  font-size: 1rem;
+}
+
+.account-recovery-steps svg {
+  color: #ffe8a8;
+}
+
+.account-recovery-steps .recovery-passed svg {
+  color: #d8ffd9;
+}
+
+.account-recovery-steps .recovery-blocked svg {
+  color: #ffb3ad;
+}
+
+.account-recovery-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.account-recovery-copy textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  border: 1px solid rgba(34, 185, 255, 0.24);
+  border-radius: 4px;
+  background: rgba(3, 8, 10, 0.72);
+  color: #eef7f3;
+  font: 0.72rem/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 .profile-archive-evidence {
   display: grid;
   gap: 10px;
@@ -5320,6 +5456,9 @@ pre {
   .account-handoff-actions,
   .account-handoff-checks,
   .account-handoff-checks article > div,
+  .account-recovery-summary,
+  .account-recovery-steps,
+  .account-recovery-steps article > div,
   .profile-archive-summary,
   .profile-archive-checks,
   .profile-archive-checks article > div,

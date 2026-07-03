@@ -68,6 +68,10 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Account handoff packet")).toContainText(/Cloud read-back/i);
   await expect(page.getByLabel("Account handoff packet")).toContainText(/Next action/i);
   await expect(page.getByRole("button", { name: /Copy handoff/i })).toBeVisible();
+  await expect(page.getByLabel("Cross-device recovery evidence")).toContainText(/Recovery rehearsal/i);
+  await expect(page.getByLabel("Cross-device recovery evidence")).toContainText(/Cloud artifacts/i);
+  await expect(page.getByLabel("Cross-device recovery evidence")).toContainText(/Leaderboard scopes/i);
+  await expect(page.getByRole("button", { name: /Copy recovery/i })).toBeVisible();
   await expect(page.getByLabel("Profile archive evidence packet")).toContainText(/Profile archive packet/i);
   await expect(page.getByLabel("Profile archive evidence packet")).toContainText(/Next action/i);
   await expect(page.getByRole("button", { name: /Copy archive packet/i })).toBeVisible();

@@ -51,9 +51,9 @@ export const ACCEPTANCE_TEST_SUITES: AcceptanceTestSuite[] = [
     id: "cloud-account",
     label: "Cloud account and read-back",
     command: "bun run test",
-    file: "src/cloud.test.ts, src/readiness.test.ts",
+    file: "src/cloud.test.ts, src/readiness.test.ts, src/productionDoctor.test.ts",
     coverage: ["cloud-readback"],
-    proves: "Supabase session handling, history merge, current-user leaderboard scope checks, public mode proof gates, public share image URL read-back, strict cloud read-back readiness, acceptance evidence freshness rejection, external production evidence summaries, production verification target env generation, explicit Supabase target-row checks and production radar external-evidence gating",
+    proves: "Supabase session handling, history merge, current-user leaderboard scope checks, public mode proof gates, public share image URL read-back, strict cloud read-back readiness, acceptance evidence freshness rejection, external production evidence summaries, production verification target env generation, explicit Supabase target-row checks, production operator doctor grouping and production radar external-evidence gating",
   },
   {
     id: "live-data",

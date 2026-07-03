@@ -11,6 +11,7 @@
     "test:e2e:seal": "bun scripts/run-seal-e2e.mjs",
     "verify:acceptance": "bun scripts/run-acceptance-evidence.mjs",
     "verify:production": "bun scripts/run-production-evidence.mjs",
+    "doctor:production": "bun scripts/run-production-doctor.mjs",
     "deploy:pages": "bun scripts/deploy-gh-pages.mjs",
     "pages:rebuild": "bun scripts/request-pages-build.mjs",
     "test:watch": "vitest",

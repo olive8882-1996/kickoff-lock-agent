@@ -95,10 +95,12 @@ import {
 } from "./providers";
 import {
   buildProductionVerifyEnv,
+  parseEnvText,
   productionFriendCode,
   summarizeProductionEvidence,
   type ProductionEvidencePacket,
 } from "./productionEvidence";
+import { buildProductionDoctorReport, type ProductionDoctorReport } from "./productionDoctor";
 import { buildProductionReadiness, summarizeProductionReadiness } from "./readiness";
 import {
   buildRuntimeConfigReadiness,
@@ -3737,6 +3739,10 @@ function AccountDashboard({
     shareImageUrl: productionTargetImage,
     allowFailures: true,
   });
+  const productionDoctor = buildProductionDoctorReport(
+    { ...import.meta.env, ...parseEnvText(productionVerifyEnv) },
+    productionEvidence,
+  );
   const publicProfileArchiveCount =
     (verification?.publicProfileRecordIds?.length ?? 0) +
     (verification?.publicProfileModeRunIds?.length ?? 0) +
@@ -3919,6 +3925,7 @@ function AccountDashboard({
           </div>
           <RuntimeConfigPanel items={runtimeConfigReadiness} summary={runtimeConfigSummary} />
           <ProductionVerifyTargetsPanel envText={productionVerifyEnv} />
+          <ProductionDoctorPanel report={productionDoctor} />
           <ProductionEvidencePanel evidence={productionEvidence} status={productionEvidenceStatus} />
           <CloudReadbackLedger verification={verification} records={records} modeRuns={modeRuns} shareEvidence={shareEvidence} />
           <LeaderboardEvidencePanel evidence={leaderboardScopeEvidence} />
@@ -4024,9 +4031,8 @@ function ProductionVerifyTargetsPanel({ envText }: { envText: string }) {
   const copyTargets = async () => {
     await navigator.clipboard?.writeText(envText);
   };
-  const filled = envText
-    .split("\n")
-    .filter((line) => line.includes("=") && line.split("=").slice(1).join("=").trim().length > 0).length;
+  const envRows = envText.split("\n").filter((line) => line.includes("="));
+  const filled = envRows.filter((line) => line.split("=").slice(1).join("=").trim().length > 0).length;
   return (
     <div className="production-targets" aria-label="Production verification target env">
       <div className="panel-head">
@@ -4034,7 +4040,7 @@ function ProductionVerifyTargetsPanel({ envText }: { envText: string }) {
           <p className="eyebrow">Verify targets</p>
           <h3>Production script env</h3>
         </div>
-        <span className="pill">{filled}/9 filled</span>
+        <span className="pill">{filled}/{envRows.length} filled</span>
       </div>
       <div className="production-target-actions">
         <button onClick={copyTargets}>
@@ -4043,6 +4049,57 @@ function ProductionVerifyTargetsPanel({ envText }: { envText: string }) {
         <span>Paste into <code>.env.production.local</code>, fill blanks, then run <code>bun run verify:production</code>.</span>
       </div>
       <pre>{envText}</pre>
+    </div>
+  );
+}
+
+function ProductionDoctorPanel({ report }: { report: ProductionDoctorReport }) {
+  return (
+    <div className="production-doctor" aria-label="Production operator checklist">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Operator doctor</p>
+          <h3>Competition acceptance checklist</h3>
+        </div>
+        <span className={`pill ${report.ready ? "real" : "demo"}`}>
+          {report.evidence.passed}/{report.evidence.total || 0} evidence
+        </span>
+      </div>
+      <div className={`production-doctor-status ${report.ready ? "passed" : ""}`}>
+        <Radar size={18} />
+        <div>
+          <strong>{report.ready ? "Ready for final submission" : "Next real-service gaps"}</strong>
+          <span>{report.headline}</span>
+        </div>
+      </div>
+      {report.runtime.missingEnvKeys.length > 0 ? (
+        <div className="production-doctor-env">
+          <strong>Missing runtime env</strong>
+          <span>{report.runtime.missingEnvKeys.join(", ")}</span>
+        </div>
+      ) : null}
+      <div className="production-doctor-grid">
+        {report.items.map((item) => (
+          <article key={item.id} className={`doctor-${item.status}`}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{item.label}</strong>
+              <span>{item.status}</span>
+            </div>
+            <small>{item.detail}</small>
+            {item.envKeys.length > 0 ? <code>{item.envKeys.join(", ")}</code> : null}
+            <p>{item.status === "done" ? "External evidence is already green." : item.action}</p>
+          </article>
+        ))}
+      </div>
+      {report.nextActions.length > 0 ? (
+        <div className="production-doctor-next">
+          <strong>Next actions</strong>
+          {report.nextActions.slice(0, 4).map((item, index) => (
+            <span key={item.id}>{index + 1}. {item.label}: {item.action}</span>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -3281,6 +3281,113 @@ pre {
   color: #ffb3ad;
 }
 
+.profile-archive-evidence {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid rgba(241, 201, 77, 0.2);
+  background:
+    linear-gradient(135deg, rgba(241, 201, 77, 0.07), rgba(34, 185, 255, 0.045)),
+    rgba(3, 8, 10, 0.34);
+}
+
+.profile-archive-evidence.ready {
+  border-color: rgba(79, 211, 109, 0.24);
+  background:
+    linear-gradient(135deg, rgba(79, 211, 109, 0.08), rgba(241, 201, 77, 0.045)),
+    rgba(3, 8, 10, 0.34);
+}
+
+.profile-archive-evidence .panel-head {
+  margin-bottom: 0;
+}
+
+.profile-archive-summary,
+.profile-archive-checks {
+  display: grid;
+  gap: 8px;
+}
+
+.profile-archive-summary {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.profile-archive-summary div,
+.profile-archive-checks article {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(238, 247, 243, 0.1);
+  background: rgba(3, 8, 10, 0.36);
+}
+
+.profile-archive-checks {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.profile-archive-checks article {
+  display: grid;
+  gap: 6px;
+  border-color: rgba(241, 201, 77, 0.2);
+  background: rgba(241, 201, 77, 0.055);
+}
+
+.profile-archive-checks article.archive-passed {
+  border-color: rgba(79, 211, 109, 0.24);
+  background: rgba(79, 211, 109, 0.055);
+}
+
+.profile-archive-checks article.archive-blocked {
+  border-color: rgba(255, 77, 64, 0.24);
+  background: rgba(255, 77, 64, 0.055);
+}
+
+.profile-archive-checks article > div {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.profile-archive-evidence span,
+.profile-archive-evidence small,
+.profile-archive-evidence p {
+  min-width: 0;
+  margin: 0;
+  color: rgba(238, 247, 243, 0.7);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.profile-archive-evidence strong {
+  color: #eef7f3;
+  overflow-wrap: anywhere;
+}
+
+.profile-archive-summary span,
+.profile-archive-checks span {
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.profile-archive-summary strong {
+  color: #f1c94d;
+  font-size: 1rem;
+}
+
+.profile-archive-checks svg {
+  color: #ffe8a8;
+}
+
+.profile-archive-checks .archive-passed svg {
+  color: #d8ffd9;
+}
+
+.profile-archive-checks .archive-blocked svg {
+  color: #ffb3ad;
+}
+
 .production-evidence .panel-head {
   margin-bottom: 0;
 }
@@ -4866,6 +4973,9 @@ pre {
   .account-handoff-actions,
   .account-handoff-checks,
   .account-handoff-checks article > div,
+  .profile-archive-summary,
+  .profile-archive-checks,
+  .profile-archive-checks article > div,
   .production-doctor-grid,
   .production-doctor-grid article > div,
   .production-launch-summary,

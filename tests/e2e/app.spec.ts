@@ -66,6 +66,9 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Account handoff packet")).toContainText(/Cloud read-back/i);
   await expect(page.getByLabel("Account handoff packet")).toContainText(/Next action/i);
   await expect(page.getByRole("button", { name: /Copy handoff/i })).toBeVisible();
+  await expect(page.getByLabel("Profile archive evidence packet")).toContainText(/Profile archive packet/i);
+  await expect(page.getByLabel("Profile archive evidence packet")).toContainText(/Next action/i);
+  await expect(page.getByRole("button", { name: /Copy archive packet/i })).toBeVisible();
   await expect(page.getByLabel("Production launch packet")).toContainText(/Production launch packet/i);
   await expect(page.getByLabel("Production launch packet")).toContainText(/Next action/i);
   await expect(page.getByRole("button", { name: /Copy launch packet/i })).toBeVisible();
@@ -148,6 +151,8 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(publicPredictionRows).toContainText(/Prediction \d+-\d+/i);
   await expect(page.getByLabel("Social metadata")).toContainText(/Public profile/i);
   await expect(page.getByLabel("Verifier packet")).toContainText(/Profile: Kickoff Analyst/i);
+  await expect(page.getByLabel("Profile archive evidence packet")).toContainText(/Profile archive packet/i);
+  await expect(page.getByLabel("Profile archive evidence packet")).toContainText(/Share-card manifests/i);
   await expect(page.getByRole("button", { name: /Copy packet/i })).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /[?&]profile=/);
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Kickoff Analyst/i);

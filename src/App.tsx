@@ -95,6 +95,10 @@ import {
   type VerifierPacket,
 } from "./publicProofPacket";
 import {
+  buildProfileArchiveEvidencePacket,
+  type ProfileArchiveEvidencePacket,
+} from "./profileArchiveEvidence";
+import {
   buildModePublicProofScorecard,
   buildRecordPublicProofScorecard,
   type PublicProofScorecard,
@@ -3876,6 +3880,11 @@ function PublicProfileDashboard({
   const shareManifestCount = profile.shareArtifacts.filter(isPublishableShareArtifact).length;
   const fallbackMetaImage = new URL(assetUrl("kickoff-lock-icon.png"), window.location.href).toString();
   const profileMeta = buildProfileMeta(profile, profileUrl(profile.id), fallbackMetaImage);
+  const profileArchiveEvidence = buildProfileArchiveEvidencePacket({
+    profile,
+    profileUrl: profileUrl(profile.id),
+    source: status.includes("Cloud profile loaded") ? "public-page" : "local-preview",
+  });
   useEffect(() => {
     applyPublicProofMeta(profileMeta);
   }, [profileMeta.canonicalUrl, profileMeta.title, profileMeta.description]);
@@ -3918,6 +3927,7 @@ function PublicProfileDashboard({
       </div>
       <SocialMetadataCard meta={profileMeta} />
       <VerifierPacketCard packet={buildProfileVerifierPacket(profile, profileUrl(profile.id))} />
+      <ProfileArchiveEvidencePanel packet={profileArchiveEvidence} />
       <div className="profile-records">
         <div className="panel-head">
           <div>
@@ -3967,6 +3977,47 @@ function PublicProfileDashboard({
           </article>
         ))}
       </div>
+    </section>
+  );
+}
+
+function ProfileArchiveEvidencePanel({ packet }: { packet: ProfileArchiveEvidencePacket }) {
+  const copyPacket = async () => {
+    await navigator.clipboard?.writeText(packet.copyText);
+  };
+  return (
+    <section className={`profile-archive-evidence ${packet.ready ? "ready" : ""}`} aria-label="Profile archive evidence packet">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Profile archive</p>
+          <h3>Profile archive packet</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <FileCheck2 size={16} /> Copy archive packet
+        </button>
+      </div>
+      <div className="profile-archive-summary">
+        <div><span>Locks</span><strong>{packet.records}</strong></div>
+        <div><span>Modes</span><strong>{packet.modeRuns}</strong></div>
+        <div><span>Archives</span><strong>{packet.verifiedArchives}/{packet.expectedArchives}</strong></div>
+        <div><span>Cards</span><strong>{packet.publishableShareCards}/{packet.shareCards}</strong></div>
+        <div><span>Images</span><strong>{packet.publicImageCards}/{packet.shareCards}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Next action: {packet.nextAction}</small>
+      <div className="profile-archive-checks">
+        {packet.checks.map((check) => (
+          <article key={check.key} className={`archive-${check.status}`}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{check.label}</strong>
+              <span>{check.status}</span>
+            </div>
+            <small>{check.detail}</small>
+          </article>
+        ))}
+      </div>
+      {packet.missingIds.length > 0 && <small>Missing: {packet.missingIds.slice(0, 6).join(", ")}</small>}
     </section>
   );
 }
@@ -4129,6 +4180,12 @@ function AccountDashboard({
     productionVerifyEnv,
     publicProfileUrl: profileUrl(profile.id),
     missingRuntimeEnv: productionDoctor.runtime.missingEnvKeys,
+  });
+  const profileArchiveEvidence = buildProfileArchiveEvidencePacket({
+    profile: buildPublicProfile(profile, records, modeRuns, shareEvidence),
+    profileUrl: profileUrl(profile.id),
+    verification,
+    source: profile.cloudMode === "supabase" ? "cloud-readback" : "local-preview",
   });
   const publicProfileArchiveCount =
     (verification?.publicProfileRecordIds?.length ?? 0) +
@@ -4313,6 +4370,7 @@ function AccountDashboard({
           <RuntimeConfigPanel items={runtimeConfigReadiness} summary={runtimeConfigSummary} />
           <ProductionVerifyTargetsPanel envText={productionVerifyEnv} />
           <AccountHandoffPanel packet={accountHandoff} />
+          <ProfileArchiveEvidencePanel packet={profileArchiveEvidence} />
           <ProductionDoctorPanel report={productionDoctor} />
           <RealtimeDataEvidencePacketPanel packet={realtimeDataEvidence} />
           <ProductionLaunchPacketPanel packet={productionLaunchPacket} />

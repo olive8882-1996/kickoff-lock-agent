@@ -139,6 +139,7 @@ Key files:
 
 - `src/proof.ts`: capsule hash, demo proof, real proof import.
 - `src/providers.ts`: API-Football, Football-Data.org, TheSportsDB, ESPN, The Odds API, worldcup26 and seed fallback.
+- `src/realtimeDataEvidence.ts`: account-level production evidence packet for schedule, score, rankings, lineups, injuries and odds read-back.
 - `src/scoring.ts`: explainable scoring engine.
 - `src/cloud.ts`: Supabase auth, profile sync, prediction history sync, mode proof run sync, authenticated and anonymous read-back verification, public proof/profile lookup, and leaderboard queries.
 - `src/bracket.ts`: knockout path builder, bracket readiness rules, and bracket proof run sealing.

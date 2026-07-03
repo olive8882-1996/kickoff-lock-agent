@@ -70,6 +70,9 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Production launch packet")).toContainText(/Next action/i);
   await expect(page.getByRole("button", { name: /Copy launch packet/i })).toBeVisible();
   await expect(page.getByLabel("Production launch packet")).toContainText(/doctor:production/i);
+  await expect(page.getByLabel("Realtime production data packet")).toContainText(/Production data packet/i);
+  await expect(page.getByLabel("Realtime production data packet")).toContainText(/Signals/i);
+  await expect(page.getByRole("button", { name: /Copy data packet/i })).toBeVisible();
   await expect(page.getByLabel("Leaderboard query evidence")).toContainText(/Leaderboard scope read-back/i);
   await expect(page.getByLabel("Share artifact ledger")).toContainText(/Publishable proof cards/i);
   await expect(page.getByRole("button", { name: /Publish missing cards/i })).toBeVisible();

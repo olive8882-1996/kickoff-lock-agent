@@ -119,6 +119,7 @@ import {
 } from "./productionEvidence";
 import { buildProductionDoctorReport, type ProductionDoctorReport } from "./productionDoctor";
 import { buildProductionLaunchPacket, type ProductionLaunchPacket } from "./productionLaunchPacket";
+import { buildRealtimeDataEvidencePacket, type RealtimeDataEvidencePacket } from "./realtimeDataEvidence";
 import { buildProductionReadiness, summarizeProductionReadiness } from "./readiness";
 import {
   buildRuntimeConfigReadiness,
@@ -2006,10 +2007,12 @@ function App() {
           email={accountEmail}
           records={records}
           modeRuns={modeRuns}
+          matches={matches}
           gameModes={gameModes}
           providerReadiness={providerReadiness}
           providerRouteAudit={providerRouteAudit}
           providerHealth={providerHealth}
+          realtimeDataAudit={realtimeDataAudit}
           leaderboardEntries={allRemoteLeaderboard}
           leaderboardScopeEvidence={allLeaderboardEvidence}
           sealEndpointConfigured={filecoinSealConfigured}
@@ -3916,10 +3919,12 @@ function AccountDashboard({
   email,
   records,
   modeRuns,
+  matches,
   gameModes,
   providerReadiness,
   providerRouteAudit,
   providerHealth,
+  realtimeDataAudit,
   leaderboardEntries,
   leaderboardScopeEvidence,
   sealEndpointConfigured,
@@ -3948,10 +3953,12 @@ function AccountDashboard({
   email: string;
   records: MemoryRecord[];
   modeRuns: GameModeRun[];
+  matches: Match[];
   gameModes: GameMode[];
   providerReadiness: ProviderReadinessItem[];
   providerRouteAudit: ProviderRouteAuditItem[];
   providerHealth: ProviderHealthSnapshot;
+  realtimeDataAudit?: RealtimeDataAudit;
   leaderboardEntries: LeaderboardEntry[];
   leaderboardScopeEvidence: LeaderboardScopeEvidence[];
   sealEndpointConfigured: boolean;
@@ -3997,6 +4004,13 @@ function AccountDashboard({
     productionEvidence,
   });
   const productionSummary = summarizeProductionReadiness(productionReadiness);
+  const realtimeDataEvidence = buildRealtimeDataEvidencePacket({
+    matches,
+    readiness: providerReadiness,
+    routeAudit: providerRouteAudit,
+    health: providerHealth,
+    audit: realtimeDataAudit,
+  });
   const shareImageEvidence = shareEvidence.filter((item) => item.imageGenerated).length;
   const shareChannelEvidence = shareEvidence.filter((item) => item.xIntentOpenedAt || item.nativeShareOpenedAt).length;
   const productionTargetRecord = records.find((record) => record.capsule.locked) ?? records[0];
@@ -4230,6 +4244,7 @@ function AccountDashboard({
           <ProductionVerifyTargetsPanel envText={productionVerifyEnv} />
           <AccountHandoffPanel packet={accountHandoff} />
           <ProductionDoctorPanel report={productionDoctor} />
+          <RealtimeDataEvidencePacketPanel packet={realtimeDataEvidence} />
           <ProductionLaunchPacketPanel packet={productionLaunchPacket} />
           <ProductionEvidencePanel evidence={productionEvidence} status={productionEvidenceStatus} />
           <CloudReadbackLedger verification={verification} records={records} modeRuns={modeRuns} shareEvidence={shareEvidence} />
@@ -4461,6 +4476,50 @@ function ProductionDoctorPanel({ report }: { report: ProductionDoctorReport }) {
           ))}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function RealtimeDataEvidencePacketPanel({ packet }: { packet: RealtimeDataEvidencePacket }) {
+  const copyPacket = async () => {
+    await copyToClipboard(packet.copyText);
+  };
+  return (
+    <div
+      className={`realtime-data-evidence-packet ${packet.productionReady ? "passed" : ""}`}
+      aria-label="Realtime production data packet"
+    >
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Realtime data</p>
+          <h3>Production data packet</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <Database size={16} /> Copy data packet
+        </button>
+      </div>
+      <div className="realtime-data-evidence-summary">
+        <div><span>Signals</span><strong>{packet.requiredReady}/{packet.requiredTotal}</strong></div>
+        <div><span>Route</span><strong>{packet.routeStatus}</strong></div>
+        <div><span>Response</span><strong>{packet.responseVerified ? "verified" : "unverified"}</strong></div>
+        <div><span>Fresh</span><strong>{packet.fresh ? "yes" : "no"}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Matches: {packet.matchCount} total · {packet.liveMatches} live · {packet.finishedMatches} final · {packet.upcomingMatches} upcoming</small>
+      <small>Next action: {packet.nextAction}</small>
+      <div className="realtime-data-evidence-grid">
+        {packet.signals.map((signal) => (
+          <article key={signal.key} className={signal.productionReady ? "data-ready" : "data-gap"}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{signal.label}</strong>
+              <span>{signal.status}</span>
+            </div>
+            <small>{signal.provider} · {signal.sample}</small>
+            <p>{signal.action}</p>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }

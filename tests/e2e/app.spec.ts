@@ -110,6 +110,9 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Mode settlement packet")).toContainText(/Mode settlement packet/i);
   await expect(page.getByLabel("Mode settlement packet")).toContainText(/Next action/i);
   await expect(page.getByRole("button", { name: /Copy settlement/i })).toBeVisible();
+  await expect(page.getByLabel("Agent calibration evidence")).toContainText(/Calibration evidence packet/i);
+  await expect(page.getByLabel("Agent calibration evidence")).toContainText(/Reveal one locked prediction/i);
+  await expect(page.getByRole("button", { name: /Copy calibration/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Seal a bracket path/i })).toBeVisible();
   await expect(page.locator(".bracket-grid article")).toHaveCount(4);
   await page.getByRole("button", { name: /Seal bracket proof/i }).click();

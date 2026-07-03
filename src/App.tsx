@@ -45,6 +45,10 @@ import {
   type AccountRecoveryEvidencePacket,
 } from "./accountRecoveryEvidence";
 import {
+  buildAgentCalibrationEvidencePacket,
+  type AgentCalibrationEvidencePacket,
+} from "./agentCalibrationEvidence";
+import {
   buildPublicProfile,
   buildCloudSyncAudit,
   buildLocalLeaderboard,
@@ -3894,6 +3898,7 @@ function ModesDashboard({
   const bracketRuns = modeRuns.filter((run) => run.modeId === "bracket" && run.artifact?.kind === "bracket-path");
   const modeEvidence = buildModeEvidencePacket(modes, modeRuns, shareEvidence, cloudState.verification);
   const modeSettlement = buildModeSettlementPacket(modeRuns);
+  const agentCalibrationEvidence = buildAgentCalibrationEvidencePacket(modeRuns);
   return (
     <section className="modes panel">
       <div className="panel-head">
@@ -3905,6 +3910,7 @@ function ModesDashboard({
       </div>
       <ModeEvidencePacketCard packet={modeEvidence} />
       <ModeSettlementPacketCard packet={modeSettlement} />
+      <AgentCalibrationEvidencePanel packet={agentCalibrationEvidence} />
       <div className="bracket-builder">
         <div className="panel-head">
           <div>
@@ -4123,6 +4129,82 @@ function ModeSettlementPacketCard({ packet }: { packet: ModeSettlementPacket }) 
             </article>
           ))
         )}
+      </div>
+    </div>
+  );
+}
+
+function AgentCalibrationEvidencePanel({ packet }: { packet: AgentCalibrationEvidencePacket }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPacket = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <div className={`agent-calibration-packet ${packet.ready ? "ready" : ""}`} aria-label="Agent calibration evidence">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Agent vs Human</p>
+          <h3>Calibration evidence packet</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <Gauge size={16} /> {copyStatus === "copied" ? "Copied calibration" : "Copy calibration"}
+        </button>
+      </div>
+      <div className="agent-calibration-summary">
+        <div><span>Samples</span><strong>{packet.samples}</strong></div>
+        <div><span>Avg error</span><strong>{packet.averageCalibrationError}</strong></div>
+        <div><span>Human edge</span><strong>{packet.humanEdgeSamples}</strong></div>
+        <div><span>Checks</span><strong>{packet.passedChecks}/{packet.totalChecks}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Run: {packet.runId ?? "missing"}</small>
+      <small>Next action: {packet.nextAction}</small>
+      {copyStatus === "manual" && (
+        <label className="agent-calibration-copy">
+          <span>Manual calibration copy</span>
+          <textarea
+            aria-label="Manual calibration copy"
+            readOnly
+            value={packet.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="agent-calibration-checks">
+        {packet.checks.map((check) => (
+          <article key={check.key} className={check.passed ? "passed" : "pending"}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{check.label}</strong>
+              <span>{check.passed ? "passed" : "pending"}</span>
+            </div>
+            <small>{check.detail}</small>
+          </article>
+        ))}
+      </div>
+      <div className="agent-calibration-samples">
+        {packet.items.length === 0 && (
+          <article>
+            <div>
+              <Bot size={16} />
+              <strong>No calibration samples yet</strong>
+              <span>pending</span>
+            </div>
+            <small>Reveal a locked prediction, then create an Agent vs Human proof run.</small>
+          </article>
+        )}
+        {packet.items.map((item) => (
+          <article key={item.capsuleId} className={`sample-${item.status}`}>
+            <div>
+              <Bot size={16} />
+              <strong>{item.matchLabel}</strong>
+              <span>{item.status}</span>
+            </div>
+            <small>Confidence {item.confidence} · Score {item.totalScore} · Error {item.calibrationError}</small>
+            <p>{item.insight}</p>
+          </article>
+        ))}
       </div>
     </div>
   );

@@ -2396,7 +2396,8 @@ pre {
 }
 
 .mode-evidence-packet,
-.mode-settlement-packet {
+.mode-settlement-packet,
+.agent-calibration-packet {
   display: grid;
   gap: 10px;
   margin-bottom: 14px;
@@ -2408,7 +2409,8 @@ pre {
 }
 
 .mode-evidence-packet.passed,
-.mode-settlement-packet.passed {
+.mode-settlement-packet.passed,
+.agent-calibration-packet.ready {
   border-color: rgba(77, 217, 137, 0.28);
   background:
     linear-gradient(135deg, rgba(77, 217, 137, 0.08), rgba(26, 166, 255, 0.06)),
@@ -2416,12 +2418,14 @@ pre {
 }
 
 .mode-evidence-packet .panel-head,
-.mode-settlement-packet .panel-head {
+.mode-settlement-packet .panel-head,
+.agent-calibration-packet .panel-head {
   margin-bottom: 0;
 }
 
 .mode-evidence-packet .panel-head button,
-.mode-settlement-packet .panel-head button {
+.mode-settlement-packet .panel-head button,
+.agent-calibration-packet .panel-head button {
   min-height: 34px;
   padding: 0 10px;
   border: 1px solid rgba(241, 201, 77, 0.26);
@@ -2436,33 +2440,61 @@ pre {
 .mode-evidence-summary,
 .mode-evidence-list,
 .mode-settlement-summary,
-.mode-settlement-list {
+.mode-settlement-list,
+.agent-calibration-summary,
+.agent-calibration-checks,
+.agent-calibration-samples {
   display: grid;
   gap: 8px;
 }
 
 .mode-evidence-summary,
-.mode-settlement-summary {
+.mode-settlement-summary,
+.agent-calibration-summary {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .mode-evidence-summary div,
 .mode-evidence-list article,
 .mode-settlement-summary div,
-.mode-settlement-list article {
+.mode-settlement-list article,
+.agent-calibration-summary div,
+.agent-calibration-checks article,
+.agent-calibration-samples article {
   min-width: 0;
   padding: 10px;
   border: 1px solid rgba(238, 247, 243, 0.1);
   background: rgba(3, 8, 10, 0.38);
 }
 
+.mode-evidence-summary div,
+.mode-settlement-summary div,
+.agent-calibration-summary div {
+  display: grid;
+  gap: 5px;
+  align-content: center;
+}
+
+.mode-evidence-summary span,
+.mode-evidence-summary strong,
+.mode-settlement-summary span,
+.mode-settlement-summary strong,
+.agent-calibration-summary span,
+.agent-calibration-summary strong {
+  display: block;
+}
+
 .mode-evidence-list,
-.mode-settlement-list {
+.mode-settlement-list,
+.agent-calibration-checks,
+.agent-calibration-samples {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .mode-evidence-list article,
-.mode-settlement-list article {
+.mode-settlement-list article,
+.agent-calibration-checks article,
+.agent-calibration-samples article {
   display: grid;
   gap: 7px;
   border-color: rgba(255, 91, 78, 0.22);
@@ -2484,8 +2516,23 @@ pre {
   background: rgba(241, 201, 77, 0.06);
 }
 
+.agent-calibration-checks article.passed,
+.agent-calibration-samples article.sample-calibrated,
+.agent-calibration-samples article.sample-underconfident {
+  border-color: rgba(77, 217, 137, 0.26);
+  background: rgba(77, 217, 137, 0.07);
+}
+
+.agent-calibration-samples article.sample-overconfident,
+.agent-calibration-samples article.sample-human-edge {
+  border-color: rgba(255, 91, 78, 0.26);
+  background: rgba(255, 91, 78, 0.07);
+}
+
 .mode-evidence-list article > div,
-.mode-settlement-list article > div {
+.mode-settlement-list article > div,
+.agent-calibration-checks article > div,
+.agent-calibration-samples article > div {
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr);
   gap: 7px;
@@ -2493,7 +2540,9 @@ pre {
 }
 
 .mode-evidence-list article > div span,
-.mode-settlement-list article > div span {
+.mode-settlement-list article > div span,
+.agent-calibration-checks article > div span,
+.agent-calibration-samples article > div span {
   grid-column: 1 / -1;
   color: rgba(238, 247, 243, 0.62);
   font-size: 0.68rem;
@@ -2506,7 +2555,10 @@ pre {
 .mode-evidence-packet small,
 .mode-settlement-packet span,
 .mode-settlement-packet p,
-.mode-settlement-packet small {
+.mode-settlement-packet small,
+.agent-calibration-packet span,
+.agent-calibration-packet p,
+.agent-calibration-packet small {
   min-width: 0;
   margin: 0;
   color: rgba(238, 247, 243, 0.68);
@@ -2515,15 +2567,27 @@ pre {
 }
 
 .mode-evidence-packet span,
-.mode-settlement-packet span {
+.mode-settlement-packet span,
+.agent-calibration-packet span {
   font-weight: 950;
   text-transform: uppercase;
 }
 
 .mode-evidence-packet strong,
-.mode-settlement-packet strong {
+.mode-settlement-packet strong,
+.agent-calibration-packet strong {
   color: #eef7f3;
   overflow-wrap: anywhere;
+}
+
+.agent-calibration-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.agent-calibration-copy textarea {
+  min-height: 120px;
+  resize: vertical;
 }
 
 .leaderboard-evidence .panel-head {
@@ -5646,6 +5710,11 @@ pre {
   .mode-settlement-summary,
   .mode-settlement-list,
   .mode-settlement-list article > div,
+  .agent-calibration-summary,
+  .agent-calibration-checks,
+  .agent-calibration-checks article > div,
+  .agent-calibration-samples,
+  .agent-calibration-samples article > div,
   .realtime-data-evidence-summary,
   .realtime-data-evidence-grid,
   .realtime-data-evidence-grid article > div,

@@ -161,6 +161,7 @@ bun run verify:production
 bun run doctor:production
 bun run doctor:supabase
 bun run doctor:filecoin
+bun run doctor:data
 bun run deploy:pages
 bun run pages:rebuild
 ```
@@ -171,6 +172,7 @@ The Account view also includes a "Production environment gates" panel. It checks
 `bun run doctor:production` reads the same env files and `production-evidence.json`, then groups the external checks into seven operator-facing acceptance areas: real account/cloud history, realtime match data, Filecoin auto-seal, public share cards/proof pages, leaderboard backend, public deployment assets, and automated test evidence. It exits non-zero until every group is externally proven, and prints the missing runtime env keys plus the next target IDs/CIDs/share image URLs needed for the next verification run.
 `bun run doctor:supabase` is the focused cloud backend drill-down. It uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to query `kickoff_backend_health`, every public-read table/view, explicit profile/prediction/mode/share target rows, all three current-user leaderboard scopes, and `KICKOFF_VERIFY_SHARE_IMAGE_URL`. If `SUPABASE_SERVICE_ROLE_KEY` is set locally, it also checks the Supabase Storage bucket metadata and confirms `kickoff-share-cards` is public; this service role key is intentionally not a `VITE_` variable and must never be shipped to the browser.
 `bun run doctor:filecoin` is the focused Filecoin drill-down. It checks the configured browser seal endpoint, upload token, `/health` production contract, required endpoint list, record CID `/verify` plus `/proof/:cid` read-back, mode CID read-back, payload hash targets and byte length. `KICKOFF_FILECOIN_DOCTOR_SEAL_PAYLOAD` is optional and intentionally blank by default; set it only when you want the doctor to spend a real POST `/seal` upload against a locked capsule or sealed/scored mode proof JSON file.
+`bun run doctor:data` is the focused realtime-data drill-down. It checks free schedule continuity through TheSportsDB or ESPN, API-Football key and `KICKOFF_VERIFY_FIXTURE_ID`, live rows from API-Football lineups, injuries and odds endpoints, odds provider configuration, and optional The Odds API H2H read-back. Empty endpoint responses stay failed, so configured keys alone cannot satisfy live-data acceptance.
 `docs/deploy-pages.workflow.yml` is a ready-to-install GitHub Actions workflow for the same evidence pipeline. It publishes once after `bun run verify:acceptance`, waits for Pages propagation, runs `KICKOFF_VERIFY_ALLOW_FAILURES=1 bun run verify:production`, then publishes again so the deployed app includes both fresh acceptance evidence and the latest production evidence packet. The file is kept under `docs/` because pushing a live `.github/workflows` file requires a GitHub token with `workflow` scope. Locally, `bun run deploy:pages` uses the same `scripts/deploy-gh-pages.mjs` sync path.
 If GitHub Pages stays in a stale `building` state after pushing `gh-pages`, run `bun run pages:rebuild` to request a fresh Pages build through the GitHub API.
 

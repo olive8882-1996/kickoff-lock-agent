@@ -4630,8 +4630,145 @@ pre {
 
 .proof-timeline,
 .public-proof-scorecard,
+.public-proof-judge,
 .verifier-packet {
   grid-column: 1 / -1;
+}
+
+.public-proof-judge {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 12px;
+  border: 1px solid rgba(241, 201, 77, 0.22);
+  background:
+    linear-gradient(135deg, rgba(241, 201, 77, 0.075), rgba(34, 185, 255, 0.045)),
+    rgba(3, 8, 10, 0.42);
+}
+
+.public-proof-judge.ready {
+  border-color: rgba(77, 217, 137, 0.28);
+  background:
+    linear-gradient(135deg, rgba(77, 217, 137, 0.075), rgba(34, 185, 255, 0.045)),
+    rgba(3, 8, 10, 0.42);
+}
+
+.public-proof-judge .panel-head {
+  margin-bottom: 0;
+}
+
+.public-proof-judge .panel-head button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(241, 201, 77, 0.26);
+  border-radius: 4px;
+  background: rgba(241, 201, 77, 0.1);
+  color: #f1c94d;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.judge-summary-main {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.judge-summary-main div,
+.judge-summary-grid article,
+.judge-summary-facts span {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(238, 247, 243, 0.1);
+  background: rgba(238, 247, 243, 0.055);
+}
+
+.judge-summary-main span,
+.judge-summary-grid span,
+.judge-summary-facts span,
+.judge-summary-copy span {
+  color: rgba(238, 247, 243, 0.62);
+  font-size: 0.68rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.judge-summary-main strong,
+.judge-summary-grid strong {
+  display: block;
+  margin-top: 4px;
+  color: #eef7f3;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.public-proof-judge p,
+.public-proof-judge small,
+.public-proof-judge code {
+  min-width: 0;
+  margin: 0;
+  color: rgba(238, 247, 243, 0.7);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+.judge-summary-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.judge-summary-facts code {
+  display: block;
+  margin-top: 5px;
+  color: #eef7f3;
+}
+
+.judge-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.judge-summary-grid article {
+  display: grid;
+  gap: 6px;
+  border-color: rgba(241, 201, 77, 0.22);
+  background: rgba(241, 201, 77, 0.055);
+}
+
+.judge-summary-grid article.passed {
+  border-color: rgba(77, 217, 137, 0.24);
+  background: rgba(77, 217, 137, 0.055);
+}
+
+.judge-summary-grid article.failed {
+  border-color: rgba(255, 91, 78, 0.24);
+  background: rgba(255, 91, 78, 0.06);
+}
+
+.judge-summary-grid article > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.judge-summary-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.judge-summary-copy textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  border: 1px solid rgba(241, 201, 77, 0.24);
+  border-radius: 4px;
+  background: rgba(3, 8, 10, 0.72);
+  color: #eef7f3;
+  font: 0.72rem/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .verifier-packet .panel-head button {
@@ -5221,6 +5358,10 @@ pre {
   .verify-actions,
   .scorecard-grid,
   .scorecard-grid article > div,
+  .judge-summary-main,
+  .judge-summary-facts,
+  .judge-summary-grid,
+  .judge-summary-grid article > div,
   .cid-lookup,
   .cid-result,
   .public-proof-hero,

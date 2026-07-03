@@ -203,6 +203,10 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".public-proof-hero")).toContainText(/Kickoff Lock Agent/i);
   await expect(page.locator(".public-proof-hero")).toContainText(/Prediction/i);
   await expect(page.locator(".public-proof-rail")).toContainText(/Public URL/i);
+  await expect(page.getByLabel("Public proof judge summary")).toContainText(/Judge summary/i);
+  await expect(page.getByLabel("Public proof judge summary")).toContainText(/Checks/i);
+  await expect(page.getByLabel("Public proof judge summary")).toContainText(/CID/i);
+  await expect(page.getByRole("button", { name: /Copy judge summary/i })).toBeVisible();
   await expect(page.locator(".proof-facts")).toContainText(/Proof facts/i);
   await expect(page.getByLabel("Proof timeline")).toContainText(/Prediction locked/i);
   await expect(page.getByLabel("Proof timeline")).toContainText(/Filecoin proof attached/i);

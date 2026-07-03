@@ -115,6 +115,11 @@ import {
   buildRecordPublicProofScorecard,
   type PublicProofScorecard,
 } from "./publicProofScorecard";
+import {
+  buildModePublicProofJudgeSummary,
+  buildRecordPublicProofJudgeSummary,
+  type PublicProofJudgeSummary,
+} from "./publicProofJudgeSummary";
 import { buildModeProofTimeline, buildRecordProofTimeline, type ProofTimelineItem } from "./proofTimeline";
 import { buildPublicUrl } from "./publicUrls";
 import {
@@ -3135,8 +3140,14 @@ function VerifyDashboard({
   const modeScorecard = modeRun
     ? buildModePublicProofScorecard(modeRun, modeRunUrl(modeRun.id), modeShareArtifact)
     : undefined;
+  const modeJudgeSummary = modeRun
+    ? buildModePublicProofJudgeSummary(modeRun, modeRunUrl(modeRun.id), modeShareArtifact)
+    : undefined;
   const recordScorecard = record
     ? buildRecordPublicProofScorecard(record, publicUrl, recordShareArtifact)
+    : undefined;
+  const recordJudgeSummary = record
+    ? buildRecordPublicProofJudgeSummary(record, publicUrl, recordShareArtifact)
     : undefined;
   useEffect(() => {
     if (publicMeta) applyPublicProofMeta(publicMeta);
@@ -3227,6 +3238,7 @@ function VerifyDashboard({
           </div>
         </div>
       )}
+      {modeJudgeSummary && <PublicProofJudgeSummaryCard summary={modeJudgeSummary} />}
       {modeRun && (
         <div className="verify-grid">
           <div className="verify-card proof-facts">
@@ -3335,6 +3347,7 @@ function VerifyDashboard({
           </div>
         </div>
       )}
+      {recordJudgeSummary && <PublicProofJudgeSummaryCard summary={recordJudgeSummary} />}
       <div className="cid-lookup">
         <div>
           <p className="eyebrow">Filecoin CID lookup</p>
@@ -3541,6 +3554,72 @@ function PublicProofScorecardCard({ scorecard }: { scorecard: PublicProofScoreca
       </div>
       <small>Next action: {scorecard.nextAction}</small>
     </div>
+  );
+}
+
+function PublicProofJudgeSummaryCard({ summary }: { summary: PublicProofJudgeSummary }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copySummary = async () => {
+    const copied = await copyToClipboard(summary.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <section className={`public-proof-judge ${summary.ready ? "ready" : ""}`} aria-label="Public proof judge summary">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Judge summary</p>
+          <h3>{summary.title}</h3>
+        </div>
+        <button onClick={copySummary}>
+          <Link2 size={16} /> {copyStatus === "copied" ? "Copied summary" : copyStatus === "manual" ? "Summary text shown" : "Copy judge summary"}
+        </button>
+      </div>
+      <div className="judge-summary-main">
+        <div>
+          <span>Status</span>
+          <strong>{summary.ready ? "Ready" : "Needs evidence"}</strong>
+        </div>
+        <div>
+          <span>Checks</span>
+          <strong>{summary.passed}/{summary.total}</strong>
+        </div>
+        <div>
+          <span>Score</span>
+          <strong>{summary.primaryScore}</strong>
+        </div>
+      </div>
+      <p>{summary.summary}</p>
+      <small>{summary.subtitle}</small>
+      <small>Next action: {summary.nextAction}</small>
+      <div className="judge-summary-facts">
+        <span>CID <code>{summary.cid}</code></span>
+        <span>Hash <code>{summary.payloadHash}</code></span>
+        <span>Share <code>{summary.shareImage}</code></span>
+        <span>URL <code>{summary.publicUrl}</code></span>
+      </div>
+      {copyStatus === "manual" && (
+        <label className="judge-summary-copy">
+          <span>Manual judge summary copy</span>
+          <textarea
+            aria-label="Manual judge summary copy"
+            readOnly
+            value={summary.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="judge-summary-grid">
+        {summary.items.map((item) => (
+          <article key={item.key} className={item.status}>
+            <div>
+              <strong>{item.label}</strong>
+              <span>{item.status}</span>
+            </div>
+            <small>{item.value}</small>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 

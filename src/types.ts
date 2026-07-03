@@ -39,6 +39,21 @@ export type ProviderRouteAuditItem = {
   detail: string;
 };
 
+export type ProviderHealthSnapshot = {
+  source: string;
+  status: "verified" | "ready" | "partial" | "blocked";
+  lastSyncedAt?: string;
+  ageSeconds?: number;
+  fresh: boolean;
+  liveOrConfigured: number;
+  totalSignals: number;
+  activeRoute?: string;
+  missingSignals: DataCoverageItem["key"][];
+  evidence: string[];
+  detail: string;
+  nextAction: string;
+};
+
 export type MatchIntelligenceScore = {
   score: number;
   level: "live-ready" | "configured" | "thin" | "manual-risk";

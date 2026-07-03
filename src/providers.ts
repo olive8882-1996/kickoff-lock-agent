@@ -6,6 +6,7 @@ import type {
   DataSource,
   Match,
   MatchIntelligenceScore,
+  ProviderHealthSnapshot,
   ProviderReadinessItem,
   ProviderResult,
   ProviderRouteAuditItem,
@@ -165,6 +166,71 @@ const statusRank: Record<DataCoverageStatus, number> = {
   fallback: 2,
   configured: 3,
   live: 4,
+};
+
+const isLiveOrConfigured = (item: ProviderReadinessItem) =>
+  item.status === "live" || item.status === "configured";
+
+export const buildProviderHealthSnapshot = ({
+  providerSource,
+  readiness,
+  routeAudit,
+  evidence,
+  lastSyncedAt,
+  now = Date.now(),
+  freshnessMs = 2 * 60 * 1000,
+}: {
+  providerSource: string;
+  readiness: ProviderReadinessItem[];
+  routeAudit: ProviderRouteAuditItem[];
+  evidence: string[];
+  lastSyncedAt?: string;
+  now?: number;
+  freshnessMs?: number;
+}): ProviderHealthSnapshot => {
+  const activeRoute = routeAudit.find((route) => route.status === "active" || route.status === "fallback");
+  const liveOrConfiguredItems = readiness.filter(isLiveOrConfigured);
+  const missingSignals = readiness
+    .filter((item) => item.status === "missing" || item.status === "manual")
+    .map((item) => item.key);
+  const lastSyncMs = lastSyncedAt ? new Date(lastSyncedAt).getTime() : Number.NaN;
+  const ageSeconds = Number.isFinite(lastSyncMs) ? Math.max(0, Math.round((now - lastSyncMs) / 1000)) : undefined;
+  const fresh = ageSeconds !== undefined && ageSeconds <= Math.round(freshnessMs / 1000);
+  const activeLiveRoute = Boolean(activeRoute && activeRoute.key !== "seed" && activeRoute.status === "active");
+  const totalSignals = readiness.length;
+  const liveOrConfiguredCount = liveOrConfiguredItems.length;
+  const status: ProviderHealthSnapshot["status"] =
+    activeLiveRoute && fresh && missingSignals.length === 0
+      ? "verified"
+      : activeLiveRoute && fresh && liveOrConfiguredCount >= Math.ceil(totalSignals * 0.65)
+        ? "ready"
+        : activeRoute
+          ? "partial"
+          : "blocked";
+  const detail = `${activeRoute?.label ?? providerSource} · ${liveOrConfiguredCount}/${totalSignals} live/configured · ${
+    fresh ? "fresh" : "stale or pending"
+  }`;
+  const nextAction =
+    status === "verified"
+      ? "Realtime schedule, score and enrichment signals are fresh."
+      : activeLiveRoute
+        ? `Refresh data and fill missing signals: ${missingSignals.join(", ") || "none"}.`
+        : "Connect a live provider route before treating seed/manual data as production.";
+
+  return {
+    source: providerSource,
+    status,
+    lastSyncedAt,
+    ageSeconds,
+    fresh,
+    liveOrConfigured: liveOrConfiguredCount,
+    totalSignals,
+    activeRoute: activeRoute?.label,
+    missingSignals,
+    evidence,
+    detail,
+    nextAction,
+  };
 };
 
 const coverageWeights: Record<DataCoverageItem["key"], number> = {

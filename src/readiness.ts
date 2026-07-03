@@ -7,6 +7,7 @@ import type {
   MemoryRecord,
   ProviderReadinessItem,
   ProviderRouteAuditItem,
+  ProviderHealthSnapshot,
   ShareArtifactEvidence,
   UserProfile,
 } from "./types";
@@ -35,6 +36,7 @@ type ProductionReadinessInput = {
   sealEndpointConfigured: boolean;
   shareImageReady: boolean;
   shareEvidence?: ShareArtifactEvidence[];
+  providerHealth?: ProviderHealthSnapshot;
 };
 
 const levelFrom = (passed: number, total: number, canBeVerified = true): ProductionReadinessLevel => {
@@ -77,6 +79,7 @@ export const buildProductionReadiness = ({
   sealEndpointConfigured,
   shareImageReady,
   shareEvidence = [],
+  providerHealth,
 }: ProductionReadinessInput): ProductionReadinessItem[] => {
   const cloudProfile = profile.cloudMode === "supabase" && !profile.id.startsWith("local-");
   const cloudItems = records.length + modeRuns.length;
@@ -106,7 +109,8 @@ export const buildProductionReadiness = ({
   const injuries = providerReadiness.find((item) => item.key === "injuries");
   const odds = providerReadiness.find((item) => item.key === "odds");
   const dataChecks = [
-    Boolean(activeRoute && !["seed", "manual"].includes(activeRoute.key)),
+    Boolean(activeRoute && !["seed", "manual"].includes(activeRoute.key) && providerHealth?.fresh !== false),
+    Boolean(providerHealth?.fresh),
     liveOrConfigured(schedule),
     liveOrConfigured(score),
     liveOrConfigured(rankings),
@@ -198,11 +202,13 @@ export const buildProductionReadiness = ({
       level: levelFrom(dataPassed, dataChecks.length),
       passed: dataPassed,
       total: dataChecks.length,
-      evidence: `${activeRoute?.label ?? "No route"} · schedule ${schedule?.status ?? "missing"} · score ${score?.status ?? "missing"} · odds ${odds?.status ?? "missing"}`,
+      evidence: providerHealth
+        ? `${providerHealth.detail} · missing ${providerHealth.missingSignals.join(", ") || "none"}`
+        : `${activeRoute?.label ?? "No route"} · schedule ${schedule?.status ?? "missing"} · score ${score?.status ?? "missing"} · odds ${odds?.status ?? "missing"}`,
       nextAction:
         dataPassed === dataChecks.length
           ? "Live schedule, score and enrichment feeds are all configured."
-          : "Configure API-Football or equivalent enrichment for lineups, injuries and odds.",
+          : providerHealth?.nextAction ?? "Configure API-Football or equivalent enrichment for lineups, injuries and odds.",
     },
     {
       key: "filecoin",

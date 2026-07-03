@@ -67,6 +67,7 @@ import { applyRealProof, createCapsule, stableJson } from "./proof";
 import {
   buildDataCoverage,
   buildMatchIntelligenceScore,
+  buildProviderHealthSnapshot,
   buildProviderReadiness,
   enrichMatchWithDataProviders,
   loadMatchesWithFallback,
@@ -100,6 +101,7 @@ import type {
   PredictionDraft,
   ProviderReadinessItem,
   ProviderRouteAuditItem,
+  ProviderHealthSnapshot,
   PublicProfile,
   ShareArtifactEvidence,
 } from "./types";
@@ -727,6 +729,14 @@ function App() {
       : localPublicProfile);
   const canLock = !!selectedMatch && !selectedRecord?.capsule.locked && lockState?.state !== "closed";
   const providerReadiness = buildProviderReadiness(matches);
+  const providerHealth = buildProviderHealthSnapshot({
+    providerSource,
+    readiness: providerReadiness,
+    routeAudit: providerRouteAudit,
+    evidence: providerEvidence,
+    lastSyncedAt: lastDataSyncAt,
+    now,
+  });
 
   const syncRecordsInBackground = (nextRecords: MemoryRecord[], reason: string) => {
     const state = getCloudState();
@@ -1321,6 +1331,7 @@ function App() {
               <p key={item}>{item}</p>
             ))}
           </div>
+          <ProviderHealthPanel health={providerHealth} />
           <ProviderRouteAudit items={providerRouteAudit} />
           <ProviderReadiness items={providerReadiness} />
           <div className="filter-row" aria-label="Match filters">
@@ -1626,6 +1637,7 @@ function App() {
           gameModes={gameModes}
           providerReadiness={providerReadiness}
           providerRouteAudit={providerRouteAudit}
+          providerHealth={providerHealth}
           leaderboardEntries={allRemoteLeaderboard}
           sealEndpointConfigured={filecoinSealConfigured}
           shareImageReady={Boolean(shareImageUrl || publicShareImageUrl || publicModeShareImageUrl)}
@@ -1702,6 +1714,25 @@ function ProviderReadiness({ items }: { items: ProviderReadinessItem[] }) {
           <small>{item.source} · {item.detail}</small>
         </article>
       ))}
+    </div>
+  );
+}
+
+function ProviderHealthPanel({ health }: { health: ProviderHealthSnapshot }) {
+  return (
+    <div className={`provider-health-audit health-${health.status}`} aria-label="Realtime data health">
+      <div>
+        <strong>Realtime data health</strong>
+        <span>{health.status}</span>
+      </div>
+      <div className="provider-health-metrics">
+        <span>{health.fresh ? "fresh" : "stale/pending"}</span>
+        <span>{health.liveOrConfigured}/{health.totalSignals} signals</span>
+        <span>{health.activeRoute ?? "no route"}</span>
+      </div>
+      <small>{health.detail}</small>
+      {health.missingSignals.length > 0 && <p>Missing: {health.missingSignals.join(", ")}</p>}
+      <p>{health.nextAction}</p>
     </div>
   );
 }
@@ -2914,6 +2945,7 @@ function AccountDashboard({
   gameModes,
   providerReadiness,
   providerRouteAudit,
+  providerHealth,
   leaderboardEntries,
   sealEndpointConfigured,
   shareImageReady,
@@ -2937,6 +2969,7 @@ function AccountDashboard({
   gameModes: GameMode[];
   providerReadiness: ProviderReadinessItem[];
   providerRouteAudit: ProviderRouteAuditItem[];
+  providerHealth: ProviderHealthSnapshot;
   leaderboardEntries: LeaderboardEntry[];
   sealEndpointConfigured: boolean;
   shareImageReady: boolean;
@@ -2964,6 +2997,7 @@ function AccountDashboard({
     gameModes,
     providerReadiness,
     providerRouteAudit,
+    providerHealth,
     leaderboardEntries,
     sealEndpointConfigured,
     shareImageReady,

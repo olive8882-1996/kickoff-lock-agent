@@ -3,6 +3,7 @@ import { lookupFifaRanking } from "./data/fifaRankings";
 import {
   buildDataCoverage,
   buildMatchIntelligenceScore,
+  buildProviderHealthSnapshot,
   buildProviderReadiness,
   buildProviderRouteAudit,
   loadSeedMatches,
@@ -256,6 +257,50 @@ describe("provider metadata", () => {
     expect(readiness.find((item) => item.key === "lineups")?.status).toBe("missing");
     expect(readiness.find((item) => item.key === "injuries")?.status).toBe("missing");
     expect(readiness.find((item) => item.key === "odds")?.detail).toContain("VITE_ODDS_API_KEY");
+  });
+
+  it("builds a realtime provider health snapshot from route, freshness and missing signals", () => {
+    const readiness = buildProviderReadiness([
+      normalizeTheSportsDbEvent({
+        idEvent: "2503636",
+        strHomeTeam: "Spain",
+        strAwayTeam: "Austria",
+        intRound: "32",
+        intHomeScore: "2",
+        intAwayScore: "1",
+        strTimestamp: "2026-07-02T19:00:00",
+        strStatus: "FT",
+      }),
+    ]);
+    const health = buildProviderHealthSnapshot({
+      providerSource: "TheSportsDB",
+      readiness,
+      routeAudit: buildProviderRouteAudit("thesportsdb", []),
+      evidence: ["TheSportsDB events normalized"],
+      lastSyncedAt: "2026-07-03T00:00:00.000Z",
+      now: new Date("2026-07-03T00:01:00.000Z").getTime(),
+    });
+
+    expect(health.status).toBe("ready");
+    expect(health.fresh).toBe(true);
+    expect(health.activeRoute).toBe("TheSportsDB");
+    expect(health.missingSignals).toContain("odds");
+    expect(health.detail).toContain("live/configured");
+  });
+
+  it("does not treat stale seed fallback as verified realtime data", () => {
+    const health = buildProviderHealthSnapshot({
+      providerSource: "Seed",
+      readiness: buildProviderReadiness(loadSeedMatches().matches),
+      routeAudit: buildProviderRouteAudit("seed", []),
+      evidence: ["seed fallback"],
+      lastSyncedAt: "2026-07-03T00:00:00.000Z",
+      now: new Date("2026-07-03T00:10:00.000Z").getTime(),
+    });
+
+    expect(health.status).toBe("partial");
+    expect(health.fresh).toBe(false);
+    expect(health.nextAction).toContain("Connect a live provider");
   });
 
   it("audits provider fallback route with missing config and active free source", () => {

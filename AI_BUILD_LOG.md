@@ -39,6 +39,8 @@ Automated-test acceptance was made explicit with a manifest-driven checklist. Th
 
 Public sharing acceptance was tightened with persisted evidence. Generating a record or mode proof card now records the proof URL and timestamp, opening native share or X intent records channel evidence, and the Account radar requires share-card evidence plus anonymous public-link read-back before the sharing category can be verified.
 
+Realtime data acceptance now has a health snapshot. The app combines active provider route, last sync freshness, live/configured signal count, evidence rows and missing enrichment layers into a Match board panel, and the production radar uses that health gate instead of only checking that provider rows exist.
+
 ## Debugging Plan
 
 The final app should be checked through:

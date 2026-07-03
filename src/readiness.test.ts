@@ -6,6 +6,7 @@ import type {
   GameModeRun,
   LeaderboardEntry,
   MemoryRecord,
+  ProviderHealthSnapshot,
   ProviderReadinessItem,
   ProviderRouteAuditItem,
   ShareArtifactEvidence,
@@ -48,6 +49,21 @@ const providerReadiness: ProviderReadinessItem[] = [
 const routeAudit: ProviderRouteAuditItem[] = [
   { key: "seed", label: "Seed", status: "fallback", configured: true, detail: "Seed continuity" },
 ];
+
+const liveProviderHealth: ProviderHealthSnapshot = {
+  source: "API-Football",
+  status: "verified",
+  lastSyncedAt: "2026-06-01T00:01:00.000Z",
+  ageSeconds: 30,
+  fresh: true,
+  liveOrConfigured: 6,
+  totalSignals: 6,
+  activeRoute: "API-Football",
+  missingSignals: [],
+  evidence: ["API-Football fixtures endpoint"],
+  detail: "API-Football · 6/6 live/configured · fresh",
+  nextAction: "Realtime schedule, score and enrichment signals are fresh.",
+};
 
 const record = (id: string): MemoryRecord => ({
   capsule: {
@@ -189,6 +205,7 @@ describe("production readiness", () => {
       providerRouteAudit: [
         { key: "api-football", label: "API-Football", status: "active", configured: true, detail: "Live" },
       ],
+      providerHealth: liveProviderHealth,
       leaderboardEntries: remoteRows,
       sealEndpointConfigured: true,
       shareImageReady: true,

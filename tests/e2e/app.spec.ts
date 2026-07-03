@@ -8,6 +8,8 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".provider-readiness")).toContainText(/Schedule/i);
   await expect(page.locator(".provider-readiness")).toContainText(/Lineups/i);
   await expect(page.locator(".provider-readiness")).toContainText(/Odds/i);
+  await expect(page.getByLabel("Realtime data health")).toContainText(/Realtime data health/i);
+  await expect(page.getByLabel("Realtime data health")).toContainText(/signals/i);
   await expect(page.getByLabel("Provider route audit")).toContainText(/Provider route audit/i);
   await expect(page.getByLabel("Provider route audit")).toContainText(/API-Football/i);
   await expect(page.getByLabel("Provider route audit")).toContainText(/Seed continuity/i);

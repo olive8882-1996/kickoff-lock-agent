@@ -2395,6 +2395,7 @@ pre {
   color: #61d893;
 }
 
+.mode-playbook-packet,
 .mode-evidence-packet,
 .mode-settlement-packet,
 .agent-calibration-packet {
@@ -2408,6 +2409,7 @@ pre {
     rgba(3, 8, 10, 0.42);
 }
 
+.mode-playbook-packet.passed,
 .mode-evidence-packet.passed,
 .mode-settlement-packet.passed,
 .agent-calibration-packet.ready {
@@ -2417,12 +2419,14 @@ pre {
     rgba(3, 8, 10, 0.42);
 }
 
+.mode-playbook-packet .panel-head,
 .mode-evidence-packet .panel-head,
 .mode-settlement-packet .panel-head,
 .agent-calibration-packet .panel-head {
   margin-bottom: 0;
 }
 
+.mode-playbook-packet .panel-head button,
 .mode-evidence-packet .panel-head button,
 .mode-settlement-packet .panel-head button,
 .agent-calibration-packet .panel-head button {
@@ -2437,6 +2441,8 @@ pre {
   text-transform: uppercase;
 }
 
+.mode-playbook-summary,
+.mode-playbook-list,
 .mode-evidence-summary,
 .mode-evidence-list,
 .mode-settlement-summary,
@@ -2448,12 +2454,15 @@ pre {
   gap: 8px;
 }
 
+.mode-playbook-summary,
 .mode-evidence-summary,
 .mode-settlement-summary,
 .agent-calibration-summary {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.mode-playbook-summary div,
+.mode-playbook-list article,
 .mode-evidence-summary div,
 .mode-evidence-list article,
 .mode-settlement-summary div,
@@ -2467,6 +2476,7 @@ pre {
   background: rgba(3, 8, 10, 0.38);
 }
 
+.mode-playbook-summary div,
 .mode-evidence-summary div,
 .mode-settlement-summary div,
 .agent-calibration-summary div {
@@ -2475,6 +2485,8 @@ pre {
   align-content: center;
 }
 
+.mode-playbook-summary span,
+.mode-playbook-summary strong,
 .mode-evidence-summary span,
 .mode-evidence-summary strong,
 .mode-settlement-summary span,
@@ -2484,6 +2496,7 @@ pre {
   display: block;
 }
 
+.mode-playbook-list,
 .mode-evidence-list,
 .mode-settlement-list,
 .agent-calibration-checks,
@@ -2491,6 +2504,7 @@ pre {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.mode-playbook-list article,
 .mode-evidence-list article,
 .mode-settlement-list article,
 .agent-calibration-checks article,
@@ -2501,9 +2515,15 @@ pre {
   background: rgba(255, 91, 78, 0.055);
 }
 
+.mode-playbook-list article.mode-playbook-sealed,
 .mode-evidence-list article.passed {
   border-color: rgba(77, 217, 137, 0.26);
   background: rgba(77, 217, 137, 0.07);
+}
+
+.mode-playbook-list article.mode-playbook-ready-to-seal {
+  border-color: rgba(241, 201, 77, 0.24);
+  background: rgba(241, 201, 77, 0.06);
 }
 
 .mode-settlement-list article.passed {
@@ -2529,6 +2549,7 @@ pre {
   background: rgba(255, 91, 78, 0.07);
 }
 
+.mode-playbook-list article > div,
 .mode-evidence-list article > div,
 .mode-settlement-list article > div,
 .agent-calibration-checks article > div,
@@ -2539,6 +2560,7 @@ pre {
   align-items: center;
 }
 
+.mode-playbook-list article > div span,
 .mode-evidence-list article > div span,
 .mode-settlement-list article > div span,
 .agent-calibration-checks article > div span,
@@ -2550,6 +2572,9 @@ pre {
   text-transform: uppercase;
 }
 
+.mode-playbook-packet span,
+.mode-playbook-packet p,
+.mode-playbook-packet small,
 .mode-evidence-packet span,
 .mode-evidence-packet p,
 .mode-evidence-packet small,
@@ -2566,6 +2591,7 @@ pre {
   overflow-wrap: anywhere;
 }
 
+.mode-playbook-packet span,
 .mode-evidence-packet span,
 .mode-settlement-packet span,
 .agent-calibration-packet span {
@@ -2573,6 +2599,7 @@ pre {
   text-transform: uppercase;
 }
 
+.mode-playbook-packet strong,
 .mode-evidence-packet strong,
 .mode-settlement-packet strong,
 .agent-calibration-packet strong {
@@ -2583,6 +2610,17 @@ pre {
 .agent-calibration-copy {
   display: grid;
   gap: 6px;
+}
+
+.mode-playbook-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.mode-playbook-copy textarea {
+  min-height: 130px;
+  overflow-wrap: anywhere;
+  resize: vertical;
 }
 
 .agent-calibration-copy textarea {
@@ -6002,6 +6040,9 @@ pre {
   .data-continuity-summary,
   .data-continuity-checks,
   .data-continuity-checks article > div,
+  .mode-playbook-summary,
+  .mode-playbook-list,
+  .mode-playbook-list article > div,
   .mode-settlement-summary,
   .mode-settlement-list,
   .mode-settlement-list article > div,

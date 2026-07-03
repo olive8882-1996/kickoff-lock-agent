@@ -106,6 +106,7 @@ import {
   type DataContinuityEvidencePacket,
 } from "./dataContinuityEvidence";
 import { buildModeEvidencePacket, type ModeEvidencePacket } from "./modeEvidence";
+import { buildModePlaybookPacket, type ModePlaybookPacket } from "./modePlaybook";
 import { buildModeSettlementPacket, type ModeSettlementPacket } from "./modeSettlement";
 import { createGameModeRun, getModeReadiness } from "./modes";
 import { buildMatchDataEvidencePacket, type MatchDataEvidencePacket } from "./matchDataEvidence";
@@ -3904,6 +3905,7 @@ function ModesDashboard({
   const lockedCount = records.length;
   const bracketReady = isBracketPathReady(bracketPath);
   const bracketRuns = modeRuns.filter((run) => run.modeId === "bracket" && run.artifact?.kind === "bracket-path");
+  const modePlaybook = buildModePlaybookPacket({ modes, records, bracketPath, runs: modeRuns });
   const modeEvidence = buildModeEvidencePacket(modes, modeRuns, shareEvidence, cloudState.verification);
   const modeSettlement = buildModeSettlementPacket(modeRuns);
   const agentCalibrationEvidence = buildAgentCalibrationEvidencePacket(modeRuns);
@@ -3916,6 +3918,7 @@ function ModesDashboard({
         </div>
         <span className="pill">{lockedCount} active locks</span>
       </div>
+      <ModePlaybookPanel packet={modePlaybook} />
       <ModeEvidencePacketCard packet={modeEvidence} />
       <ModeSettlementPacketCard packet={modeSettlement} />
       <AgentCalibrationEvidencePanel packet={agentCalibrationEvidence} />
@@ -4048,6 +4051,60 @@ function ModesDashboard({
         <p>Each mode creates a proof run with hash, CID and linked capsules; production acceptance also requires cloud content read-back, anonymous mode proof links and generated public share cards for all four mode types.</p>
       </div>
     </section>
+  );
+}
+
+function ModePlaybookPanel({ packet }: { packet: ModePlaybookPacket }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPacket = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <div className={`mode-playbook-packet ${packet.complete ? "passed" : ""}`} aria-label="Mode playbook packet">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Mode playbook</p>
+          <h3>Tournament mode lanes</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <TableProperties size={16} /> {copyStatus === "copied" ? "Copied playbook" : copyStatus === "manual" ? "Manual copy" : "Copy playbook"}
+        </button>
+      </div>
+      <div className="mode-playbook-summary">
+        <div><span>Sealed</span><strong>{packet.sealedModes}/{packet.totalModes}</strong></div>
+        <div><span>Ready</span><strong>{packet.readyToSealModes}/{packet.totalModes}</strong></div>
+        <div><span>Runs</span><strong>{packet.totalRuns}</strong></div>
+        <div><span>Status</span><strong>{packet.complete ? "complete" : "active"}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Next action: {packet.nextAction}</small>
+      {copyStatus === "manual" && (
+        <label className="mode-playbook-copy">
+          <span>Manual playbook copy</span>
+          <textarea
+            aria-label="Manual playbook copy"
+            readOnly
+            value={packet.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="mode-playbook-list">
+        {packet.items.map((item) => (
+          <article key={item.modeId} className={`mode-playbook-${item.status}`}>
+            <div>
+              <Flame size={16} />
+              <strong>{item.title}</strong>
+              <span>{item.status}</span>
+            </div>
+            <small>Eligible: {item.eligibleCount}/{item.requiredCount} · Runs: {item.runCount}</small>
+            <small>Latest: {item.latestRunId ?? "missing"}</small>
+            <p>{item.nextAction}</p>
+          </article>
+        ))}
+      </div>
+    </div>
   );
 }
 

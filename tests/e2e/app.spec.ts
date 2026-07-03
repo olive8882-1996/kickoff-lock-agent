@@ -114,6 +114,12 @@ test("expanded product workflow is usable", async ({ page }) => {
 
   await mainNav.getByRole("button", { name: "Modes" }).click();
   await expect(page.getByRole("heading", { name: /Beyond single-match locks/i })).toBeVisible();
+  await expect(page.getByLabel("Mode playbook packet")).toContainText(/Tournament mode lanes/i);
+  await expect(page.getByLabel("Mode playbook packet")).toContainText(/Bracket path/i);
+  await expect(page.getByLabel("Mode playbook packet")).toContainText(/Multi-match parlay/i);
+  await expect(page.getByLabel("Mode playbook packet")).toContainText(/Agent vs Human/i);
+  await expect(page.getByLabel("Mode playbook packet")).toContainText(/Upset challenge/i);
+  await expect(page.getByRole("button", { name: /Copy playbook/i })).toBeVisible();
   await expect(page.getByLabel("Mode evidence packet")).toContainText(/Mode evidence packet/i);
   await expect(page.getByLabel("Mode evidence packet")).toContainText(/Next action/i);
   await expect(page.getByRole("button", { name: /Copy mode packet/i })).toBeVisible();

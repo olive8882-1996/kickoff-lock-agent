@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 import { lookupFilecoinProof, runSealJob, sealApiHeaders, sealApiUrl } from "./filecoinSeal";
-import type { MemoryRecord } from "./types";
+import type { GameModeRun, MemoryRecord } from "./types";
 
 const record: MemoryRecord = {
   capsule: {
@@ -34,6 +34,26 @@ const record: MemoryRecord = {
       markets: [],
     },
   },
+};
+
+const modeRun: GameModeRun = {
+  id: "mode-parlay-seal",
+  modeId: "parlay",
+  title: "Multi-match parlay",
+  createdAt: "2099-01-01T00:00:00.000Z",
+  capsuleIds: ["cap-one", "cap-two", "cap-three"],
+  payloadHash: "b".repeat(64),
+  filecoinProof: {
+    mode: "demo",
+    cid: "bafy-mode-demo",
+    pieceCid: "piece-mode-demo",
+    provider: "demo",
+    dataSetId: "mode-set",
+    proofStatus: "retrievable",
+  },
+  status: "sealed",
+  summary: "Mode proof sealed.",
+  requirements: ["3 sealed match capsules"],
 };
 
 const jsonResponse = (payload: unknown, status = 200) =>
@@ -112,6 +132,8 @@ describe("Filecoin seal workflow", () => {
             mockMode: false,
             hasPrivateKey: true,
             authRequired: true,
+            productionReady: true,
+            blockers: [],
             proofCount: 4,
             persistence: "file",
             maxUploadBytes: 262144,
@@ -140,6 +162,20 @@ describe("Filecoin seal workflow", () => {
             checkedAt: "2099-01-01T00:00:00.000Z",
           });
         }
+        if (url === "https://seal.example/proof/bafy-real-1234567890") {
+          const payloadHash = sha256Hex(calls.find((call) => call.method === "POST")?.body ?? "");
+          return jsonResponse({
+            cid: "bafy-real-1234567890",
+            pieceCid: "baga-real-1234567890",
+            provider: "synapse-provider",
+            dataSetId: "dataset-1",
+            proofStatus: "verified",
+            retrievalUrl: "https://cid.ipfs.tech/#bafy-real-1234567890",
+            payloadHash,
+            byteLength: calls.find((call) => call.method === "POST")?.body?.length,
+            checkedAt: "2099-01-01T00:01:00.000Z",
+          });
+        }
         return jsonResponse({ error: "unexpected" }, 404);
       }),
     );
@@ -151,6 +187,7 @@ describe("Filecoin seal workflow", () => {
       "GET https://seal.example/health",
       "POST https://seal.example/seal",
       "GET https://seal.example/verify?cid=bafy-real-1234567890",
+      "GET https://seal.example/proof/bafy-real-1234567890",
     ]);
     expect(calls[1].body).toContain(record.capsule.payloadHash);
     expect(updated.capsule.filecoinProof.mode).toBe("real");
@@ -160,18 +197,204 @@ describe("Filecoin seal workflow", () => {
     expect(updated.sealJob?.backendHealth?.mockMode).toBe(false);
     expect(updated.sealJob?.backendHealth?.hasPrivateKey).toBe(true);
     expect(updated.sealJob?.backendHealth?.authRequired).toBe(true);
+    expect(updated.sealJob?.backendHealth?.productionReady).toBe(true);
     expect(updated.sealJob?.backendHealth?.persistence).toBe("file");
     expect(updated.sealJob?.backendHealth?.maxUploadBytes).toBe(262144);
     expect(updated.sealJob?.steps.find((step) => step.id === "health")?.detail).toContain("real Synapse");
+    expect(updated.sealJob?.steps.find((step) => step.id === "health")?.detail).toContain("production-ready");
     expect(updated.sealJob?.steps.find((step) => step.id === "health")?.detail).toContain("file proof registry");
     expect(updated.sealJob?.pollAttempts).toBe(1);
     expect(updated.sealJob?.uploadPayloadHash).toBe(updated.sealJob?.proof?.payloadHash);
+    expect(updated.sealJob?.proofRegistryStatus).toBe("verified");
+    expect(updated.sealJob?.proofRegistryHash).toBe(updated.sealJob?.uploadPayloadHash);
+    expect(updated.sealJob?.proofRegistryCheckedAt).toBe("2099-01-01T00:01:00.000Z");
     expect(updated.sealJob?.proof?.byteLength).toBeGreaterThan(0);
     expect(updated.sealJob?.steps.find((step) => step.id === "deal")?.status).toBe("passed");
+    expect(updated.sealJob?.steps.find((step) => step.id === "registry")?.status).toBe("passed");
     expect(updated.sealJob?.lastCheckedAt).toBe("2099-01-01T00:00:00.000Z");
     expect(updated.sealJob?.proofUrl).toBe("https://seal.example/proof/bafy-real-1234567890");
     expect(updated.sealJob?.verifyUrl).toBe("https://seal.example/verify?cid=bafy-real-1234567890");
     expect(updated.sealJob?.steps.every((step) => step.status === "passed")).toBe(true);
+  });
+
+  it("runs configured one-click sealing for a tournament mode proof", async () => {
+    vi.stubEnv("VITE_FILECOIN_SEAL_API", "https://seal.example/seal");
+    const calls: Array<{ url: string; method: string; body?: string }> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        calls.push({ url, method: init?.method ?? "GET", body: init?.body?.toString() });
+        if (url === "https://seal.example/health") {
+          return jsonResponse({
+            ok: true,
+            service: "kickoff-lock-filecoin-seal-api",
+            mockMode: false,
+            hasPrivateKey: true,
+            authRequired: true,
+            productionReady: true,
+            blockers: [],
+            proofCount: 4,
+            persistence: "file",
+            maxUploadBytes: 262144,
+          });
+        }
+        if (url === "https://seal.example/seal") {
+          const payloadHash = sha256Hex(init?.body?.toString() ?? "");
+          return jsonResponse({
+            cid: "bafy-mode-real-1234567890",
+            pieceCid: "baga-mode-real-1234567890",
+            provider: "synapse-provider",
+            dataSetId: "dataset-mode",
+            proofStatus: "retrievable",
+            retrievalUrl: "https://cid.ipfs.tech/#bafy-mode-real-1234567890",
+            payloadHash,
+            byteLength: init?.body?.toString().length,
+          });
+        }
+        if (url === "https://seal.example/verify?cid=bafy-mode-real-1234567890") {
+          return jsonResponse({
+            cid: "bafy-mode-real-1234567890",
+            proofStatus: "verified",
+            checkedAt: "2099-01-01T00:00:00.000Z",
+          });
+        }
+        if (url === "https://seal.example/proof/bafy-mode-real-1234567890") {
+          const payloadHash = sha256Hex(calls.find((call) => call.method === "POST")?.body ?? "");
+          return jsonResponse({
+            cid: "bafy-mode-real-1234567890",
+            pieceCid: "baga-mode-real-1234567890",
+            provider: "synapse-provider",
+            dataSetId: "dataset-mode",
+            proofStatus: "verified",
+            payloadHash,
+            byteLength: calls.find((call) => call.method === "POST")?.body?.length,
+            checkedAt: "2099-01-01T00:01:00.000Z",
+          });
+        }
+        return jsonResponse({ error: "unexpected" }, 404);
+      }),
+    );
+    const { runModeSealJob } = await import("./filecoinSeal");
+
+    const updated = await runModeSealJob(modeRun);
+
+    expect(calls[1].body).toContain('"modeRun"');
+    expect(calls[1].body).toContain(modeRun.payloadHash);
+    expect(calls[1].body).not.toContain('"sealJob"');
+    expect(updated.filecoinProof.mode).toBe("real");
+    expect(updated.filecoinProof.cid).toBe("bafy-mode-real-1234567890");
+    expect(updated.sealJob?.status).toBe("verified");
+    expect(updated.sealJob?.proofRegistryStatus).toBe("verified");
+    expect(updated.sealJob?.proofRegistryHash).toBe(updated.sealJob?.uploadPayloadHash);
+    expect(updated.sealJob?.steps.find((step) => step.id === "verify")?.detail).toContain("Mode proof CID");
+  });
+
+  it("records seal API production blockers when health is only demo-safe", async () => {
+    vi.stubEnv("VITE_FILECOIN_SEAL_API", "https://seal.example/seal");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "https://seal.example/health") {
+          return jsonResponse({
+            ok: true,
+            mockMode: true,
+            hasPrivateKey: false,
+            authRequired: false,
+            productionReady: false,
+            blockers: [
+              "FILECOIN_SEAL_MOCK is enabled",
+              "SYNAPSE_PRIVATE_KEY is missing",
+              "FILECOIN_SEAL_TOKEN is missing",
+              "FILECOIN_PROOF_STORE_PATH is missing",
+            ],
+            persistence: "memory",
+            maxUploadBytes: 262144,
+          });
+        }
+        if (url === "https://seal.example/seal") {
+          const payloadHash = sha256Hex(init?.body?.toString() ?? "");
+          return jsonResponse({
+            cid: "bafy-demo-ready",
+            pieceCid: "baga-demo-ready",
+            provider: "mock-synapse-provider",
+            dataSetId: "mock-dataset",
+            proofStatus: "verified",
+            payloadHash,
+            byteLength: init?.body?.toString().length,
+          });
+        }
+        if (url === "https://seal.example/verify?cid=bafy-demo-ready") {
+          return jsonResponse({ cid: "bafy-demo-ready", proofStatus: "verified" });
+        }
+        if (url === "https://seal.example/proof/bafy-demo-ready") {
+          const payloadHash = sha256Hex(init?.body?.toString() ?? "");
+          return jsonResponse({
+            cid: "bafy-demo-ready",
+            proofStatus: "verified",
+            payloadHash: sha256Hex((globalThis.fetch as any).mock.calls.find((call: any[]) => String(call[0]) === "https://seal.example/seal")?.[1]?.body?.toString() ?? ""),
+          });
+        }
+        return jsonResponse({ error: "unexpected" }, 404);
+      }),
+    );
+    const { runSealJob: runConfiguredSealJob, sealBackendProductionReady: isProductionReady } = await import("./filecoinSeal");
+
+    const updated = await runConfiguredSealJob(record);
+
+    expect(updated.sealJob?.status).toBe("verified");
+    expect(isProductionReady(updated.sealJob?.backendHealth)).toBe(false);
+    expect(updated.sealJob?.steps.find((step) => step.id === "health")?.detail).toContain("production blockers");
+    expect(updated.sealJob?.steps.find((step) => step.id === "health")?.detail).toContain("FILECOIN_SEAL_MOCK");
+  });
+
+  it("fails sealing when the proof registry read-back does not match the uploaded payload", async () => {
+    vi.stubEnv("VITE_FILECOIN_SEAL_API", "https://seal.example/seal");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "https://seal.example/health") {
+          return jsonResponse({ ok: true, mockMode: false, hasPrivateKey: true, persistence: "file", authRequired: true });
+        }
+        if (url === "https://seal.example/seal") {
+          const payloadHash = sha256Hex(init?.body?.toString() ?? "");
+          return jsonResponse({
+            cid: "bafy-registry-mismatch",
+            pieceCid: "baga-registry-mismatch",
+            provider: "synapse-provider",
+            dataSetId: "dataset-1",
+            proofStatus: "retrievable",
+            payloadHash,
+          });
+        }
+        if (url === "https://seal.example/verify?cid=bafy-registry-mismatch") {
+          return jsonResponse({
+            cid: "bafy-registry-mismatch",
+            proofStatus: "verified",
+            checkedAt: "2099-01-01T00:00:00.000Z",
+          });
+        }
+        if (url === "https://seal.example/proof/bafy-registry-mismatch") {
+          return jsonResponse({
+            cid: "bafy-registry-mismatch",
+            proofStatus: "verified",
+            payloadHash: "0".repeat(64),
+          });
+        }
+        return jsonResponse({ error: "unexpected" }, 404);
+      }),
+    );
+    const { runSealJob: runConfiguredSealJob } = await import("./filecoinSeal");
+
+    const updated = await runConfiguredSealJob(record);
+
+    expect(updated.capsule.filecoinProof.mode).toBe("demo");
+    expect(updated.sealJob?.status).toBe("failed");
+    expect(updated.sealJob?.proofRegistryStatus).toBe("failed");
+    expect(updated.sealJob?.steps.find((step) => step.id === "registry")?.status).toBe("failed");
+    expect(updated.sealJob?.error).toContain("Proof registry payload hash");
   });
 
   it("fails sealing when the seal API returns proof metadata for a different payload", async () => {

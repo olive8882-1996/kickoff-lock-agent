@@ -7,9 +7,12 @@ import type {
   Match,
   MatchIntelligenceScore,
   ProviderHealthSnapshot,
+  ProviderEnrichmentAudit,
+  ProviderResponseAudit,
   ProviderReadinessItem,
   ProviderResult,
   ProviderRouteAuditItem,
+  RealtimeDataAudit,
 } from "./types";
 
 const ESPN_URL =
@@ -17,12 +20,20 @@ const ESPN_URL =
 const WORLDCUP26_URL = "https://worldcup26.ir/get/games";
 const API_FOOTBALL_KEY = import.meta.env.VITE_APIFOOTBALL_KEY as string | undefined;
 const API_FOOTBALL_HOST = "https://v3.football.api-sports.io";
+const API_FOOTBALL_ENRICHMENT_LIMIT = Math.max(
+  0,
+  Number(import.meta.env.VITE_APIFOOTBALL_ENRICHMENT_LIMIT ?? 12) || 0,
+);
 const FOOTBALL_DATA_TOKEN = import.meta.env.VITE_FOOTBALL_DATA_TOKEN as string | undefined;
 const FOOTBALL_DATA_COMPETITION = (import.meta.env.VITE_FOOTBALL_DATA_COMPETITION as string | undefined) ?? "WC";
 const FOOTBALL_DATA_HOST = "https://api.football-data.org/v4";
 const THESPORTSDB_KEY = (import.meta.env.VITE_THESPORTSDB_KEY as string | undefined) ?? "123";
 const THESPORTSDB_LEAGUE_ID = (import.meta.env.VITE_THESPORTSDB_LEAGUE_ID as string | undefined) ?? "4429";
 const THESPORTSDB_SEASON = (import.meta.env.VITE_THESPORTSDB_SEASON as string | undefined) ?? String(new Date().getUTCFullYear());
+const THESPORTSDB_ENRICHMENT_LIMIT = Math.max(
+  0,
+  Number(import.meta.env.VITE_THESPORTSDB_ENRICHMENT_LIMIT ?? 8) || 0,
+);
 const THESPORTSDB_HOST = `https://www.thesportsdb.com/api/v1/json/${THESPORTSDB_KEY}`;
 const ODDS_API_KEY = import.meta.env.VITE_ODDS_API_KEY as string | undefined;
 const ODDS_API_SPORT_KEY = import.meta.env.VITE_ODDS_API_SPORT_KEY as string | undefined;
@@ -86,6 +97,38 @@ const timeoutFetch = async (
   }
 };
 
+const providerResponseAudit = ({
+  source,
+  endpoint,
+  rowCount,
+  sampleIds,
+  httpStatus,
+  checkedAt = new Date().toISOString(),
+  startedAt = Date.now(),
+  status = rowCount > 0 ? "ok" : "empty",
+  detail,
+}: {
+  source: DataSource;
+  endpoint: string;
+  rowCount: number;
+  sampleIds: string[];
+  httpStatus?: number;
+  checkedAt?: string;
+  startedAt?: number;
+  status?: ProviderResponseAudit["status"];
+  detail?: string;
+}): ProviderResponseAudit => ({
+  source,
+  endpoint,
+  status,
+  httpStatus,
+  checkedAt,
+  rowCount,
+  sampleIds: sampleIds.slice(0, 5),
+  durationMs: Math.max(0, Date.now() - startedAt),
+  detail: detail ?? `${rowCount} row${rowCount === 1 ? "" : "s"} returned from ${sourceLabel(source)}`,
+});
+
 const normalizeStatus = (description?: string): Match["status"] => {
   const text = (description ?? "").toLowerCase();
   if (text.includes("full") || text.includes("final")) return "finished";
@@ -138,7 +181,8 @@ const normalizeTheSportsDbStage = (round?: string | number) => {
   return `Round ${n}`;
 };
 
-const placeholderPattern = /not published|not configured|configure|unavailable|waiting|waits|not loaded|no injury feed|no odds|not returned|does not publish|no betting/i;
+const placeholderPattern =
+  /not published|not configured|configure|unavailable|waiting|waits|not loaded|not yet loaded|no injury feed|no odds|no market rows|not returned|does not publish|no betting/i;
 
 const hasUsefulList = (items?: string[]) =>
   Boolean(items?.some((item) => item.trim() && !placeholderPattern.test(item)));
@@ -171,12 +215,30 @@ const statusRank: Record<DataCoverageStatus, number> = {
 const isLiveOrConfigured = (item: ProviderReadinessItem) =>
   item.status === "live" || item.status === "configured";
 
+const productionEnrichmentKeys = new Set<DataCoverageItem["key"]>(["lineups", "injuries", "odds"]);
+
+const hasProductionEnrichmentReadback = (
+  key: DataCoverageItem["key"],
+  enrichmentAudit?: ProviderEnrichmentAudit,
+) => {
+  if (!productionEnrichmentKeys.has(key)) return true;
+  const endpoint = enrichmentAudit?.endpointAudits.find((item) => item.key === key);
+  return Boolean(endpoint && endpoint.attempted > 0 && endpoint.fulfilled > 0 && endpoint.live > 0);
+};
+
+const isProductionSignalReady = (item: ProviderReadinessItem, enrichmentAudit?: ProviderEnrichmentAudit) => {
+  if (!productionEnrichmentKeys.has(item.key)) return isLiveOrConfigured(item);
+  return item.status === "live" && hasProductionEnrichmentReadback(item.key, enrichmentAudit);
+};
+
 export const buildProviderHealthSnapshot = ({
   providerSource,
   readiness,
   routeAudit,
   evidence,
   lastSyncedAt,
+  responseAudit,
+  enrichmentAudit,
   now = Date.now(),
   freshnessMs = 2 * 60 * 1000,
 }: {
@@ -185,31 +247,48 @@ export const buildProviderHealthSnapshot = ({
   routeAudit: ProviderRouteAuditItem[];
   evidence: string[];
   lastSyncedAt?: string;
+  responseAudit?: ProviderResponseAudit;
+  enrichmentAudit?: ProviderEnrichmentAudit;
   now?: number;
   freshnessMs?: number;
 }): ProviderHealthSnapshot => {
   const activeRoute = routeAudit.find((route) => route.status === "active" || route.status === "fallback");
   const liveOrConfiguredItems = readiness.filter(isLiveOrConfigured);
+  const productionReadyItems = readiness.filter((item) => isProductionSignalReady(item, enrichmentAudit));
   const missingSignals = readiness
-    .filter((item) => item.status === "missing" || item.status === "manual")
+    .filter(
+      (item) =>
+        item.status === "missing" ||
+        item.status === "manual" ||
+        (productionEnrichmentKeys.has(item.key) && !isProductionSignalReady(item, enrichmentAudit)),
+    )
     .map((item) => item.key);
   const lastSyncMs = lastSyncedAt ? new Date(lastSyncedAt).getTime() : Number.NaN;
   const ageSeconds = Number.isFinite(lastSyncMs) ? Math.max(0, Math.round((now - lastSyncMs) / 1000)) : undefined;
   const fresh = ageSeconds !== undefined && ageSeconds <= Math.round(freshnessMs / 1000);
   const activeLiveRoute = Boolean(activeRoute && activeRoute.key !== "seed" && activeRoute.status === "active");
+  const responseVerified = Boolean(
+    responseAudit &&
+      responseAudit.status === "ok" &&
+      responseAudit.rowCount > 0 &&
+      responseAudit.source !== "seed" &&
+      activeRoute &&
+      activeRoute.key === responseAudit.source,
+  );
   const totalSignals = readiness.length;
   const liveOrConfiguredCount = liveOrConfiguredItems.length;
+  const productionReadyCount = productionReadyItems.length;
   const status: ProviderHealthSnapshot["status"] =
-    activeLiveRoute && fresh && missingSignals.length === 0
+    activeLiveRoute && fresh && responseVerified && missingSignals.length === 0
       ? "verified"
-      : activeLiveRoute && fresh && liveOrConfiguredCount >= Math.ceil(totalSignals * 0.65)
+      : activeLiveRoute && fresh && responseVerified && productionReadyCount >= Math.ceil(totalSignals * 0.65)
         ? "ready"
         : activeRoute
           ? "partial"
           : "blocked";
   const detail = `${activeRoute?.label ?? providerSource} · ${liveOrConfiguredCount}/${totalSignals} live/configured · ${
     fresh ? "fresh" : "stale or pending"
-  }`;
+  } · response ${responseVerified ? "verified" : "unverified"} · ${productionReadyCount}/${totalSignals} production read-back`;
   const nextAction =
     status === "verified"
       ? "Realtime schedule, score and enrichment signals are fresh."
@@ -223,6 +302,9 @@ export const buildProviderHealthSnapshot = ({
     lastSyncedAt,
     ageSeconds,
     fresh,
+    responseVerified,
+    responseAudit,
+    enrichmentAudit,
     liveOrConfigured: liveOrConfiguredCount,
     totalSignals,
     activeRoute: activeRoute?.label,
@@ -366,6 +448,119 @@ export const buildProviderReadiness = (matches: Match[]): ProviderReadinessItem[
 
   items.splice(1, 0, providerScoreStatus(matches));
   return items;
+};
+
+const coverageKeys: DataCoverageItem["key"][] = ["schedule", "score", "rankings", "lineups", "injuries", "odds"];
+
+export const buildRealtimeDataAudit = ({
+  source,
+  matches,
+  routeAudit = [],
+  evidence = [],
+  responseAudit,
+  enrichmentAudit,
+  warning,
+  checkedAt = new Date().toISOString(),
+}: {
+  source: DataSource;
+  matches: Match[];
+  routeAudit?: ProviderRouteAuditItem[];
+  evidence?: string[];
+  responseAudit?: ProviderResponseAudit;
+  enrichmentAudit?: ProviderEnrichmentAudit;
+  warning?: string;
+  checkedAt?: string;
+}): RealtimeDataAudit => {
+  const activeRoute = routeAudit.find((route) => route.key === source);
+  const responseVerified = Boolean(
+    responseAudit &&
+      responseAudit.status === "ok" &&
+      responseAudit.rowCount > 0 &&
+      responseAudit.source === source &&
+      source !== "seed",
+  );
+  const coverageRows = matches.map((match) => ({
+    match,
+    coverage: match.insights?.dataCoverage ?? buildDataCoverage(match),
+  }));
+  const signals = coverageKeys.map((key) => {
+    const items = coverageRows
+      .flatMap((row) => row.coverage)
+      .filter((item) => item.key === key);
+    const best = [...items].sort((a, b) => statusRank[b.status] - statusRank[a.status])[0];
+    return {
+      key,
+      label: best?.label ?? key,
+      bestStatus: best?.status ?? "missing",
+      bestSource: best?.source ?? "Not available",
+      live: items.filter((item) => item.status === "live").length,
+      configured: items.filter((item) => item.status === "configured").length,
+      fallback: items.filter((item) => item.status === "fallback").length,
+      manual: items.filter((item) => item.status === "manual").length,
+      missing: items.filter((item) => item.status === "missing").length,
+      total: matches.length,
+    };
+  });
+  const signalHasProductionReadback = (key: DataCoverageItem["key"]) => {
+    if (!productionEnrichmentKeys.has(key)) return true;
+    const endpoint = enrichmentAudit?.endpointAudits.find((item) => item.key === key);
+    return Boolean(endpoint && endpoint.attempted > 0 && endpoint.fulfilled > 0 && endpoint.live > 0);
+  };
+  const missingSignals = signals
+    .filter((signal) =>
+      productionEnrichmentKeys.has(signal.key)
+        ? signal.live < signal.total || !signalHasProductionReadback(signal.key)
+        : signal.live + signal.configured < signal.total,
+    )
+    .map((signal) => signal.key);
+  const apiFootballEnrichmentReadback = Boolean(
+    source !== "api-football" ||
+      (enrichmentAudit &&
+        enrichmentAudit.attemptedFixtures > 0 &&
+        enrichmentAudit.endpointAudits.every((endpoint) => endpoint.fulfilled >= endpoint.attempted)),
+  );
+  const samples = coverageRows.slice(0, 3).map(({ match, coverage }) => {
+    const missing = coverage
+      .filter((item) => statusRank[item.status] < statusRank.configured)
+      .map((item) => item.key);
+    return {
+      id: match.id,
+      label: `${match.homeTeam} vs ${match.awayTeam}`,
+      status: match.status,
+      kickoffAt: match.kickoffAt,
+      liveOrConfigured: coverage.filter((item) => item.status === "live" || item.status === "configured").length,
+      missing,
+    };
+  });
+  const productionReady = Boolean(
+    matches.length > 0 &&
+      activeRoute &&
+      activeRoute.status === "active" &&
+      source !== "seed" &&
+      responseVerified &&
+      apiFootballEnrichmentReadback &&
+      missingSignals.length === 0,
+  );
+
+  return {
+    checkedAt,
+    source,
+    sourceLabel: sourceLabel(source),
+    routeStatus: activeRoute?.status ?? "unknown",
+    responseVerified,
+    responseAudit,
+    enrichmentAudit,
+    matchCount: matches.length,
+    liveMatches: matches.filter((match) => match.status === "live").length,
+    finishedMatches: matches.filter((match) => match.status === "finished").length,
+    upcomingMatches: matches.filter((match) => match.status === "upcoming").length,
+    productionReady,
+    warning,
+    evidence,
+    missingSignals,
+    signals,
+    samples,
+  };
 };
 
 export const buildDataCoverage = (match: Match): DataCoverageItem[] => {
@@ -551,6 +746,7 @@ const insightShell = (homeTeam: string, awayTeam: string, source: string, stamp 
 });
 
 export const loadFromEspn = async (): Promise<ProviderResult> => {
+  const startedAt = Date.now();
   const res = await timeoutFetch(ESPN_URL);
   if (!res.ok) throw new Error(`ESPN returned ${res.status}`);
   const data = await res.json();
@@ -584,10 +780,19 @@ export const loadFromEspn = async (): Promise<ProviderResult> => {
       "Live status, score, venue and kickoff metadata",
       `${matches.length} ESPN events normalized`,
     ],
+    responseAudit: providerResponseAudit({
+      source: "espn",
+      endpoint: "scoreboard",
+      rowCount: events.length,
+      sampleIds: events.map((event: any) => String(event.id ?? "")).filter(Boolean),
+      httpStatus: res.status,
+      startedAt,
+    }),
   };
 };
 
 export const loadFromWorldcup26 = async (): Promise<ProviderResult> => {
+  const startedAt = Date.now();
   const res = await timeoutFetch(WORLDCUP26_URL);
   if (!res.ok) throw new Error(`worldcup26 returned ${res.status}`);
   const data = await res.json();
@@ -617,11 +822,220 @@ export const loadFromWorldcup26 = async (): Promise<ProviderResult> => {
       "Schedule and finished-score fallback",
       `${matches.length} worldcup26 games normalized`,
     ],
+    responseAudit: providerResponseAudit({
+      source: "worldcup26",
+      endpoint: "get/games",
+      rowCount: games.length,
+      sampleIds: games.map((game: any) => String(game.id ?? "")).filter(Boolean),
+      httpStatus: res.status,
+      startedAt,
+    }),
   };
+};
+
+export const normalizeApiFootballFixture = (item: any, stamp = new Date().toISOString()): Match =>
+  withCoverage({
+    id: `api-football-${item.fixture?.id}`,
+    homeTeam: item.teams?.home?.name ?? "Home",
+    awayTeam: item.teams?.away?.name ?? "Away",
+    kickoffAt: item.fixture?.date,
+    stage: item.league?.round ?? "FIFA World Cup",
+    status: normalizeStatus(item.fixture?.status?.long),
+    dataSource: "api-football",
+    homeScore: numberOrUndefined(item.goals?.home),
+    awayScore: numberOrUndefined(item.goals?.away),
+    venue: item.fixture?.venue?.name,
+    insights: {
+      home: {
+        fifaRank: 0,
+        form: ["API", "LIVE", "FORM"],
+        lastFiveGoalsFor: numberOrUndefined(item.goals?.home) ?? 0,
+        lastFiveGoalsAgainst: numberOrUndefined(item.goals?.away) ?? 0,
+        unavailable: ["Injury enrichment not yet loaded"],
+        probableLineup: ["Lineup enrichment not yet loaded"],
+      },
+      away: {
+        fifaRank: 0,
+        form: ["API", "LIVE", "FORM"],
+        lastFiveGoalsFor: numberOrUndefined(item.goals?.away) ?? 0,
+        lastFiveGoalsAgainst: numberOrUndefined(item.goals?.home) ?? 0,
+        unavailable: ["Injury enrichment not yet loaded"],
+        probableLineup: ["Lineup enrichment not yet loaded"],
+      },
+      headToHead: "API-Football can supply H2H by team ids after fixture selection.",
+      marketLine: "Odds enrichment not yet loaded.",
+      oddsSnapshot: "Odds enrichment not yet loaded.",
+      lineupSource: "API-Football fixture feed only; lineups endpoint not yet loaded",
+      injurySource: "API-Football fixture feed only; injuries endpoint not yet loaded",
+      dataFreshness: stamp,
+    },
+  });
+
+const fixtureIdFromApiFootballMatch = (match: Match) =>
+  match.id.startsWith("api-football-") ? match.id.replace("api-football-", "") : "";
+
+const endpointLiveCount = (matches: Match[], key: DataCoverageItem["key"]) =>
+  matches.filter((match) => {
+    const item = (match.insights?.dataCoverage ?? buildDataCoverage(match)).find((coverage) => coverage.key === key);
+    return item?.status === "live";
+  }).length;
+
+export const buildApiFootballEnrichmentAudit = ({
+  totalFixtures,
+  attemptedFixtureIds,
+  enrichedMatches,
+  failures,
+  checkedAt = new Date().toISOString(),
+}: {
+  totalFixtures: number;
+  attemptedFixtureIds: string[];
+  enrichedMatches: Match[];
+  failures: Array<{ fixtureId: string; message: string }>;
+  checkedAt?: string;
+}): ProviderEnrichmentAudit => {
+  const attempted = attemptedFixtureIds.length;
+  const fulfilled = Math.max(0, attempted - failures.length);
+  const sampleIds = attemptedFixtureIds.slice(0, 5);
+  const endpointAudits = [
+    {
+      key: "lineups" as const,
+      endpoint: "fixtures/lineups?fixture=<fixture-id>",
+      attempted,
+      fulfilled,
+      live: endpointLiveCount(enrichedMatches, "lineups"),
+      errors: failures.length,
+      sampleIds,
+    },
+    {
+      key: "injuries" as const,
+      endpoint: "injuries?fixture=<fixture-id>",
+      attempted,
+      fulfilled,
+      live: endpointLiveCount(enrichedMatches, "injuries"),
+      errors: failures.length,
+      sampleIds,
+    },
+    {
+      key: "odds" as const,
+      endpoint: "odds?fixture=<fixture-id>",
+      attempted,
+      fulfilled,
+      live: endpointLiveCount(enrichedMatches, "odds"),
+      errors: failures.length,
+      sampleIds,
+    },
+  ];
+  const liveSignals = endpointAudits.reduce((sum, item) => sum + item.live, 0);
+  return {
+    source: "api-football",
+    checkedAt,
+    totalFixtures,
+    attemptedFixtures: attempted,
+    endpointAudits,
+    detail: `${attempted}/${totalFixtures} fixtures attempted · ${liveSignals} live enrichment signal${liveSignals === 1 ? "" : "s"} · ${failures.length} failed fixture${failures.length === 1 ? "" : "s"}`,
+  };
+};
+
+const eventIdFromTheSportsDbMatch = (match: Match) =>
+  match.id.startsWith("thesportsdb-") ? match.id.replace("thesportsdb-", "") : "";
+
+export const buildTheSportsDbEnrichmentAudit = ({
+  totalFixtures,
+  attemptedEventIds,
+  enrichedMatches,
+  failures,
+  checkedAt = new Date().toISOString(),
+}: {
+  totalFixtures: number;
+  attemptedEventIds: string[];
+  enrichedMatches: Match[];
+  failures: Array<{ eventId: string; message: string }>;
+  checkedAt?: string;
+}): ProviderEnrichmentAudit => {
+  const attempted = attemptedEventIds.length;
+  const fulfilled = Math.max(0, attempted - failures.length);
+  const sampleIds = attemptedEventIds.slice(0, 5);
+  const lineupsLive = endpointLiveCount(enrichedMatches, "lineups");
+  const endpointAudits = [
+    {
+      key: "lineups" as const,
+      endpoint: "lookuplineup.php?id=<event-id> + lookupeventstats.php?id=<event-id>",
+      attempted,
+      fulfilled,
+      live: lineupsLive,
+      errors: failures.length,
+      sampleIds,
+    },
+    {
+      key: "injuries" as const,
+      endpoint: "not published by TheSportsDB",
+      attempted: 0,
+      fulfilled: 0,
+      live: 0,
+      errors: 0,
+      sampleIds: [],
+    },
+    {
+      key: "odds" as const,
+      endpoint: "use The Odds API batch route when configured",
+      attempted: 0,
+      fulfilled: 0,
+      live: endpointLiveCount(enrichedMatches, "odds"),
+      errors: 0,
+      sampleIds: [],
+    },
+  ];
+  return {
+    source: "thesportsdb",
+    checkedAt,
+    totalFixtures,
+    attemptedFixtures: attempted,
+    endpointAudits,
+    detail: `${attempted}/${totalFixtures} events attempted · ${lineupsLive} live lineup signal${lineupsLive === 1 ? "" : "s"} · ${failures.length} failed event${failures.length === 1 ? "" : "s"}`,
+  };
+};
+
+const enrichApiFootballMatches = async (matches: Match[]) => {
+  const targets = matches
+    .map((match) => ({ match, fixtureId: fixtureIdFromApiFootballMatch(match) }))
+    .filter((item) => item.fixtureId)
+    .slice(0, API_FOOTBALL_ENRICHMENT_LIMIT);
+  if (targets.length === 0) {
+    return {
+      matches,
+      enrichmentAudit: buildApiFootballEnrichmentAudit({
+        totalFixtures: matches.length,
+        attemptedFixtureIds: [],
+        enrichedMatches: [],
+        failures: [],
+      }),
+    };
+  }
+
+  const settled = await Promise.allSettled(targets.map(({ match }) => enrichMatchFromApiFootball(match)));
+  const enrichedById = new Map<string, Match>();
+  const failures: Array<{ fixtureId: string; message: string }> = [];
+  settled.forEach((result, index) => {
+    const fixtureId = targets[index]?.fixtureId ?? "";
+    if (result.status === "fulfilled") {
+      enrichedById.set(targets[index].match.id, result.value);
+    } else {
+      failures.push({ fixtureId, message: (result.reason as Error).message });
+    }
+  });
+  const nextMatches = matches.map((match) => enrichedById.get(match.id) ?? match);
+  const enrichmentAudit = buildApiFootballEnrichmentAudit({
+    totalFixtures: matches.length,
+    attemptedFixtureIds: targets.map((target) => target.fixtureId),
+    enrichedMatches: [...enrichedById.values()],
+    failures,
+  });
+  return { matches: nextMatches, enrichmentAudit };
 };
 
 export const loadFromApiFootball = async (): Promise<ProviderResult> => {
   if (!API_FOOTBALL_KEY) throw new Error("VITE_APIFOOTBALL_KEY is not configured");
+  const startedAt = Date.now();
   const season = new Date().getUTCFullYear();
   const res = await timeoutFetch(`${API_FOOTBALL_HOST}/fixtures?league=1&season=${season}&next=40`, 7500, {
     "x-apisports-key": API_FOOTBALL_KEY,
@@ -629,52 +1043,26 @@ export const loadFromApiFootball = async (): Promise<ProviderResult> => {
   if (!res.ok) throw new Error(`API-Football returned ${res.status}`);
   const data = await res.json();
   const fixtures = Array.isArray(data.response) ? data.response : [];
-  const matches: Match[] = fixtures.map((item: any) =>
-    withCoverage({
-      id: `api-football-${item.fixture?.id}`,
-      homeTeam: item.teams?.home?.name ?? "Home",
-      awayTeam: item.teams?.away?.name ?? "Away",
-      kickoffAt: item.fixture?.date,
-      stage: item.league?.round ?? "FIFA World Cup",
-      status: normalizeStatus(item.fixture?.status?.long),
-      dataSource: "api-football",
-      homeScore: numberOrUndefined(item.goals?.home),
-      awayScore: numberOrUndefined(item.goals?.away),
-      venue: item.fixture?.venue?.name,
-      insights: {
-        home: {
-          fifaRank: 0,
-          form: ["API", "LIVE", "FORM"],
-          lastFiveGoalsFor: numberOrUndefined(item.goals?.home) ?? 0,
-          lastFiveGoalsAgainst: numberOrUndefined(item.goals?.away) ?? 0,
-          unavailable: ["Use injuries endpoint for configured deployments"],
-          probableLineup: ["Use lineups endpoint when fixture enters pre-match window"],
-        },
-        away: {
-          fifaRank: 0,
-          form: ["API", "LIVE", "FORM"],
-          lastFiveGoalsFor: numberOrUndefined(item.goals?.away) ?? 0,
-          lastFiveGoalsAgainst: numberOrUndefined(item.goals?.home) ?? 0,
-          unavailable: ["Use injuries endpoint for configured deployments"],
-          probableLineup: ["Use lineups endpoint when fixture enters pre-match window"],
-        },
-        headToHead: "API-Football can supply H2H by team ids after fixture selection.",
-        marketLine: "Odds endpoint is available when the API key plan includes odds.",
-        oddsSnapshot: "Configured API-Football fixture feed active.",
-        lineupSource: "API-Football lineups endpoint",
-        injurySource: "API-Football injuries endpoint",
-        dataFreshness: new Date().toISOString(),
-      },
-    }),
-  );
-  if (matches.length === 0) throw new Error("API-Football returned no matches");
+  const baseMatches: Match[] = fixtures.map((item: any) => normalizeApiFootballFixture(item));
+  if (baseMatches.length === 0) throw new Error("API-Football returned no matches");
+  const enriched = await enrichApiFootballMatches(baseMatches);
   return {
     source: "api-football",
-    matches,
+    matches: enriched.matches,
     evidence: [
       "API-Football fixtures endpoint",
-      "Lineups, injuries and odds are represented as configured-data sources",
+      "Fixture rows prove schedule/score only; enrichment evidence comes from lineups, injuries and odds endpoint read-back",
+      enriched.enrichmentAudit.detail,
     ],
+    enrichmentAudit: enriched.enrichmentAudit,
+    responseAudit: providerResponseAudit({
+      source: "api-football",
+      endpoint: `fixtures league=1 season=${season} next=40`,
+      rowCount: fixtures.length,
+      sampleIds: fixtures.map((item: any) => String(item.fixture?.id ?? "")).filter(Boolean),
+      httpStatus: res.status,
+      startedAt,
+    }),
   };
 };
 
@@ -713,6 +1101,7 @@ export const normalizeFootballDataMatch = (item: any): Match => {
 
 export const loadFromFootballData = async (): Promise<ProviderResult> => {
   if (!FOOTBALL_DATA_TOKEN) throw new Error("VITE_FOOTBALL_DATA_TOKEN is not configured");
+  const startedAt = Date.now();
   const season = new Date().getUTCFullYear();
   const res = await timeoutFetch(
     `${FOOTBALL_DATA_HOST}/competitions/${FOOTBALL_DATA_COMPETITION}/matches?season=${season}`,
@@ -731,6 +1120,14 @@ export const loadFromFootballData = async (): Promise<ProviderResult> => {
       "Fixtures, live/final scores, stage, venue and team metadata",
       `${matches.length} Football-Data.org matches normalized`,
     ],
+    responseAudit: providerResponseAudit({
+      source: "football-data",
+      endpoint: `competitions/${FOOTBALL_DATA_COMPETITION}/matches season=${season}`,
+      rowCount: Array.isArray(data.matches) ? data.matches.length : 0,
+      sampleIds: Array.isArray(data.matches) ? data.matches.map((item: any) => String(item.id ?? "")).filter(Boolean) : [],
+      httpStatus: res.status,
+      startedAt,
+    }),
   };
 };
 
@@ -776,11 +1173,13 @@ export const normalizeTheSportsDbEvent = (event: any): Match => {
 
 export const loadFromTheSportsDb = async (): Promise<ProviderResult> => {
   const seasonUrl = `${THESPORTSDB_HOST}/eventsseason.php?id=${encodeURIComponent(THESPORTSDB_LEAGUE_ID)}&s=${encodeURIComponent(THESPORTSDB_SEASON)}`;
+  const startedAt = Date.now();
   const seasonRes = await timeoutFetch(seasonUrl, 7500);
   if (!seasonRes.ok) throw new Error(`TheSportsDB season returned ${seasonRes.status}`);
   const seasonData = await seasonRes.json();
   let events = Array.isArray(seasonData.events) ? seasonData.events : [];
   let endpoint = `eventsseason ${THESPORTSDB_LEAGUE_ID}/${THESPORTSDB_SEASON}`;
+  let httpStatus = seasonRes.status;
 
   if (events.length === 0) {
     const nextRes = await timeoutFetch(
@@ -791,18 +1190,30 @@ export const loadFromTheSportsDb = async (): Promise<ProviderResult> => {
     const nextData = await nextRes.json();
     events = Array.isArray(nextData.events) ? nextData.events : [];
     endpoint = `eventsnextleague ${THESPORTSDB_LEAGUE_ID}`;
+    httpStatus = nextRes.status;
   }
 
   const matches = events.map(normalizeTheSportsDbEvent);
   if (matches.length === 0) throw new Error("TheSportsDB returned no World Cup events");
+  const enriched = await enrichTheSportsDbMatches(matches);
   return {
     source: "thesportsdb",
-    matches,
+    matches: enriched.matches,
     evidence: [
       `TheSportsDB ${endpoint}`,
       "Free v1 JSON API with schedule, score, venue, event artwork and status fields",
       `${matches.length} TheSportsDB World Cup events normalized`,
+      enriched.enrichmentAudit.detail,
     ],
+    enrichmentAudit: enriched.enrichmentAudit,
+    responseAudit: providerResponseAudit({
+      source: "thesportsdb",
+      endpoint,
+      rowCount: events.length,
+      sampleIds: events.map((event: any) => String(event.idEvent ?? "")).filter(Boolean),
+      httpStatus,
+      startedAt,
+    }),
   };
 };
 
@@ -1037,6 +1448,45 @@ export const enrichMatchFromTheSportsDb = async (match: Match): Promise<Match> =
   );
 };
 
+const enrichTheSportsDbMatches = async (matches: Match[]) => {
+  const targets = matches
+    .map((match) => ({ match, eventId: eventIdFromTheSportsDbMatch(match) }))
+    .filter((item) => item.eventId)
+    .slice(0, THESPORTSDB_ENRICHMENT_LIMIT);
+  if (targets.length === 0) {
+    return {
+      matches,
+      enrichmentAudit: buildTheSportsDbEnrichmentAudit({
+        totalFixtures: matches.length,
+        attemptedEventIds: [],
+        enrichedMatches: [],
+        failures: [],
+      }),
+    };
+  }
+
+  const settled = await Promise.allSettled(targets.map(({ match }) => enrichMatchFromTheSportsDb(match)));
+  const enrichedById = new Map<string, Match>();
+  const failures: Array<{ eventId: string; message: string }> = [];
+  settled.forEach((result, index) => {
+    const target = targets[index];
+    if (!target) return;
+    if (result.status === "fulfilled") {
+      enrichedById.set(target.match.id, result.value);
+    } else {
+      failures.push({ eventId: target.eventId, message: (result.reason as Error).message });
+    }
+  });
+  const nextMatches = matches.map((match) => enrichedById.get(match.id) ?? match);
+  const enrichmentAudit = buildTheSportsDbEnrichmentAudit({
+    totalFixtures: matches.length,
+    attemptedEventIds: targets.map((target) => target.eventId),
+    enrichedMatches: [...enrichedById.values()],
+    failures,
+  });
+  return { matches: nextMatches, enrichmentAudit };
+};
+
 export const enrichMatchWithDataProviders = async (match: Match): Promise<Match> => {
   const errors: string[] = [];
   if (match.id.startsWith("api-football-")) {
@@ -1076,6 +1526,14 @@ export const loadSeedMatches = (): ProviderResult => ({
     "Manual result entry remains available",
     `${seedMatches.length} seed matches loaded`,
   ],
+  responseAudit: providerResponseAudit({
+    source: "seed",
+    endpoint: "bundled seedMatches",
+    status: "fallback",
+    rowCount: seedMatches.length,
+    sampleIds: seedMatches.map((match) => match.id),
+    detail: "Bundled seed fallback loaded; not external realtime evidence.",
+  }),
 });
 
 const withSeedUpcoming = (result: ProviderResult): ProviderResult => {

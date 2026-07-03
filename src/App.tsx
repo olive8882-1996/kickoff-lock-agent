@@ -33,76 +33,116 @@ import {
   createEmptyBracketPath,
   isBracketPathReady,
 } from "./bracket";
-import { ACCEPTANCE_TEST_SUITES } from "./acceptance";
+import {
+  ACCEPTANCE_TEST_SUITES,
+  summarizeAcceptanceRunEvidence,
+  type AcceptanceEvidencePacket,
+} from "./acceptance";
 import {
   buildPublicProfile,
   buildCloudSyncAudit,
   buildLocalLeaderboard,
   buildLeaderboardReadiness,
+  buildLeaderboardScopeEvidence,
   consumeSupabaseHash,
   buildCloudSyncCoverage,
   getCloudState,
   hydrateProfileFromAuth,
+  isCloudReadbackComplete,
   loadLeaderboard,
   loadProfile,
   loadModeRunsFromCloud,
   loadPublicModeRun,
   loadPublicProfile,
   loadPublicRecord,
+  loadPublicShareArtifact,
   loadRecordsFromCloud,
+  loadShareArtifactsFromCloud,
   mergeModeRuns,
   mergeMemoryRecords,
+  mergeShareArtifacts,
   saveProfile,
   sendMagicLink,
   signOutCloud,
   startGoogleSignIn,
   syncModeRunsToCloud,
   syncRecordsToCloud,
+  syncShareArtifactsToCloud,
   syncProfileToCloud,
+  uploadShareImageToCloud,
   verifyCloudSyncReadback,
 } from "./cloud";
-import { filecoinSealConfigured, lookupFilecoinProof, runSealJob } from "./filecoinSeal";
+import { filecoinSealConfigured, lookupFilecoinProof, runModeSealJob, runSealJob, sealBackendProductionReady } from "./filecoinSeal";
 import { createGameModeRun, getModeReadiness } from "./modes";
-import { applyRealProof, createCapsule, stableJson } from "./proof";
+import { applyRealProof, applyVerifiedProof, createCapsule, stableJson } from "./proof";
+import {
+  applyPublicProofMeta,
+  buildModeProofMeta,
+  buildProfileMeta,
+  buildRecordProofMeta,
+  type PublicProofMeta,
+} from "./publicProofMeta";
+import { buildPublicUrl } from "./publicUrls";
 import {
   buildDataCoverage,
   buildMatchIntelligenceScore,
   buildProviderHealthSnapshot,
   buildProviderReadiness,
+  buildRealtimeDataAudit,
   enrichMatchWithDataProviders,
   loadMatchesWithFallback,
   sourceLabel,
 } from "./providers";
+import {
+  buildProductionVerifyEnv,
+  productionFriendCode,
+  summarizeProductionEvidence,
+  type ProductionEvidencePacket,
+} from "./productionEvidence";
 import { buildProductionReadiness, summarizeProductionReadiness } from "./readiness";
+import {
+  buildRuntimeConfigReadiness,
+  summarizeRuntimeConfigReadiness,
+  type RuntimeConfigItem,
+  type RuntimeConfigSummary,
+} from "./runtimeConfig";
 import { scorePrediction } from "./scoring";
 import {
   buildProofShareText,
   buildModeProofShareText,
   buildModeXIntentUrl,
+  buildShareArtifactEvidence,
   buildXIntentUrl,
   canNativeShareFiles,
   dataUrlToFile,
   downloadDataUrl,
   generateModeShareCard,
   generateShareCard,
+  isPublishableShareArtifact,
 } from "./shareCard";
 import type {
   AppView,
   BracketPath,
   CloudSyncState,
   FilecoinLookupState,
+  FilecoinProof,
   GameMode,
   GameModeRun,
   LeaderboardEntry,
   LeaderboardReadinessItem,
   LeaderboardScope,
+  LeaderboardScopeEvidence,
   Match,
   MemoryRecord,
   PredictionDraft,
-  ProviderReadinessItem,
-  ProviderRouteAuditItem,
+  ProviderEnrichmentAudit,
   ProviderHealthSnapshot,
+  ProviderReadinessItem,
+  ProviderResponseAudit,
+  ProviderRouteAuditItem,
   PublicProfile,
+  RealtimeDataAudit,
+  SealJob,
   ShareArtifactEvidence,
 } from "./types";
 
@@ -110,11 +150,19 @@ const STORAGE_KEY = "kickoff-lock-agent-records-v1";
 const MODE_RUNS_KEY = "kickoff-lock-agent-mode-runs-v1";
 const BRACKET_PATH_KEY = "kickoff-lock-agent-bracket-path-v1";
 const SHARE_EVIDENCE_KEY = "kickoff-lock-agent-share-evidence-v1";
+const ACCEPTANCE_EVIDENCE_URL = `${import.meta.env.BASE_URL}acceptance-evidence.json`;
+const PRODUCTION_EVIDENCE_URL = `${import.meta.env.BASE_URL}production-evidence.json`;
 const leaderboardScopes: LeaderboardScope[] = ["global", "friend", "season"];
 const emptyLeaderboardCache = (): Record<LeaderboardScope, LeaderboardEntry[]> => ({
   global: [],
   friend: [],
   season: [],
+});
+
+const emptyLeaderboardEvidence = (profile: ReturnType<typeof loadProfile>): Record<LeaderboardScope, LeaderboardScopeEvidence> => ({
+  global: buildLeaderboardScopeEvidence("global", profile, [], { status: "unchecked", rows: 0, checkedAt: undefined, sampleIds: [] }),
+  friend: buildLeaderboardScopeEvidence("friend", profile, [], { status: "unchecked", rows: 0, checkedAt: undefined, sampleIds: [] }),
+  season: buildLeaderboardScopeEvidence("season", profile, [], { status: "unchecked", rows: 0, checkedAt: undefined, sampleIds: [] }),
 });
 
 const queryParams = () => new URLSearchParams(window.location.search);
@@ -276,24 +324,15 @@ const AUTO_DATA_REFRESH_MS = 90_000;
 const matchLabel = (match: Match) => `${match.homeTeam} vs ${match.awayTeam}`;
 
 const proofUrl = (capsuleId: string) => {
-  const url = new URL(window.location.href);
-  url.search = "";
-  url.searchParams.set("proof", capsuleId);
-  return url.toString();
+  return buildPublicUrl("proof", capsuleId, import.meta.env.VITE_PUBLIC_APP_URL, window.location.href);
 };
 
 const profileUrl = (profileId: string) => {
-  const url = new URL(window.location.href);
-  url.search = "";
-  url.searchParams.set("profile", profileId);
-  return url.toString();
+  return buildPublicUrl("profile", profileId, import.meta.env.VITE_PUBLIC_APP_URL, window.location.href);
 };
 
 const modeRunUrl = (runId: string) => {
-  const url = new URL(window.location.href);
-  url.search = "";
-  url.searchParams.set("mode", runId);
-  return url.toString();
+  return buildPublicUrl("mode", runId, import.meta.env.VITE_PUBLIC_APP_URL, window.location.href);
 };
 
 const copyToClipboard = async (text: string) => {
@@ -429,6 +468,9 @@ function App() {
   const [providerSource, setProviderSource] = useState("loading");
   const [providerEvidence, setProviderEvidence] = useState<string[]>([]);
   const [providerRouteAudit, setProviderRouteAudit] = useState<ProviderRouteAuditItem[]>([]);
+  const [providerResponseAudit, setProviderResponseAudit] = useState<ProviderResponseAudit | undefined>();
+  const [providerEnrichmentAudit, setProviderEnrichmentAudit] = useState<ProviderEnrichmentAudit | undefined>();
+  const [realtimeDataAudit, setRealtimeDataAudit] = useState<RealtimeDataAudit | undefined>();
   const [dataRefreshStatus, setDataRefreshStatus] = useState<"idle" | "refreshing" | "error">("idle");
   const [lastDataSyncAt, setLastDataSyncAt] = useState("");
   const [nextDataSyncAt, setNextDataSyncAt] = useState("");
@@ -436,12 +478,16 @@ function App() {
   const [selectedMatchId, setSelectedMatchId] = useState("");
   const [matchFilter, setMatchFilter] = useState<"all" | "live" | "today" | "upcoming">("all");
   const [view, setView] = useState<AppView>("matches");
+  const [utilityPanel, setUtilityPanel] = useState<"settings" | "help" | null>(null);
   const [records, setRecords] = useState<MemoryRecord[]>(loadRecords);
   const [modeRuns, setModeRuns] = useState<GameModeRun[]>(loadModeRuns);
   const [bracketPath, setBracketPath] = useState<BracketPath>(loadBracketPath);
   const [profile, setProfile] = useState(loadProfile);
   const [cloudState, setCloudState] = useState<CloudSyncState>(getCloudState);
   const [leaderboardCache, setLeaderboardCache] = useState<Record<LeaderboardScope, LeaderboardEntry[]>>(emptyLeaderboardCache);
+  const [leaderboardEvidence, setLeaderboardEvidence] = useState<Record<LeaderboardScope, LeaderboardScopeEvidence>>(
+    () => emptyLeaderboardEvidence(loadProfile()),
+  );
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>("global");
   const [accountEmail, setAccountEmail] = useState(loadProfile().email);
   const [draft, setDraft] = useState<PredictionDraft>(defaultDraft);
@@ -459,6 +505,8 @@ function App() {
   const [publicProofStatus, setPublicProofStatus] = useState("");
   const [publicModeRun, setPublicModeRun] = useState<GameModeRun | undefined>();
   const [publicModeStatus, setPublicModeStatus] = useState("");
+  const [publicShareArtifact, setPublicShareArtifact] = useState<ShareArtifactEvidence | undefined>();
+  const [publicModeShareArtifact, setPublicModeShareArtifact] = useState<ShareArtifactEvidence | undefined>();
   const [cidLookupInput, setCidLookupInput] = useState("");
   const [cidLookupState, setCidLookupState] = useState<FilecoinLookupState>({
     status: "idle",
@@ -466,6 +514,10 @@ function App() {
   });
   const [publicProfile, setPublicProfile] = useState<PublicProfile | undefined>();
   const [publicProfileStatus, setPublicProfileStatus] = useState("");
+  const [acceptanceEvidence, setAcceptanceEvidence] = useState<AcceptanceEvidencePacket | undefined>();
+  const [acceptanceEvidenceStatus, setAcceptanceEvidenceStatus] = useState("Acceptance run evidence not loaded.");
+  const [productionEvidence, setProductionEvidence] = useState<ProductionEvidencePacket | undefined>();
+  const [productionEvidenceStatus, setProductionEvidenceStatus] = useState("Production evidence not loaded.");
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -487,6 +539,44 @@ function App() {
   useEffect(() => {
     saveShareEvidence(shareEvidence);
   }, [shareEvidence]);
+
+  useEffect(() => {
+    void fetch(ACCEPTANCE_EVIDENCE_URL, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          setAcceptanceEvidenceStatus("Run bun run verify:acceptance before final submission to publish acceptance-evidence.json.");
+          return undefined;
+        }
+        return (await response.json()) as AcceptanceEvidencePacket;
+      })
+      .then((packet) => {
+        if (!packet) return;
+        setAcceptanceEvidence(packet);
+        setAcceptanceEvidenceStatus(`Loaded ${packet.suites.length} suite run result${packet.suites.length === 1 ? "" : "s"} from ${packet.source}.`);
+      })
+      .catch(() => {
+        setAcceptanceEvidenceStatus("Acceptance run evidence could not be loaded.");
+      });
+  }, []);
+
+  useEffect(() => {
+    void fetch(PRODUCTION_EVIDENCE_URL, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          setProductionEvidenceStatus("Run bun run verify:production before final deployment to publish production-evidence.json.");
+          return undefined;
+        }
+        return (await response.json()) as ProductionEvidencePacket;
+      })
+      .then((packet) => {
+        if (!packet) return;
+        setProductionEvidence(packet);
+        setProductionEvidenceStatus(`Loaded ${packet.checks.length} production check${packet.checks.length === 1 ? "" : "s"} from ${packet.source}.`);
+      })
+      .catch(() => {
+        setProductionEvidenceStatus("Production evidence could not be loaded.");
+      });
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -519,6 +609,20 @@ function App() {
       setProviderWarning(result.warning ?? "");
       setProviderEvidence(result.evidence ?? [`${sourceLabel(result.source)} feed loaded`, `${sorted.length} matches available`]);
       setProviderRouteAudit(result.routeAudit ?? []);
+      setProviderResponseAudit(result.responseAudit);
+      setProviderEnrichmentAudit(result.enrichmentAudit);
+      setRealtimeDataAudit(
+        buildRealtimeDataAudit({
+          source: result.source,
+          matches: sorted,
+          routeAudit: result.routeAudit ?? [],
+          evidence: result.evidence ?? [],
+          responseAudit: result.responseAudit,
+          enrichmentAudit: result.enrichmentAudit,
+          warning: result.warning,
+          checkedAt: syncedAt,
+        }),
+      );
       setSelectedMatchId((current) => current || sorted.find((match) => match.status === "upcoming")?.id || sorted[0]?.id || "");
       setBracketPath((current) => buildBracketPathFromMatches(sorted, current));
       setLastDataSyncAt(syncedAt);
@@ -531,21 +635,76 @@ function App() {
   };
 
   const refreshLeaderboard = async (scope = leaderboardScope, nextProfile = profile) => {
+    setLeaderboardEvidence((current) => ({
+      ...current,
+      [scope]: buildLeaderboardScopeEvidence(scope, nextProfile, [], {
+        status: "loading",
+        rows: current[scope]?.rows ?? 0,
+        checkedAt: new Date().toISOString(),
+        sampleIds: current[scope]?.sampleIds ?? [],
+      }),
+    }));
     try {
       const remoteLeaderboard = await loadLeaderboard(scope, nextProfile);
       setLeaderboardCache((current) => ({ ...current, [scope]: remoteLeaderboard }));
+      setLeaderboardEvidence((current) => ({
+        ...current,
+        [scope]: buildLeaderboardScopeEvidence(scope, nextProfile, remoteLeaderboard),
+      }));
     } catch (error) {
+      setLeaderboardEvidence((current) => ({
+        ...current,
+        [scope]: buildLeaderboardScopeEvidence(scope, nextProfile, [], {
+          status: "error",
+          rows: 0,
+          checkedAt: new Date().toISOString(),
+          sampleIds: [],
+          error: (error as Error).message,
+        }),
+      }));
       setNotice((error as Error).message);
     }
   };
 
   const refreshAllLeaderboards = async (nextProfile = profile) => {
+    setLeaderboardEvidence((current) =>
+      Object.fromEntries(
+        leaderboardScopes.map((scope) => [
+          scope,
+          buildLeaderboardScopeEvidence(scope, nextProfile, [], {
+            status: "loading",
+            rows: current[scope]?.rows ?? 0,
+            checkedAt: new Date().toISOString(),
+            sampleIds: current[scope]?.sampleIds ?? [],
+          }),
+        ]),
+      ) as Record<LeaderboardScope, LeaderboardScopeEvidence>,
+    );
     try {
       const results = await Promise.all(
         leaderboardScopes.map(async (scope) => [scope, await loadLeaderboard(scope, nextProfile)] as const),
       );
       setLeaderboardCache(Object.fromEntries(results) as Record<LeaderboardScope, LeaderboardEntry[]>);
+      setLeaderboardEvidence(
+        Object.fromEntries(
+          results.map(([scope, rows]) => [scope, buildLeaderboardScopeEvidence(scope, nextProfile, rows)]),
+        ) as Record<LeaderboardScope, LeaderboardScopeEvidence>,
+      );
     } catch (error) {
+      setLeaderboardEvidence(
+        Object.fromEntries(
+          leaderboardScopes.map((scope) => [
+            scope,
+            buildLeaderboardScopeEvidence(scope, nextProfile, [], {
+              status: "error",
+              rows: 0,
+              checkedAt: new Date().toISOString(),
+              sampleIds: [],
+              error: (error as Error).message,
+            }),
+          ]),
+        ) as Record<LeaderboardScope, LeaderboardScopeEvidence>,
+      );
       setNotice((error as Error).message);
     }
   };
@@ -555,16 +714,16 @@ function App() {
     nextRecords: MemoryRecord[],
     nextModeRuns: GameModeRun[],
     prefix: string,
+    nextShareEvidence = shareEvidence,
   ) => {
     await refreshAllLeaderboards(nextProfile);
-    const verification = await verifyCloudSyncReadback(nextProfile, nextRecords, nextModeRuns);
-    const expectedLinks = nextRecords.length + nextModeRuns.length;
-    const readbackPassed =
-      verification.profile &&
-      verification.records >= nextRecords.length &&
-      verification.modeRuns >= nextModeRuns.length &&
-      verification.publicProofs >= expectedLinks &&
-      verification.publicProfile;
+    const verification = await verifyCloudSyncReadback(nextProfile, nextRecords, nextModeRuns, nextShareEvidence);
+    const readbackPassed = isCloudReadbackComplete(
+      verification,
+      nextRecords.length,
+      nextModeRuns.length,
+      nextShareEvidence.length,
+    );
     setCloudState({
       ...getCloudState(),
       status: readbackPassed ? "synced" : "error",
@@ -578,10 +737,21 @@ function App() {
 
   const fetchPublicProof = async (capsuleId: string) => {
     setPublicProofStatus("Loading public proof from cloud...");
+    setPublicShareArtifact(undefined);
     try {
-      const record = await loadPublicRecord(capsuleId);
+      const [record, artifact] = await Promise.all([
+        loadPublicRecord(capsuleId),
+        loadPublicShareArtifact(capsuleId, "record", true).catch(() => undefined),
+      ]);
       setPublicRecord(record);
-      setPublicProofStatus(record ? "Cloud proof loaded." : "No cloud proof found for this link.");
+      setPublicShareArtifact(artifact);
+      setPublicProofStatus(
+        record
+          ? artifact
+            ? "Cloud proof and share manifest loaded."
+            : "Cloud proof loaded. No share manifest has been synced yet."
+          : "No cloud proof found for this link.",
+      );
     } catch (error) {
       setPublicProofStatus((error as Error).message);
     }
@@ -600,10 +770,21 @@ function App() {
 
   const fetchPublicModeRun = async (runId: string) => {
     setPublicModeStatus("Loading public mode proof from cloud...");
+    setPublicModeShareArtifact(undefined);
     try {
-      const run = await loadPublicModeRun(runId);
+      const [run, artifact] = await Promise.all([
+        loadPublicModeRun(runId),
+        loadPublicShareArtifact(runId, "mode", true).catch(() => undefined),
+      ]);
       setPublicModeRun(run);
-      setPublicModeStatus(run ? "Cloud mode proof loaded." : "No cloud mode proof found for this link.");
+      setPublicModeShareArtifact(artifact);
+      setPublicModeStatus(
+        run
+          ? artifact
+            ? "Cloud mode proof and share manifest loaded."
+            : "Cloud mode proof loaded. No share manifest has been synced yet."
+          : "No cloud mode proof found for this link.",
+      );
     } catch (error) {
       setPublicModeStatus((error as Error).message);
     }
@@ -614,26 +795,31 @@ function App() {
     localRecords: MemoryRecord[],
     localModeRuns: GameModeRun[],
     reason: string,
+    localShareEvidence = shareEvidence,
   ) => {
     const baseState = getCloudState();
     setCloudState({ ...baseState, status: "syncing", message: `${reason} Reconciling cloud history...` });
-    const [remoteRecords, remoteModeRuns] = await Promise.all([
+    const [remoteRecords, remoteModeRuns, remoteShareEvidence] = await Promise.all([
       loadRecordsFromCloud(nextProfile),
       loadModeRunsFromCloud(nextProfile),
+      loadShareArtifactsFromCloud(nextProfile),
     ]);
     const merged = mergeMemoryRecords(localRecords, remoteRecords);
     const mergedModeRuns = mergeModeRuns(localModeRuns, remoteModeRuns);
+    const mergedShareEvidence = mergeShareArtifacts(localShareEvidence, remoteShareEvidence);
     setRecords(merged);
     setModeRuns(mergedModeRuns);
+    setShareEvidence(mergedShareEvidence);
     await Promise.all([
       syncRecordsToCloud(nextProfile, merged),
       syncModeRunsToCloud(nextProfile, mergedModeRuns),
+      syncShareArtifactsToCloud(nextProfile, mergedShareEvidence),
     ]);
     const message =
-      remoteRecords.length > 0 || remoteModeRuns.length > 0
-        ? `${reason} merged ${remoteRecords.length} cloud records and ${remoteModeRuns.length} mode proof runs.`
-        : `${reason} no cloud history found; local records and mode runs are ready to sync.`;
-    await finishCloudSyncWithReadback(nextProfile, merged, mergedModeRuns, message);
+      remoteRecords.length > 0 || remoteModeRuns.length > 0 || remoteShareEvidence.length > 0
+        ? `${reason} merged ${remoteRecords.length} cloud records, ${remoteModeRuns.length} mode proof runs and ${remoteShareEvidence.length} share manifests.`
+        : `${reason} no cloud history found; local records, mode runs and share manifests are ready to sync.`;
+    await finishCloudSyncWithReadback(nextProfile, merged, mergedModeRuns, message, mergedShareEvidence);
     return merged;
   };
 
@@ -695,12 +881,13 @@ function App() {
   const localLeaderboard = buildLocalLeaderboard(profile, records, modeRuns);
   const remoteLeaderboard = leaderboardCache[leaderboardScope];
   const allRemoteLeaderboard = leaderboardScopes.flatMap((scope) => leaderboardCache[scope]);
+  const allLeaderboardEvidence = leaderboardScopes.map((scope) => leaderboardEvidence[scope]);
   const remoteLeaderboardIds = new Set(remoteLeaderboard.map((entry) => entry.id));
   const leaderboardEntries = [
     ...remoteLeaderboard,
     ...localLeaderboard.filter((entry) => !remoteLeaderboardIds.has(entry.id)),
   ].sort((a, b) => b.xp - a.xp);
-  const leaderboardReadiness = buildLeaderboardReadiness(cloudState, allRemoteLeaderboard, profile);
+  const leaderboardReadiness = buildLeaderboardReadiness(cloudState, allRemoteLeaderboard, profile, allLeaderboardEvidence);
 
   const localRankIndex = leaderboardEntries.findIndex((entry) => entry.id === profile.id);
   const currentRank =
@@ -708,7 +895,7 @@ function App() {
   const currentXp = localLeaderboard[0]?.xp ?? 0;
   const currentStreak = localLeaderboard[0]?.streak ?? 0;
   const routeProfileId = new URLSearchParams(window.location.search).get("profile");
-  const localPublicProfile = buildPublicProfile(profile, records, modeRuns);
+  const localPublicProfile = buildPublicProfile(profile, records, modeRuns, shareEvidence);
   const shownPublicProfile =
     publicProfile ??
     (routeProfileId && routeProfileId !== profile.id
@@ -720,6 +907,7 @@ function App() {
           location: "Cloud profile",
           friendCode: "not-loaded",
           records: [],
+          shareArtifacts: [],
           locks: 0,
           revealed: 0,
           averageScore: 0,
@@ -735,8 +923,30 @@ function App() {
     routeAudit: providerRouteAudit,
     evidence: providerEvidence,
     lastSyncedAt: lastDataSyncAt,
+    responseAudit: providerResponseAudit,
+    enrichmentAudit: providerEnrichmentAudit,
     now,
   });
+  const runtimeConfigReadiness = buildRuntimeConfigReadiness(import.meta.env);
+  const runtimeConfigSummary = summarizeRuntimeConfigReadiness(runtimeConfigReadiness);
+  const productionReadiness = buildProductionReadiness({
+    cloudState,
+    profile,
+    records,
+    modeRuns,
+    gameModes,
+    providerReadiness,
+    providerRouteAudit,
+    providerHealth,
+    leaderboardEntries: allRemoteLeaderboard,
+    leaderboardScopeEvidence: allLeaderboardEvidence,
+    sealEndpointConfigured: filecoinSealConfigured,
+    shareImageReady: Boolean(shareImageUrl || publicShareImageUrl || publicModeShareImageUrl),
+    shareEvidence,
+    acceptanceEvidence,
+    productionEvidence,
+  });
+  const productionSummary = summarizeProductionReadiness(productionReadiness);
 
   const syncRecordsInBackground = (nextRecords: MemoryRecord[], reason: string) => {
     const state = getCloudState();
@@ -841,8 +1051,9 @@ function App() {
       await Promise.all([
         syncRecordsToCloud(profile, records),
         syncModeRunsToCloud(profile, modeRuns),
+        syncShareArtifactsToCloud(profile, shareEvidence),
       ]);
-      await finishCloudSyncWithReadback(profile, records, modeRuns, "Manual sync completed.");
+      await finishCloudSyncWithReadback(profile, records, modeRuns, "Manual sync completed.", shareEvidence);
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
       setNotice((error as Error).message);
@@ -852,23 +1063,28 @@ function App() {
   const pullCloudHistory = async () => {
     setCloudState({ ...getCloudState(), status: "syncing", message: "Pulling cloud history..." });
     try {
-      const [remoteRecords, remoteModeRuns] = await Promise.all([
+      const [remoteRecords, remoteModeRuns, remoteShareEvidence] = await Promise.all([
         loadRecordsFromCloud(profile),
         loadModeRunsFromCloud(profile),
+        loadShareArtifactsFromCloud(profile),
       ]);
       const merged = mergeMemoryRecords(records, remoteRecords);
       const mergedModeRuns = mergeModeRuns(modeRuns, remoteModeRuns);
+      const mergedShareEvidence = mergeShareArtifacts(shareEvidence, remoteShareEvidence);
       setRecords(merged);
       setModeRuns(mergedModeRuns);
+      setShareEvidence(mergedShareEvidence);
       await Promise.all([
         syncRecordsToCloud(profile, merged),
         syncModeRunsToCloud(profile, mergedModeRuns),
+        syncShareArtifactsToCloud(profile, mergedShareEvidence),
       ]);
       await finishCloudSyncWithReadback(
         profile,
         merged,
         mergedModeRuns,
-        `Pulled ${remoteRecords.length} cloud records and ${remoteModeRuns.length} mode proof runs.`,
+        `Pulled ${remoteRecords.length} cloud records, ${remoteModeRuns.length} mode proof runs and ${remoteShareEvidence.length} share manifests.`,
+        mergedShareEvidence,
       );
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
@@ -904,7 +1120,7 @@ function App() {
     setCloudState({ ...getCloudState(), status: "syncing", message: "Saving cloud profile..." });
     try {
       await syncProfileToCloud(profile);
-      await finishCloudSyncWithReadback(profile, records, modeRuns, "Cloud profile saved.");
+      await finishCloudSyncWithReadback(profile, records, modeRuns, "Cloud profile saved.", shareEvidence);
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
       setNotice((error as Error).message);
@@ -975,12 +1191,58 @@ function App() {
     }
   };
 
+  const startModeFilecoinSeal = async (run: GameModeRun) => {
+    setNotice(filecoinSealConfigured ? "Starting mode proof Filecoin seal workflow..." : "Seal backend is not configured yet.");
+    try {
+      const updated = await runModeSealJob(run);
+      const nextModeRuns = modeRuns.map((item) => (item.id === updated.id ? updated : item));
+      setModeRuns(nextModeRuns);
+      const sealMessage =
+        updated.sealJob?.status === "verified"
+          ? "Real Filecoin proof attached to mode proof."
+          : updated.sealJob?.status === "failed"
+            ? updated.sealJob.error ?? "Mode proof seal workflow failed."
+            : "Mode proof seal workflow status saved. Configure the seal API for real uploads.";
+      syncModeRunsInBackground(nextModeRuns, sealMessage);
+      setNotice(sealMessage);
+    } catch (error) {
+      setNotice((error as Error).message);
+    }
+  };
+
   const writeShareEvidence = (next: ShareArtifactEvidence) => {
     setShareEvidence((current) => {
       const existing = current.find((item) => item.id === next.id && item.kind === next.kind);
       const merged = existing ? { ...existing, ...next } : next;
-      return [merged, ...current.filter((item) => item.id !== next.id || item.kind !== next.kind)];
+      const nextEvidence = [merged, ...current.filter((item) => item.id !== next.id || item.kind !== next.kind)];
+      const state = getCloudState();
+      if (state.configured && state.authenticated) {
+        setCloudState({ ...state, status: "syncing", message: "Syncing share card manifest..." });
+        void syncShareArtifactsToCloud(profile, nextEvidence)
+          .then(async () => {
+            await finishCloudSyncWithReadback(profile, records, modeRuns, "Share card manifest synced.", nextEvidence);
+          })
+          .catch((error) => {
+            setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
+            setNotice((error as Error).message);
+          });
+      }
+      return nextEvidence;
     });
+  };
+
+  const publishShareImageUrl = async (
+    artifact: Pick<ShareArtifactEvidence, "id" | "kind" | "fileName" | "imageMime">,
+    dataUrl: string,
+  ) => {
+    try {
+      const upload = await uploadShareImageToCloud(profile, artifact, dataUrl);
+      if (upload.status === "uploaded") return upload.imageUrl;
+      return undefined;
+    } catch (error) {
+      setNotice((error as Error).message);
+      return undefined;
+    }
   };
 
   const generateShareImageForRecord = async (
@@ -988,17 +1250,20 @@ function App() {
     options: { download?: boolean; publicPreview?: boolean } = {},
   ) => {
     const publicUrl = proofUrl(record.capsule.id);
+    const fileName = `${record.capsule.id}-share-card.png`;
     const dataUrl = await generateShareCard(record, { proofUrl: publicUrl });
     if (options.publicPreview) setPublicShareImageUrl(dataUrl);
     else setShareImageUrl(dataUrl);
-    writeShareEvidence({
+    const imageUrl = await publishShareImageUrl({ id: record.capsule.id, kind: "record", fileName, imageMime: "image/png" }, dataUrl);
+    writeShareEvidence(await buildShareArtifactEvidence({
       id: record.capsule.id,
       kind: "record",
       proofUrl: publicUrl,
-      imageGenerated: true,
-      generatedAt: new Date().toISOString(),
-    });
-    if (options.download) downloadDataUrl(dataUrl, `${record.capsule.id}-share-card.png`);
+      dataUrl,
+      fileName,
+      imageUrl,
+    }));
+    if (options.download) downloadDataUrl(dataUrl, fileName);
     setNotice("Share image generated.");
   };
 
@@ -1012,26 +1277,32 @@ function App() {
     options: { download?: boolean; publicPreview?: boolean } = {},
   ) => {
     const publicUrl = modeRunUrl(run.id);
+    const fileName = `${run.id}-mode-share-card.png`;
     const dataUrl = await generateModeShareCard(run, { proofUrl: publicUrl });
     if (options.publicPreview) setPublicModeShareImageUrl(dataUrl);
-    writeShareEvidence({
+    const imageUrl = await publishShareImageUrl({ id: run.id, kind: "mode", fileName, imageMime: "image/png" }, dataUrl);
+    writeShareEvidence(await buildShareArtifactEvidence({
       id: run.id,
       kind: "mode",
       proofUrl: publicUrl,
-      imageGenerated: true,
-      generatedAt: new Date().toISOString(),
-    });
-    if (options.download) downloadDataUrl(dataUrl, `${run.id}-mode-share-card.png`);
+      dataUrl,
+      fileName,
+      imageUrl,
+    }));
+    if (options.download) downloadDataUrl(dataUrl, fileName);
     setNotice("Mode proof share image generated.");
   };
 
   const shareRecordToTwitter = async (record: MemoryRecord) => {
     const publicUrl = proofUrl(record.capsule.id);
     const text = buildProofShareText(record, publicUrl);
+    const xIntentUrl = buildXIntentUrl(record, publicUrl);
+    const dataUrl = await generateShareCard(record, { proofUrl: publicUrl });
+    const fileName = `${record.capsule.id}-proof-card.png`;
+    const imageUrl = await publishShareImageUrl({ id: record.capsule.id, kind: "record", fileName, imageMime: "image/png" }, dataUrl);
     try {
       if ("share" in navigator && "File" in window) {
-        const dataUrl = await generateShareCard(record, { proofUrl: publicUrl });
-        const file = await dataUrlToFile(dataUrl, `${record.capsule.id}-proof-card.png`);
+        const file = await dataUrlToFile(dataUrl, fileName);
         if (canNativeShareFiles([file])) {
           await navigator.share({
             title: "Kickoff Lock proof card",
@@ -1039,14 +1310,15 @@ function App() {
             url: publicUrl,
             files: [file],
           });
-          writeShareEvidence({
+          writeShareEvidence(await buildShareArtifactEvidence({
             id: record.capsule.id,
             kind: "record",
             proofUrl: publicUrl,
-            imageGenerated: true,
-            generatedAt: new Date().toISOString(),
+            dataUrl,
+            fileName,
+            imageUrl,
             nativeShareOpenedAt: new Date().toISOString(),
-          });
+          }));
           setNotice("Share sheet opened with proof image.");
           return;
         }
@@ -1057,25 +1329,30 @@ function App() {
         return;
       }
     }
-    window.open(buildXIntentUrl(record, publicUrl), "_blank", "noopener,noreferrer");
-    writeShareEvidence({
+    window.open(xIntentUrl, "_blank", "noopener,noreferrer");
+    writeShareEvidence(await buildShareArtifactEvidence({
       id: record.capsule.id,
       kind: "record",
       proofUrl: publicUrl,
-      imageGenerated: true,
-      generatedAt: new Date().toISOString(),
+      dataUrl,
+      fileName,
+      imageUrl,
+      xIntentUrl,
       xIntentOpenedAt: new Date().toISOString(),
-    });
+    }));
     setNotice("X share window opened with the public proof URL.");
   };
 
   const shareModeRunToTwitter = async (run: GameModeRun) => {
     const publicUrl = modeRunUrl(run.id);
     const text = buildModeProofShareText(run, publicUrl);
+    const xIntentUrl = buildModeXIntentUrl(run, publicUrl);
+    const dataUrl = await generateModeShareCard(run, { proofUrl: publicUrl });
+    const fileName = `${run.id}-mode-proof-card.png`;
+    const imageUrl = await publishShareImageUrl({ id: run.id, kind: "mode", fileName, imageMime: "image/png" }, dataUrl);
     try {
       if ("share" in navigator && "File" in window) {
-        const dataUrl = await generateModeShareCard(run, { proofUrl: publicUrl });
-        const file = await dataUrlToFile(dataUrl, `${run.id}-mode-proof-card.png`);
+        const file = await dataUrlToFile(dataUrl, fileName);
         if (canNativeShareFiles([file])) {
           await navigator.share({
             title: "Kickoff Lock mode proof card",
@@ -1083,14 +1360,15 @@ function App() {
             url: publicUrl,
             files: [file],
           });
-          writeShareEvidence({
+          writeShareEvidence(await buildShareArtifactEvidence({
             id: run.id,
             kind: "mode",
             proofUrl: publicUrl,
-            imageGenerated: true,
-            generatedAt: new Date().toISOString(),
+            dataUrl,
+            fileName,
+            imageUrl,
             nativeShareOpenedAt: new Date().toISOString(),
-          });
+          }));
           setNotice("Share sheet opened with mode proof image.");
           return;
         }
@@ -1101,15 +1379,17 @@ function App() {
         return;
       }
     }
-    window.open(buildModeXIntentUrl(run, publicUrl), "_blank", "noopener,noreferrer");
-    writeShareEvidence({
+    window.open(xIntentUrl, "_blank", "noopener,noreferrer");
+    writeShareEvidence(await buildShareArtifactEvidence({
       id: run.id,
       kind: "mode",
       proofUrl: publicUrl,
-      imageGenerated: true,
-      generatedAt: new Date().toISOString(),
+      dataUrl,
+      fileName,
+      imageUrl,
+      xIntentUrl,
       xIntentOpenedAt: new Date().toISOString(),
-    });
+    }));
     setNotice("X share window opened with the public mode proof URL.");
   };
 
@@ -1123,6 +1403,28 @@ function App() {
     const result = await lookupFilecoinProof(cidLookupInput);
     setCidLookupState(result);
     setNotice(result.message);
+  };
+
+  const attachQueriedProof = (record: MemoryRecord, proof: FilecoinProof) => {
+    try {
+      const expectedPayloadHashes = [record.capsule.payloadHash, record.sealJob?.uploadPayloadHash].filter(Boolean) as string[];
+      const updated = applyVerifiedProof(record.capsule, proof, { expectedPayloadHashes });
+      commitRecords(
+        records.map((item) =>
+          item.capsule.id === updated.id
+            ? {
+                ...item,
+                capsule: updated,
+              }
+            : item,
+        ),
+        proof.payloadHash
+          ? "CID proof attached after payload hash match."
+          : "CID proof attached. Seal API did not return a payload hash, so keep the public proof page evidence visible.",
+      );
+    } catch (error) {
+      setNotice((error as Error).message);
+    }
   };
 
   const copyProofLink = async () => {
@@ -1211,11 +1513,15 @@ function App() {
           <span>Account</span>
         </button>
         <div className="rail-spacer" />
-        <button title="Settings">
+        <button
+          className={utilityPanel === "settings" ? "active" : ""}
+          onClick={() => setUtilityPanel("settings")}
+          title="Settings"
+        >
           <SlidersHorizontal size={20} />
           <span>Settings</span>
         </button>
-        <button title="Help">
+        <button className={utilityPanel === "help" ? "active" : ""} onClick={() => setUtilityPanel("help")} title="Help">
           <HelpCircle size={20} />
           <span>Help</span>
         </button>
@@ -1289,11 +1595,18 @@ function App() {
         <button className={view === "account" ? "active" : ""} onClick={() => setView("account")}>
           <UserCircle2 size={18} /> Account
         </button>
+        <button className={utilityPanel === "settings" ? "active" : ""} onClick={() => setUtilityPanel("settings")}>
+          <SlidersHorizontal size={18} /> Settings
+        </button>
+        <button className={utilityPanel === "help" ? "active" : ""} onClick={() => setUtilityPanel("help")}>
+          <HelpCircle size={18} /> Help
+        </button>
       </nav>
 
       {notice && <div className="notice">{notice}</div>}
       {providerWarning && <div className="warning">{providerWarning}</div>}
 
+      {(view === "matches" || view === "predict") && (
       <section className="workspace">
         <aside className="panel match-panel">
           <div className="panel-head">
@@ -1332,6 +1645,7 @@ function App() {
             ))}
           </div>
           <ProviderHealthPanel health={providerHealth} />
+          {realtimeDataAudit && <RealtimeDataAuditPanel audit={realtimeDataAudit} />}
           <ProviderRouteAudit items={providerRouteAudit} />
           <ProviderReadiness items={providerReadiness} />
           <div className="filter-row" aria-label="Match filters">
@@ -1562,6 +1876,7 @@ function App() {
           )}
         </aside>
       </section>
+      )}
 
       {view === "memory" && (
         <MemoryDashboard
@@ -1573,6 +1888,7 @@ function App() {
           currentStreak={currentStreak}
           leaderboardEntries={leaderboardEntries}
           leaderboardReadiness={leaderboardReadiness}
+          leaderboardScopeEvidence={allLeaderboardEvidence}
           leaderboardScope={leaderboardScope}
           cloudState={cloudState}
           onLeaderboardScope={changeLeaderboardScope}
@@ -1587,6 +1903,9 @@ function App() {
           publicProofStatus={publicProofStatus}
           publicModeRun={publicModeRun}
           publicModeStatus={publicModeStatus}
+          shareEvidence={shareEvidence}
+          publicShareArtifact={publicShareArtifact}
+          publicModeShareArtifact={publicModeShareArtifact}
           shareImageUrl={publicShareImageUrl}
           modeShareImageUrl={publicModeShareImageUrl}
           onShareImage={(record) => void generateShareImageForRecord(record, { publicPreview: true })}
@@ -1598,6 +1917,7 @@ function App() {
           cidLookupState={cidLookupState}
           onCidLookupInput={setCidLookupInput}
           onCidLookup={queryFilecoinCid}
+          onAttachCidProof={attachQueriedProof}
         />
       )}
 
@@ -1610,6 +1930,7 @@ function App() {
           onBracketPick={updateBracketPick}
           onSealBracket={sealBracketPath}
           onCreateModeRun={createModeRun}
+          onSealModeRun={startModeFilecoinSeal}
         />
       )}
 
@@ -1639,9 +1960,16 @@ function App() {
           providerRouteAudit={providerRouteAudit}
           providerHealth={providerHealth}
           leaderboardEntries={allRemoteLeaderboard}
+          leaderboardScopeEvidence={allLeaderboardEvidence}
           sealEndpointConfigured={filecoinSealConfigured}
           shareImageReady={Boolean(shareImageUrl || publicShareImageUrl || publicModeShareImageUrl)}
           shareEvidence={shareEvidence}
+          acceptanceEvidence={acceptanceEvidence}
+          acceptanceEvidenceStatus={acceptanceEvidenceStatus}
+          productionEvidence={productionEvidence}
+          productionEvidenceStatus={productionEvidenceStatus}
+          runtimeConfigReadiness={runtimeConfigReadiness}
+          runtimeConfigSummary={runtimeConfigSummary}
           onEmail={setAccountEmail}
           onProfile={updateProfile}
           onMagicLink={requestMagicLink}
@@ -1652,6 +1980,27 @@ function App() {
           onSignOut={signOut}
           onOpenProfile={openPublicProfile}
           onCopyProfileLink={() => copyProfileLink()}
+        />
+      )}
+      {utilityPanel && (
+        <UtilityDrawer
+          mode={utilityPanel}
+          cloudState={cloudState}
+          profile={profile}
+          providerHealth={providerHealth}
+          forceFallback={forceFallback}
+          leaderboardScope={leaderboardScope}
+          productionReadiness={productionReadiness}
+          productionSummary={productionSummary}
+          onClose={() => setUtilityPanel(null)}
+          onForceFallback={setForceFallback}
+          onLeaderboardScope={changeLeaderboardScope}
+          onRefreshMatches={() => void refreshMatches()}
+          onSync={syncToCloud}
+          onOpenAccount={() => {
+            setView("account");
+            setUtilityPanel(null);
+          }}
         />
       )}
     </main>
@@ -1727,12 +2076,82 @@ function ProviderHealthPanel({ health }: { health: ProviderHealthSnapshot }) {
       </div>
       <div className="provider-health-metrics">
         <span>{health.fresh ? "fresh" : "stale/pending"}</span>
+        <span>{health.responseVerified ? "response verified" : "response unverified"}</span>
         <span>{health.liveOrConfigured}/{health.totalSignals} signals</span>
         <span>{health.activeRoute ?? "no route"}</span>
       </div>
+      {health.responseAudit && (
+        <small>
+          Response: {health.responseAudit.endpoint} · {health.responseAudit.status} · {health.responseAudit.rowCount} rows
+        </small>
+      )}
+      {health.enrichmentAudit && (
+        <small>
+          Enrichment: {health.enrichmentAudit.detail}
+        </small>
+      )}
       <small>{health.detail}</small>
       {health.missingSignals.length > 0 && <p>Missing: {health.missingSignals.join(", ")}</p>}
       <p>{health.nextAction}</p>
+    </div>
+  );
+}
+
+function RealtimeDataAuditPanel({ audit }: { audit: RealtimeDataAudit }) {
+  return (
+    <div className={`realtime-data-audit ${audit.productionReady ? "audit-ready" : "audit-partial"}`} aria-label="Realtime data evidence">
+      <div className="audit-head">
+        <div>
+          <strong>Realtime evidence packet</strong>
+          <span>{audit.sourceLabel} · {audit.routeStatus}</span>
+        </div>
+        <b>{audit.productionReady ? "production-ready" : "evidence-only"}</b>
+      </div>
+      <div className="audit-metrics">
+        <span>{audit.matchCount} matches</span>
+        <span>{audit.liveMatches} live</span>
+        <span>{audit.finishedMatches} final</span>
+        <span>{audit.upcomingMatches} upcoming</span>
+        <span>{audit.responseVerified ? "response verified" : "response unverified"}</span>
+      </div>
+      <small>Checked {formatDate(audit.checkedAt)}</small>
+      {audit.responseAudit && (
+        <small>
+          Provider response: {audit.responseAudit.endpoint} · {audit.responseAudit.status} · {audit.responseAudit.rowCount} rows · samples {audit.responseAudit.sampleIds.join(", ") || "none"}
+        </small>
+      )}
+      {audit.enrichmentAudit && (
+        <div className="audit-enrichment">
+          <small>Enrichment read-back: {audit.enrichmentAudit.detail}</small>
+          {audit.enrichmentAudit.endpointAudits.map((endpoint) => (
+            <small key={endpoint.key}>
+              {endpoint.key}: {endpoint.live}/{endpoint.attempted} live · {endpoint.endpoint}
+            </small>
+          ))}
+        </div>
+      )}
+      {audit.warning && <p>{audit.warning}</p>}
+      {audit.missingSignals.length > 0 && <p>Weak signals: {audit.missingSignals.join(", ")}</p>}
+      <div className="audit-signal-grid">
+        {audit.signals.map((signal) => (
+          <article key={signal.key} className={`readiness-${signal.bestStatus}`}>
+            <span>{signal.label}</span>
+            <b>{signal.bestStatus}</b>
+            <small>
+              {signal.bestSource} · live {signal.live} · configured {signal.configured} · fallback {signal.fallback} · missing {signal.missing + signal.manual}/{signal.total}
+            </small>
+          </article>
+        ))}
+      </div>
+      <div className="audit-samples">
+        {audit.samples.map((sample) => (
+          <article key={sample.id}>
+            <span>{sample.label}</span>
+            <b>{sample.liveOrConfigured}/6</b>
+            <small>{sample.status} · {sample.missing.length > 0 ? `missing ${sample.missing.join(", ")}` : "full signal coverage"}</small>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1968,6 +2387,170 @@ type ProofPanelProps = {
   shareImageUrl: string;
 };
 
+type SealAcceptanceCheck = {
+  label: string;
+  detail: string;
+  passed: boolean;
+};
+
+const buildSealAcceptanceChecks = (sealJob: SealJob, fallbackCid: string): SealAcceptanceCheck[] => {
+  const uploadStep = sealJob.steps.find((step) => step.id === "upload");
+  const pollStep = sealJob.steps.find((step) => step.id === "poll");
+  const backendHealth = sealJob.backendHealth;
+  return [
+    {
+      label: "Backend configured",
+      detail: sealJob.endpoint ?? "missing VITE_FILECOIN_SEAL_API",
+      passed: Boolean(sealJob.endpoint),
+    },
+    {
+      label: "Health check",
+      detail:
+        sealJob.healthStatus === "ready"
+          ? "seal API ready"
+          : sealJob.endpoint
+            ? sealJob.error ?? "unchecked"
+            : "missing VITE_FILECOIN_SEAL_API",
+      passed: sealJob.healthStatus === "ready",
+    },
+    {
+      label: "Production backend",
+      detail: backendHealth
+        ? sealBackendProductionReady(backendHealth)
+          ? "real Synapse + token + persistent registry"
+          : backendHealth.blockers?.join(", ") || "health response did not declare production readiness"
+        : "waiting for health response",
+      passed: sealBackendProductionReady(backendHealth),
+    },
+    {
+      label: "Upload accepted",
+      detail: uploadStep?.status ?? "queued",
+      passed: uploadStep?.status === "passed",
+    },
+    {
+      label: "CID returned",
+      detail: sealJob.proof?.cid ?? fallbackCid,
+      passed: sealJob.proof?.mode === "real",
+    },
+    {
+      label: "Payload hash match",
+      detail:
+        sealJob.uploadPayloadHash && sealJob.proof?.payloadHash
+          ? `${sealJob.proof.payloadHash.slice(0, 12)}... · ${sealJob.uploadByteLength ?? sealJob.proof.byteLength ?? 0} bytes`
+          : "waiting for seal API payload hash",
+      passed: Boolean(
+        sealJob.uploadPayloadHash &&
+          sealJob.proof?.payloadHash &&
+          sealJob.uploadPayloadHash === sealJob.proof.payloadHash,
+      ),
+    },
+    {
+      label: "Verification polled",
+      detail: sealJob.pollAttempts
+        ? `${sealJob.pollAttempts} attempt${sealJob.pollAttempts > 1 ? "s" : ""}`
+        : pollStep?.status ?? "not started",
+      passed: Boolean(sealJob.lastCheckedAt),
+    },
+    {
+      label: "Verifier URL",
+      detail: sealJob.verifyUrl ?? "waiting for CID",
+      passed: Boolean(sealJob.verifyUrl),
+    },
+    {
+      label: "Backend mode",
+      detail: backendHealth
+        ? backendHealth.mockMode
+          ? "mock seal API for smoke tests"
+          : backendHealth.hasPrivateKey
+            ? "real Synapse backend"
+            : "private key missing"
+        : "waiting for health response",
+      passed: Boolean(backendHealth && !backendHealth.mockMode && backendHealth.hasPrivateKey),
+    },
+    {
+      label: "Proof registry",
+      detail: backendHealth
+        ? `${backendHealth.persistence ?? "unknown"} storage · ${backendHealth.proofCount ?? 0} registered`
+        : "waiting for health response",
+      passed: backendHealth?.persistence === "file",
+    },
+    {
+      label: "Registry read-back",
+      detail:
+        sealJob.proofRegistryStatus === "verified"
+          ? `${sealJob.proofRegistryHash?.slice(0, 12) ?? "hash"}... · ${sealJob.proofRegistryCheckedAt ? formatDate(sealJob.proofRegistryCheckedAt) : "checked"}`
+          : sealJob.proofRegistryStatus === "failed"
+            ? sealJob.error ?? "registry read-back failed"
+            : "waiting for /proof/:cid read-back",
+      passed:
+        sealJob.proofRegistryStatus === "verified" &&
+        sealJob.proofRegistryHash === sealJob.uploadPayloadHash,
+    },
+    {
+      label: "Upload auth",
+      detail: backendHealth ? (backendHealth.authRequired ? "bearer token required" : "token not required") : "waiting for health response",
+      passed: backendHealth?.authRequired === true,
+    },
+    {
+      label: "Upload limit",
+      detail: backendHealth?.maxUploadBytes ? `${Math.round(backendHealth.maxUploadBytes / 1024)} KB max` : "waiting for health response",
+      passed: Boolean(backendHealth?.maxUploadBytes),
+    },
+  ];
+};
+
+function SealWorkflowPanel({
+  job,
+  fallbackCid,
+  title = "Auto seal status",
+  eyebrow = "Synapse workflow",
+  compact = false,
+}: {
+  job: SealJob;
+  fallbackCid: string;
+  title?: string;
+  eyebrow?: string;
+  compact?: boolean;
+}) {
+  const sealChecks = buildSealAcceptanceChecks(job, fallbackCid);
+  return (
+    <div className={`seal-steps ${compact ? "compact" : ""}`}>
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">{eyebrow}</p>
+          <h3>{title}</h3>
+        </div>
+        <span className={`pill seal-${job.status}`}>{job.status}</span>
+      </div>
+      <div className="seal-checklist" aria-label={`${title} acceptance checks`}>
+        {sealChecks.map((check) => (
+          <div key={check.label} className={check.passed ? "passed" : ""}>
+            <CheckCircle2 size={16} />
+            <span>{check.label}</span>
+            <strong>{check.detail}</strong>
+          </div>
+        ))}
+      </div>
+      {job.steps.map((step) => (
+        <article key={step.id}>
+          <CheckCircle2 size={16} />
+          <div>
+            <strong>{step.label}</strong>
+            <span>{step.detail}</span>
+          </div>
+          <b>{step.status}</b>
+        </article>
+      ))}
+      {(job.proofUrl || job.verifyUrl) && (
+        <div className="seal-links">
+          {job.proofUrl && <a href={job.proofUrl} target="_blank" rel="noreferrer">Proof metadata</a>}
+          {job.verifyUrl && <a href={job.verifyUrl} target="_blank" rel="noreferrer">Verify CID</a>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProofPanel({
   record,
   match,
@@ -1983,90 +2566,6 @@ function ProofPanel({
   shareImageUrl,
 }: ProofPanelProps) {
   const { capsule, result } = record;
-  const uploadStep = record.sealJob?.steps.find((step) => step.id === "upload");
-  const pollStep = record.sealJob?.steps.find((step) => step.id === "poll");
-  const backendHealth = record.sealJob?.backendHealth;
-  const sealChecks = record.sealJob
-    ? [
-        {
-          label: "Backend configured",
-          detail: record.sealJob.endpoint ?? "missing VITE_FILECOIN_SEAL_API",
-          passed: Boolean(record.sealJob.endpoint),
-        },
-        {
-          label: "Health check",
-          detail:
-            record.sealJob.healthStatus === "ready"
-              ? "seal API ready"
-              : record.sealJob.endpoint
-                ? record.sealJob.error ?? "unchecked"
-                : "missing VITE_FILECOIN_SEAL_API",
-          passed: record.sealJob.healthStatus === "ready",
-        },
-        {
-          label: "Upload accepted",
-          detail: uploadStep?.status ?? "queued",
-          passed: uploadStep?.status === "passed",
-        },
-        {
-          label: "CID returned",
-          detail: record.sealJob.proof?.cid ?? capsule.filecoinProof.cid,
-          passed: record.sealJob.proof?.mode === "real",
-        },
-        {
-          label: "Payload hash match",
-          detail:
-            record.sealJob.uploadPayloadHash && record.sealJob.proof?.payloadHash
-              ? `${record.sealJob.proof.payloadHash.slice(0, 12)}... · ${record.sealJob.uploadByteLength ?? record.sealJob.proof.byteLength ?? 0} bytes`
-              : "waiting for seal API payload hash",
-          passed: Boolean(
-            record.sealJob.uploadPayloadHash &&
-              record.sealJob.proof?.payloadHash &&
-              record.sealJob.uploadPayloadHash === record.sealJob.proof.payloadHash,
-          ),
-        },
-        {
-          label: "Verification polled",
-          detail: record.sealJob.pollAttempts
-            ? `${record.sealJob.pollAttempts} attempt${record.sealJob.pollAttempts > 1 ? "s" : ""}`
-            : pollStep?.status ?? "not started",
-          passed: Boolean(record.sealJob.lastCheckedAt),
-        },
-        {
-          label: "Verifier URL",
-          detail: record.sealJob.verifyUrl ?? "waiting for CID",
-          passed: Boolean(record.sealJob.verifyUrl),
-        },
-        {
-          label: "Backend mode",
-          detail: backendHealth
-            ? backendHealth.mockMode
-              ? "mock seal API for smoke tests"
-              : backendHealth.hasPrivateKey
-                ? "real Synapse backend"
-                : "private key missing"
-            : "waiting for health response",
-          passed: Boolean(backendHealth && !backendHealth.mockMode && backendHealth.hasPrivateKey),
-        },
-        {
-          label: "Proof registry",
-          detail: backendHealth
-            ? `${backendHealth.persistence ?? "unknown"} storage · ${backendHealth.proofCount ?? 0} registered`
-            : "waiting for health response",
-          passed: backendHealth?.persistence === "file",
-        },
-        {
-          label: "Upload auth",
-          detail: backendHealth ? (backendHealth.authRequired ? "bearer token required" : "token not required") : "waiting for health response",
-          passed: backendHealth?.authRequired === true,
-        },
-        {
-          label: "Upload limit",
-          detail: backendHealth?.maxUploadBytes ? `${Math.round(backendHealth.maxUploadBytes / 1024)} KB max` : "waiting for health response",
-          passed: Boolean(backendHealth?.maxUploadBytes),
-        },
-      ]
-    : [];
   return (
     <>
       <div className="panel-head">
@@ -2132,42 +2631,7 @@ function ProofPanel({
           <Users size={18} /> Share to X
         </button>
       </div>
-      {record.sealJob && (
-        <div className="seal-steps">
-          <div className="panel-head">
-            <div>
-              <p className="eyebrow">Synapse workflow</p>
-              <h3>Auto seal status</h3>
-            </div>
-            <span className={`pill seal-${record.sealJob.status}`}>{record.sealJob.status}</span>
-          </div>
-          <div className="seal-checklist" aria-label="Filecoin seal acceptance checks">
-            {sealChecks.map((check) => (
-              <div key={check.label} className={check.passed ? "passed" : ""}>
-                <CheckCircle2 size={16} />
-                <span>{check.label}</span>
-                <strong>{check.detail}</strong>
-              </div>
-            ))}
-          </div>
-          {record.sealJob.steps.map((step) => (
-            <article key={step.id}>
-              <CheckCircle2 size={16} />
-              <div>
-                <strong>{step.label}</strong>
-                <span>{step.detail}</span>
-              </div>
-              <b>{step.status}</b>
-            </article>
-          ))}
-          {(record.sealJob.proofUrl || record.sealJob.verifyUrl) && (
-            <div className="seal-links">
-              {record.sealJob.proofUrl && <a href={record.sealJob.proofUrl} target="_blank" rel="noreferrer">Proof metadata</a>}
-              {record.sealJob.verifyUrl && <a href={record.sealJob.verifyUrl} target="_blank" rel="noreferrer">Verify CID</a>}
-            </div>
-          )}
-        </div>
-      )}
+      {record.sealJob && <SealWorkflowPanel job={record.sealJob} fallbackCid={capsule.filecoinProof.cid} />}
       {shareImageUrl && (
         <div className="share-preview">
           <div className="panel-head">
@@ -2204,6 +2668,7 @@ function MemoryDashboard({
   currentStreak,
   leaderboardEntries,
   leaderboardReadiness,
+  leaderboardScopeEvidence,
   leaderboardScope,
   cloudState,
   onLeaderboardScope,
@@ -2216,6 +2681,7 @@ function MemoryDashboard({
   currentStreak: number;
   leaderboardEntries: LeaderboardEntry[];
   leaderboardReadiness: LeaderboardReadinessItem[];
+  leaderboardScopeEvidence: LeaderboardScopeEvidence[];
   leaderboardScope: LeaderboardScope;
   cloudState: CloudSyncState;
   onLeaderboardScope: (scope: LeaderboardScope) => void;
@@ -2295,6 +2761,7 @@ function MemoryDashboard({
             </div>
           ))}
         </div>
+        <LeaderboardEvidencePanel evidence={leaderboardScopeEvidence} />
         {leaderboard.length === 0 && <p>No leaderboard rows yet. Sync a revealed proof to populate this scope.</p>}
         {leaderboard.map((entry, index) => (
           <article key={entry.id}>
@@ -2343,6 +2810,9 @@ function VerifyDashboard({
   publicProofStatus,
   publicModeRun,
   publicModeStatus,
+  shareEvidence,
+  publicShareArtifact,
+  publicModeShareArtifact,
   shareImageUrl,
   modeShareImageUrl,
   onShareImage,
@@ -2354,6 +2824,7 @@ function VerifyDashboard({
   cidLookupState,
   onCidLookupInput,
   onCidLookup,
+  onAttachCidProof,
 }: {
   records: MemoryRecord[];
   modeRuns: GameModeRun[];
@@ -2361,6 +2832,9 @@ function VerifyDashboard({
   publicProofStatus: string;
   publicModeRun?: GameModeRun;
   publicModeStatus: string;
+  shareEvidence: ShareArtifactEvidence[];
+  publicShareArtifact?: ShareArtifactEvidence;
+  publicModeShareArtifact?: ShareArtifactEvidence;
   shareImageUrl: string;
   modeShareImageUrl: string;
   onShareImage: (record: MemoryRecord) => void;
@@ -2372,12 +2846,18 @@ function VerifyDashboard({
   cidLookupState: FilecoinLookupState;
   onCidLookupInput: (value: string) => void;
   onCidLookup: () => void;
+  onAttachCidProof: (record: MemoryRecord, proof: FilecoinProof) => void;
 }) {
   const proofId = new URLSearchParams(window.location.search).get("proof");
   const modeProofId = new URLSearchParams(window.location.search).get("mode");
   const localModeRun = modeProofId ? modeRuns.find((run) => run.id === modeProofId) : undefined;
   const modeRun = localModeRun ?? publicModeRun;
   const modeProofSource = localModeRun ? "local device" : publicModeRun ? "cloud public mode proof" : "unresolved";
+  const localModeShareArtifact = modeRun
+    ? shareEvidence.find((item) => item.kind === "mode" && item.id === modeRun.id)
+    : undefined;
+  const modeShareArtifact = localModeShareArtifact ?? publicModeShareArtifact;
+  const modeShareArtifactSource = localModeShareArtifact ? "local manifest" : publicModeShareArtifact ? "cloud manifest" : "missing";
   const localRecord = proofId
     ? records.find((item) => item.capsule.id === proofId)
     : modeProofId
@@ -2385,7 +2865,25 @@ function VerifyDashboard({
       : records[0];
   const record = localRecord ?? publicRecord;
   const proofSource = localRecord ? "local device" : publicRecord ? "cloud public record" : "unresolved";
+  const localShareArtifact = record
+    ? shareEvidence.find((item) => item.kind === "record" && item.id === record.capsule.id)
+    : undefined;
+  const recordShareArtifact = localShareArtifact ?? publicShareArtifact;
+  const recordShareArtifactSource = localShareArtifact ? "local manifest" : publicShareArtifact ? "cloud manifest" : "missing";
   const match = record ? matches.find((item) => item.id === record.capsule.matchId) : undefined;
+  const localExpectedProofHashes = localRecord
+    ? [localRecord.capsule.payloadHash, localRecord.sealJob?.uploadPayloadHash].filter(Boolean)
+    : [];
+  const queriedProofMatchesRecord = Boolean(
+    localRecord &&
+      cidLookupState.proof &&
+      (!cidLookupState.proof.payloadHash || localExpectedProofHashes.includes(cidLookupState.proof.payloadHash)),
+  );
+  const queriedProofMismatch = Boolean(
+    localRecord &&
+      cidLookupState.proof?.payloadHash &&
+      !localExpectedProofHashes.includes(cidLookupState.proof.payloadHash),
+  );
   const proofLabel = record?.capsule.filecoinProof.mode === "real" ? "Real Filecoin proof" : "Demo proof";
   const sealLabel = record?.capsule.lateLock ? "Late practice lock" : "Sealed before kickoff";
   const proofHeroStatus =
@@ -2396,6 +2894,21 @@ function VerifyDashboard({
     ? `Actual ${record.result.homeScore}-${record.result.awayScore} · Score ${record.result.totalScore}/100`
     : "Reveal pending";
   const publicUrl = record ? proofUrl(record.capsule.id) : "";
+  const fallbackMetaImage = new URL(assetUrl("kickoff-lock-icon.png"), window.location.href).toString();
+  const publicMeta = modeRun
+    ? buildModeProofMeta(modeRun, modeRunUrl(modeRun.id), fallbackMetaImage, modeShareArtifact)
+    : record
+      ? buildRecordProofMeta(record, publicUrl, fallbackMetaImage, recordShareArtifact)
+      : undefined;
+  useEffect(() => {
+    if (publicMeta) applyPublicProofMeta(publicMeta);
+  }, [
+    publicMeta?.canonicalUrl,
+    publicMeta?.title,
+    publicMeta?.description,
+    publicMeta?.imageManifest?.imageHash,
+    publicMeta?.imageManifest?.imageUrl,
+  ]);
   const checks = record
     ? [
         { label: "Capsule exists", passed: true },
@@ -2404,6 +2917,7 @@ function VerifyDashboard({
         { label: "Sealed before kickoff", passed: !record.capsule.lateLock },
         { label: "Public source resolved", passed: proofSource !== "unresolved" },
         { label: "Match data resolved", passed: !!match || proofSource === "cloud public record" },
+        { label: "Share manifest resolved", passed: Boolean(recordShareArtifact) },
       ]
     : [];
   return (
@@ -2491,6 +3005,7 @@ function VerifyDashboard({
               { label: "CID present", passed: modeRun.filecoinProof.cid.length > 12 },
               { label: "Linked capsules present", passed: modeRun.capsuleIds.length > 0 },
               { label: "Public source resolved", passed: modeProofSource !== "unresolved" },
+              { label: "Share manifest resolved", passed: Boolean(modeShareArtifact) },
             ].map((check) => (
               <article key={check.label}>
                 <CheckCircle2 size={18} />
@@ -2503,6 +3018,8 @@ function VerifyDashboard({
             <h3>Mode payload</h3>
             <pre>{stableJson({ modeRun })}</pre>
           </div>
+          {publicMeta && <SocialMetadataCard meta={publicMeta} />}
+          <ShareManifestCard artifact={modeShareArtifact} source={modeShareArtifactSource} expectedUrl={modeRunUrl(modeRun.id)} />
           {modeShareImageUrl && (
             <div className="verify-card public-share-card">
               <div className="panel-head">
@@ -2602,10 +3119,32 @@ function VerifyDashboard({
             <p><b>PieceCID</b><span>{cidLookupState.proof.pieceCid}</span></p>
             <p><b>Provider</b><span>{cidLookupState.proof.provider}</span></p>
             <p><b>Dataset</b><span>{cidLookupState.proof.dataSetId}</span></p>
+            <p>
+              <b>Payload</b>
+              <span>
+                {cidLookupState.proof.payloadHash
+                  ? queriedProofMismatch
+                    ? "hash mismatch"
+                    : "hash match"
+                  : "hash not returned"}
+              </span>
+            </p>
             {cidLookupState.proof.retrievalUrl && (
               <a href={cidLookupState.proof.retrievalUrl} target="_blank" rel="noreferrer">
                 Open retrieval
               </a>
+            )}
+            {localRecord && (
+              <button
+                className="cid-attach"
+                onClick={() => cidLookupState.proof && onAttachCidProof(localRecord, cidLookupState.proof)}
+                disabled={!queriedProofMatchesRecord}
+              >
+                <UploadCloud size={16} /> Attach to this capsule
+              </button>
+            )}
+            {queriedProofMismatch && (
+              <small>Returned payload hash does not match this capsule, so attach is blocked.</small>
             )}
           </div>
         )}
@@ -2639,6 +3178,8 @@ function VerifyDashboard({
             <h3>Locked payload</h3>
             <pre>{stableJson({ capsule: record.capsule, result: record.result, match })}</pre>
           </div>
+          {publicMeta && <SocialMetadataCard meta={publicMeta} />}
+          <ShareManifestCard artifact={recordShareArtifact} source={recordShareArtifactSource} expectedUrl={publicUrl} />
           {shareImageUrl && (
             <div className="verify-card public-share-card">
               <div className="panel-head">
@@ -2659,6 +3200,109 @@ function VerifyDashboard({
   );
 }
 
+function ShareManifestCard({
+  artifact,
+  source,
+  expectedUrl,
+}: {
+  artifact?: ShareArtifactEvidence;
+  source: string;
+  expectedUrl: string;
+}) {
+  const channel = artifact?.nativeShareOpenedAt
+    ? `native share · ${formatDate(artifact.nativeShareOpenedAt)}`
+    : artifact?.xIntentOpenedAt
+      ? `X intent · ${formatDate(artifact.xIntentOpenedAt)}`
+      : "not opened";
+  const sizeKb = artifact?.imageByteLength ? Math.round(artifact.imageByteLength / 1024) : 0;
+  return (
+    <div className={`verify-card share-manifest-card ${artifact ? "passed" : ""}`} aria-label="Share card manifest">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Share evidence</p>
+          <h3>Share card manifest</h3>
+        </div>
+        <span className={`pill ${artifact ? "real" : "demo"}`}>{source}</span>
+      </div>
+      {artifact ? (
+        <div className="manifest-grid">
+          <p><b>Card</b><span>{artifact.fileName ?? "generated PNG"}</span></p>
+          <p><b>Image URL</b><code>{artifact.imageUrl ?? "not publicly hosted yet"}</code></p>
+          <p><b>Size</b><span>{sizeKb} KB · {artifact.imageMime ?? "image/png"}</span></p>
+          <p><b>Hash</b><code>{artifact.imageHash ?? "missing"}</code></p>
+          <p><b>URL</b><code>{artifact.proofUrl}</code></p>
+          <p><b>Channel</b><span>{channel}</span></p>
+        </div>
+      ) : (
+        <div className="manifest-empty">
+          <ImageDown size={22} />
+          <strong>No share manifest yet</strong>
+          <span>Generate a proof card and sync it so this public page can prove the social image metadata.</span>
+          <code>{expectedUrl}</code>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SocialMetadataCard({ meta }: { meta: PublicProofMeta }) {
+  return (
+    <div className="verify-card social-meta-card" aria-label="Social metadata">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Public sharing</p>
+          <h3>Social metadata</h3>
+        </div>
+        <span className="pill">{meta.twitterCard}</span>
+      </div>
+      <div className="manifest-grid">
+        <p><b>Title</b><span>{meta.title}</span></p>
+        <p><b>Canonical</b><code>{meta.canonicalUrl}</code></p>
+        <p><b>Image</b><code>{meta.imageUrl}</code></p>
+        <p><b>Image alt</b><span>{meta.imageAlt}</span></p>
+        <p><b>Structured data</b><span>{String(meta.jsonLd["@type"])} · {meta.kind}</span></p>
+        <p>
+          <b>Manifest</b>
+          <span>
+            {meta.imageManifest?.imageHash
+              ? `${meta.imageManifest.fileName ?? "share card"} · ${meta.imageManifest.imageHash.slice(0, 12)}...`
+              : "default image until share card manifest syncs"}
+          </span>
+        </p>
+        {meta.imageManifest?.imageUrl && <p><b>Share image URL</b><code>{meta.imageManifest.imageUrl}</code></p>}
+      </div>
+    </div>
+  );
+}
+
+function LeaderboardEvidencePanel({ evidence }: { evidence: LeaderboardScopeEvidence[] }) {
+  return (
+    <div className="leaderboard-evidence" aria-label="Leaderboard query evidence">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Backend query evidence</p>
+          <h3>Leaderboard scope read-back</h3>
+        </div>
+        <span className="pill">{evidence.filter((item) => item.status === "loaded" && item.rows > 0).length}/3</span>
+      </div>
+      {evidence.map((item) => (
+        <article key={item.scope} className={item.status === "loaded" && item.rows > 0 ? "passed" : ""}>
+          <div>
+            <TableProperties size={16} />
+            <strong>{item.scope}</strong>
+            <span>{item.status}</span>
+          </div>
+          <small>Rows: {item.rows} · Filter: {item.filter}</small>
+          <small>Current user: {item.currentUserPresent ? `listed${item.currentUserRank ? ` · rank ${item.currentUserRank}` : ""}` : "missing"}</small>
+          <small>Checked: {item.checkedAt ? formatDate(item.checkedAt) : "not checked"}</small>
+          <small>Samples: {item.sampleIds?.join(", ") || "none"}</small>
+          {item.error && <small>Error: {item.error}</small>}
+        </article>
+      ))}
+    </div>
+  );
+}
+
 function ModesDashboard({
   modes,
   records,
@@ -2667,6 +3311,7 @@ function ModesDashboard({
   onBracketPick,
   onSealBracket,
   onCreateModeRun,
+  onSealModeRun,
 }: {
   modes: GameMode[];
   records: MemoryRecord[];
@@ -2675,6 +3320,7 @@ function ModesDashboard({
   onBracketPick: (pickId: string, patch: Partial<BracketPath["picks"][number]>) => void;
   onSealBracket: () => void;
   onCreateModeRun: (mode: GameMode) => void;
+  onSealModeRun: (run: GameModeRun) => void;
 }) {
   const lockedCount = records.length;
   const bracketReady = isBracketPathReady(bracketPath);
@@ -2792,6 +3438,18 @@ function ModesDashboard({
                       <strong>{run.status}{run.score !== undefined ? ` · ${run.score}/100` : ""}</strong>
                       <ModeRunArtifact artifact={run.artifact} />
                       <code>{run.filecoinProof.cid}</code>
+                      <button className="mode-create" onClick={() => onSealModeRun(run)}>
+                        <UploadCloud size={16} /> Auto seal mode proof
+                      </button>
+                      {run.sealJob && (
+                        <SealWorkflowPanel
+                          job={run.sealJob}
+                          fallbackCid={run.filecoinProof.cid}
+                          title="Mode seal status"
+                          eyebrow="Mode Filecoin workflow"
+                          compact
+                        />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -2802,7 +3460,7 @@ function ModesDashboard({
       </div>
       <div className="mode-rules">
         <h3>Acceptance rule</h3>
-        <p>Each mode now creates its own mode proof run with hash, CID, linked capsule ids and score when enough revealed records exist.</p>
+        <p>Each mode creates a proof run with hash, CID and linked capsules; production acceptance also requires cloud content read-back, anonymous mode proof links and generated public share cards for all four mode types.</p>
       </div>
     </section>
   );
@@ -2849,6 +3507,14 @@ function PublicProfileDashboard({
 }) {
   const latestRecords = profile.records.slice(0, 12);
   const latestModeRuns = profile.modeRuns.slice(0, 6);
+  const shareArtifactFor = (id: string, kind: ShareArtifactEvidence["kind"]) =>
+    profile.shareArtifacts.find((item) => item.id === id && item.kind === kind);
+  const shareManifestCount = profile.shareArtifacts.filter(isPublishableShareArtifact).length;
+  const fallbackMetaImage = new URL(assetUrl("kickoff-lock-icon.png"), window.location.href).toString();
+  const profileMeta = buildProfileMeta(profile, profileUrl(profile.id), fallbackMetaImage);
+  useEffect(() => {
+    applyPublicProofMeta(profileMeta);
+  }, [profileMeta.canonicalUrl, profileMeta.title, profileMeta.description]);
   return (
     <section className="public-profile panel">
       <div
@@ -2880,11 +3546,13 @@ function PublicProfileDashboard({
         <div><strong>{profile.averageScore}</strong><span>average score</span></div>
         <div><strong>{profile.bestScore}</strong><span>best score</span></div>
         <div><strong>{profile.xp}</strong><span>XP</span></div>
+        <div><strong>{shareManifestCount}</strong><span>share cards</span></div>
       </div>
       <div className="profile-proof-url">
         <b>Profile URL</b>
         <code>{profileUrl(profile.id)}</code>
       </div>
+      <SocialMetadataCard meta={profileMeta} />
       <div className="profile-records">
         <div className="panel-head">
           <div>
@@ -2903,6 +3571,7 @@ function PublicProfileDashboard({
                 {record.result ? ` · Score ${record.result.totalScore}/100` : " · reveal pending"}
               </span>
               <code>{record.capsule.filecoinProof.cid}</code>
+              <ProfileShareBadge artifact={shareArtifactFor(record.capsule.id, "record")} />
             </div>
             <button onClick={() => onOpenProof(record.capsule.id)}>
               <ShieldCheck size={16} /> Verify
@@ -2925,6 +3594,7 @@ function PublicProfileDashboard({
               <strong>{run.title}</strong>
               <span>{run.summary}{run.score !== undefined ? ` · Score ${run.score}/100` : ""}</span>
               <code>{run.filecoinProof.cid}</code>
+              <ProfileShareBadge artifact={shareArtifactFor(run.id, "mode")} />
             </div>
             <button onClick={() => onOpenModeProof(run.id)}>
               <ShieldCheck size={16} /> Verify
@@ -2933,6 +3603,18 @@ function PublicProfileDashboard({
         ))}
       </div>
     </section>
+  );
+}
+
+function ProfileShareBadge({ artifact }: { artifact?: ShareArtifactEvidence }) {
+  const ready = isPublishableShareArtifact(artifact);
+  const channel = artifact?.nativeShareOpenedAt ? "native share" : artifact?.xIntentOpenedAt ? "X intent" : "card only";
+  return (
+    <div className={`profile-share-badge ${ready ? "ready" : ""}`} aria-label="Profile share card evidence">
+      <ImageDown size={14} />
+      <span>{ready ? "share card synced" : "needs share card"}</span>
+      {ready && <code>{artifact?.imageHash?.slice(0, 12)}... · {channel}</code>}
+    </div>
   );
 }
 
@@ -2947,9 +3629,16 @@ function AccountDashboard({
   providerRouteAudit,
   providerHealth,
   leaderboardEntries,
+  leaderboardScopeEvidence,
   sealEndpointConfigured,
   shareImageReady,
   shareEvidence,
+  acceptanceEvidence,
+  acceptanceEvidenceStatus,
+  productionEvidence,
+  productionEvidenceStatus,
+  runtimeConfigReadiness,
+  runtimeConfigSummary,
   onEmail,
   onProfile,
   onMagicLink,
@@ -2971,9 +3660,16 @@ function AccountDashboard({
   providerRouteAudit: ProviderRouteAuditItem[];
   providerHealth: ProviderHealthSnapshot;
   leaderboardEntries: LeaderboardEntry[];
+  leaderboardScopeEvidence: LeaderboardScopeEvidence[];
   sealEndpointConfigured: boolean;
   shareImageReady: boolean;
   shareEvidence: ShareArtifactEvidence[];
+  acceptanceEvidence?: AcceptanceEvidencePacket;
+  acceptanceEvidenceStatus: string;
+  productionEvidence?: ProductionEvidencePacket;
+  productionEvidenceStatus: string;
+  runtimeConfigReadiness: RuntimeConfigItem[];
+  runtimeConfigSummary: RuntimeConfigSummary;
   onEmail: (value: string) => void;
   onProfile: (patch: Partial<ReturnType<typeof loadProfile>>) => void;
   onMagicLink: () => void;
@@ -2985,8 +3681,8 @@ function AccountDashboard({
   onOpenProfile: () => void;
   onCopyProfileLink: () => void;
 }) {
-  const syncCoverage = buildCloudSyncCoverage(cloudState, records, modeRuns);
-  const syncAudit = buildCloudSyncAudit(cloudState, profile, records, modeRuns, leaderboardEntries);
+  const syncCoverage = buildCloudSyncCoverage(cloudState, records, modeRuns, shareEvidence);
+  const syncAudit = buildCloudSyncAudit(cloudState, profile, records, modeRuns, leaderboardEntries, shareEvidence);
   const auditPassed = syncAudit.filter((item) => item.status === "passed").length;
   const verification = cloudState.verification;
   const productionReadiness = buildProductionReadiness({
@@ -2999,14 +3695,41 @@ function AccountDashboard({
     providerRouteAudit,
     providerHealth,
     leaderboardEntries,
+    leaderboardScopeEvidence,
     sealEndpointConfigured,
     shareImageReady,
     shareEvidence,
+    acceptanceEvidence,
+    productionEvidence,
   });
   const productionSummary = summarizeProductionReadiness(productionReadiness);
   const shareImageEvidence = shareEvidence.filter((item) => item.imageGenerated).length;
   const shareChannelEvidence = shareEvidence.filter((item) => item.xIntentOpenedAt || item.nativeShareOpenedAt).length;
+  const productionTargetRecord = records.find((record) => record.capsule.locked) ?? records[0];
+  const productionTargetMode = modeRuns[0];
+  const productionTargetImage = shareEvidence.find((item) => item.imageUrl?.startsWith("https://"))?.imageUrl;
+  const productionVerifyEnv = buildProductionVerifyEnv({
+    userId: profile.cloudMode === "supabase" ? profile.id : "",
+    profileId: profile.cloudMode === "supabase" ? profile.id : "",
+    proofId: productionTargetRecord?.capsule.id,
+    modeId: productionTargetMode?.id,
+    friendCode: productionFriendCode(profile.location, profile.email),
+    shareImageUrl: productionTargetImage,
+    allowFailures: true,
+  });
+  const publicProfileArchiveCount =
+    (verification?.publicProfileRecordIds?.length ?? 0) +
+    (verification?.publicProfileModeRunIds?.length ?? 0) +
+    (verification?.publicProfileShareArtifactIds?.length ?? 0);
+  const expectedPublicProfileArchives = records.length + modeRuns.length + shareEvidence.length;
   const cloudChecks = [
+    {
+      label: "Backend schema",
+      passed: Boolean(verification?.backendHealth?.ready),
+      detail: verification?.backendHealth
+        ? verification.backendHealth.schemaVersion ?? verification.backendHealth.detail
+        : "not checked",
+    },
     {
       label: "Supabase env",
       passed: cloudState.configured,
@@ -3037,14 +3760,32 @@ function AccountDashboard({
         : "create a mode proof first",
     },
     {
+      label: "Share manifests",
+      passed: cloudState.authenticated && shareEvidence.length > 0 && (verification?.shareArtifacts ?? 0) >= shareEvidence.length,
+      detail: shareEvidence.length > 0
+        ? `${verification?.shareArtifacts ?? 0}/${shareEvidence.length} card manifest${shareEvidence.length === 1 ? "" : "s"} read back`
+        : "generate share cards first",
+    },
+    {
+      label: "Public share images",
+      passed: cloudState.authenticated && shareEvidence.length > 0 && (verification?.publicShareImages ?? 0) >= shareEvidence.length,
+      detail: shareEvidence.length > 0
+        ? `${verification?.publicShareImages ?? 0}/${shareEvidence.length} public PNG URL${shareEvidence.length === 1 ? "" : "s"} read back`
+        : "upload share images first",
+    },
+    {
       label: "Sync coverage",
       passed: syncCoverage.passed,
       detail: syncCoverage.detail,
     },
     {
       label: "Public profile",
-      passed: Boolean(verification?.publicProfile),
-      detail: verification?.publicProfile ? `anonymous ${profile.id}` : profile.cloudMode === "supabase" ? profile.id : "local preview only",
+      passed:
+        Boolean(verification?.publicProfile) &&
+        (expectedPublicProfileArchives === 0 || publicProfileArchiveCount >= expectedPublicProfileArchives),
+      detail: verification?.publicProfile
+        ? `anonymous ${profile.id} · archives ${publicProfileArchiveCount}/${expectedPublicProfileArchives}`
+        : profile.cloudMode === "supabase" ? profile.id : "local preview only",
     },
   ];
   return (
@@ -3103,7 +3844,11 @@ function AccountDashboard({
             </div>
             <div>
               <span>Read-back</span>
-              <strong>{verification ? `${verification.records + verification.modeRuns}/${records.length + modeRuns.length}` : "not checked"}</strong>
+              <strong>
+                {verification
+                  ? `${verification.records + verification.modeRuns + (verification.shareArtifacts ?? 0) + (verification.publicShareImages ?? 0)}/${records.length + modeRuns.length + shareEvidence.length * 2}`
+                  : "not checked"}
+              </strong>
             </div>
             <div>
               <span>Share cards</span>
@@ -3152,6 +3897,12 @@ function AccountDashboard({
               </article>
             ))}
           </div>
+          <RuntimeConfigPanel items={runtimeConfigReadiness} summary={runtimeConfigSummary} />
+          <ProductionVerifyTargetsPanel envText={productionVerifyEnv} />
+          <ProductionEvidencePanel evidence={productionEvidence} status={productionEvidenceStatus} />
+          <CloudReadbackLedger verification={verification} records={records} modeRuns={modeRuns} shareEvidence={shareEvidence} />
+          <LeaderboardEvidencePanel evidence={leaderboardScopeEvidence} />
+          <ShareArtifactLedger records={records} modeRuns={modeRuns} evidence={shareEvidence} />
           <label>
             <span>Magic link email</span>
             <input value={email} onChange={(event) => onEmail(event.target.value)} />
@@ -3164,7 +3915,7 @@ function AccountDashboard({
               <Link2 size={18} /> Send magic link
             </button>
             <button className="primary" onClick={onSync}>
-              <UploadCloud size={18} /> Sync {records.length} records / {modeRuns.length} modes
+              <UploadCloud size={18} /> Sync {records.length} records / {modeRuns.length} modes / {shareEvidence.length} cards
             </button>
             <button onClick={onPull}>
               <Download size={18} /> Pull cloud history
@@ -3187,12 +3938,498 @@ function AccountDashboard({
             <code>kickoff_profiles</code>
             <code>kickoff_records</code>
             <code>kickoff_mode_runs</code>
+            <code>kickoff_share_artifacts</code>
             <code>kickoff_leaderboard</code>
           </div>
         </div>
       </div>
       <ProductionReadinessPanel items={productionReadiness} summary={productionSummary} />
-      <AcceptanceTestPanel />
+      <AcceptanceTestPanel evidence={acceptanceEvidence} status={acceptanceEvidenceStatus} />
+    </section>
+  );
+}
+
+function RuntimeConfigPanel({
+  items,
+  summary,
+}: {
+  items: RuntimeConfigItem[];
+  summary: RuntimeConfigSummary;
+}) {
+  const categoryLabels: Record<RuntimeConfigItem["category"], string> = {
+    account: "Account",
+    data: "Realtime data",
+    filecoin: "Filecoin",
+    sharing: "Sharing",
+  };
+  return (
+    <div className="runtime-config" aria-label="Production runtime config">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Runtime config</p>
+          <h3>Production environment gates</h3>
+        </div>
+        <span className={`pill ${summary.ready ? "real" : "demo"}`}>
+          {summary.requiredPassed}/{summary.requiredTotal} required
+        </span>
+      </div>
+      <div className="runtime-config-summary">
+        <div>
+          <span>Required</span>
+          <strong>{summary.requiredPassed}/{summary.requiredTotal}</strong>
+        </div>
+        <div>
+          <span>Recommended</span>
+          <strong>{summary.recommendedPassed}/{summary.recommendedTotal}</strong>
+        </div>
+      </div>
+      <div className="runtime-config-grid">
+        {items.map((item) => (
+          <article key={item.key} className={item.passed ? "passed" : ""}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{item.label}</strong>
+              <span>{categoryLabels[item.category]}</span>
+            </div>
+            <small>{item.required ? "Required" : "Recommended"} · {item.detail}</small>
+            <p>{item.passed ? "Configured." : item.action}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProductionVerifyTargetsPanel({ envText }: { envText: string }) {
+  const copyTargets = async () => {
+    await navigator.clipboard?.writeText(envText);
+  };
+  const filled = envText
+    .split("\n")
+    .filter((line) => line.includes("=") && line.split("=").slice(1).join("=").trim().length > 0).length;
+  return (
+    <div className="production-targets" aria-label="Production verification target env">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Verify targets</p>
+          <h3>Production script env</h3>
+        </div>
+        <span className="pill">{filled}/9 filled</span>
+      </div>
+      <div className="production-target-actions">
+        <button onClick={copyTargets}>
+          <Link2 size={16} /> Copy env
+        </button>
+        <span>Paste into <code>.env.production.local</code>, fill blanks, then run <code>bun run verify:production</code>.</span>
+      </div>
+      <pre>{envText}</pre>
+    </div>
+  );
+}
+
+function ProductionEvidencePanel({
+  evidence,
+  status,
+}: {
+  evidence?: ProductionEvidencePacket;
+  status: string;
+}) {
+  const summary = summarizeProductionEvidence(evidence);
+  const categoryLabels: Record<ProductionEvidencePacket["checks"][number]["category"], string> = {
+    runtime: "Runtime",
+    "public-app": "Public app",
+    supabase: "Supabase",
+    data: "Realtime data",
+    filecoin: "Filecoin",
+    sharing: "Sharing",
+  };
+  const visibleChecks = evidence?.checks ?? [];
+  return (
+    <div className="production-evidence" aria-label="External production evidence">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">External evidence</p>
+          <h3>Production deployment checks</h3>
+        </div>
+        <span className={`pill ${summary.complete ? "real" : "demo"}`}>
+          {summary.requiredPassed}/{summary.requiredTotal || 0} required
+        </span>
+      </div>
+      <div className={`production-evidence-status ${summary.complete ? "passed" : ""}`}>
+        <FileCheck2 size={18} />
+        <div>
+          <strong>{summary.complete ? "External evidence verified" : "External evidence pending"}</strong>
+          <span>{summary.loaded ? `${status} · generated ${summary.generatedAt}` : status}</span>
+        </div>
+      </div>
+      {visibleChecks.length > 0 ? (
+        <div className="production-evidence-grid">
+          {visibleChecks.map((check) => (
+            <article key={check.id} className={`evidence-${check.status}`}>
+              <div>
+                <CheckCircle2 size={16} />
+                <strong>{check.label}</strong>
+                <span>{categoryLabels[check.category]}</span>
+              </div>
+              <small>{check.required ? "Required" : "Optional"} · {check.status} · {check.detail}</small>
+              {check.url ? <code>{check.url}</code> : null}
+              <p>{check.status === "passed" ? "Verified by production evidence." : check.action ?? "Run production verification again."}</p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="production-evidence-empty">
+          <FileCheck2 size={18} />
+          <strong>No production evidence packet loaded</strong>
+          <span>Run <code>bun run verify:production</code> after configuring deployed services.</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CloudReadbackLedger({
+  verification,
+  records,
+  modeRuns,
+  shareEvidence,
+}: {
+  verification?: CloudSyncState["verification"];
+  records: MemoryRecord[];
+  modeRuns: GameModeRun[];
+  shareEvidence: ShareArtifactEvidence[];
+}) {
+  const ledgerRows = [
+    {
+      label: "Backend schema",
+      verified: verification?.backendHealth?.ready ? [verification.backendHealth.schemaVersion ?? "kickoff_backend_health"] : [],
+      missing: verification?.backendHealth
+        ? [
+            ...verification.backendHealth.missingTables,
+            ...verification.backendHealth.missingViews,
+            ...verification.backendHealth.missingRlsTables,
+            ...(verification.backendHealth.policyCount >= verification.backendHealth.requiredPolicyCount ? [] : ["policies"]),
+          ]
+        : ["not checked"],
+    },
+    {
+      label: "Private profile row",
+      verified: verification?.profile ? ["kickoff_profiles"] : [],
+      missing: verification ? (verification.profile ? [] : ["kickoff_profiles"]) : ["not checked"],
+    },
+    {
+      label: "Prediction rows",
+      verified: verification?.recordIds ?? [],
+      missing: verification?.missingRecordIds ?? records.map((record) => record.capsule.id),
+    },
+    {
+      label: "Mode proof rows",
+      verified: verification?.modeRunIds ?? [],
+      missing: verification?.missingModeRunIds ?? modeRuns.map((run) => run.id),
+    },
+    {
+      label: "Share manifest rows",
+      verified: verification?.shareArtifactIds ?? [],
+      missing: verification?.missingShareArtifactIds ?? shareEvidence.map((item) => `${item.kind}:${item.id}`),
+    },
+    {
+      label: "Public share image URLs",
+      verified: verification?.publicShareImageIds ?? [],
+      missing: verification?.missingPublicShareImageIds ?? shareEvidence.map((item) => `${item.kind}:${item.id}`),
+    },
+    {
+      label: "Content fingerprints",
+      verified: [
+        ...(verification?.recordContentIds ?? []),
+        ...(verification?.modeRunContentIds ?? []),
+        ...(verification?.shareArtifactContentIds ?? []),
+      ],
+      missing:
+        verification
+          ? [
+              ...(verification.missingRecordContentIds ?? []),
+              ...(verification.missingModeRunContentIds ?? []),
+              ...(verification.missingShareArtifactContentIds ?? []),
+            ]
+          : [
+              ...records.map((record) => record.capsule.id),
+              ...modeRuns.map((run) => run.id),
+              ...shareEvidence.map((item) => `${item.kind}:${item.id}`),
+            ],
+    },
+    {
+      label: "Anonymous proof links",
+      verified: verification?.publicProofIds ?? [],
+      missing:
+        verification?.missingPublicProofIds ??
+        [
+          ...records.map((record) => `record:${record.capsule.id}`),
+          ...modeRuns.map((run) => `mode:${run.id}`),
+        ],
+    },
+    {
+      label: "Anonymous profile page",
+      verified: verification?.publicProfile ? ["?profile"] : [],
+      missing: verification ? (verification.publicProfile ? [] : ["?profile"]) : ["not checked"],
+    },
+    {
+      label: "Profile archive rows",
+      verified: [
+        ...(verification?.publicProfileRecordIds ?? []),
+        ...(verification?.publicProfileModeRunIds ?? []),
+        ...(verification?.publicProfileShareArtifactIds ?? []),
+      ],
+      missing:
+        verification
+          ? [
+              ...(verification.missingPublicProfileRecordIds ?? []),
+              ...(verification.missingPublicProfileModeRunIds ?? []),
+              ...(verification.missingPublicProfileShareArtifactIds ?? []),
+            ]
+          : [
+              ...records.map((record) => record.capsule.id),
+              ...modeRuns.map((run) => run.id),
+              ...shareEvidence.map((item) => `${item.kind}:${item.id}`),
+            ],
+    },
+  ];
+  return (
+    <div className="readback-ledger" aria-label="Cloud read-back ledger">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Read-back ledger</p>
+          <h3>Remote proof evidence</h3>
+        </div>
+        <span className="pill">{verification ? formatDate(verification.checkedAt) : "not checked"}</span>
+      </div>
+      {ledgerRows.map((row) => (
+        <article key={row.label} className={row.missing.length === 0 ? "passed" : ""}>
+          <div>
+            <CheckCircle2 size={16} />
+            <strong>{row.label}</strong>
+            <span>{row.verified.length} verified</span>
+          </div>
+          <small>Verified: {row.verified.slice(0, 4).join(", ") || "none"}</small>
+          <small>Missing: {row.missing.slice(0, 4).join(", ") || "none"}{row.missing.length > 4 ? ` +${row.missing.length - 4} more` : ""}</small>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ShareArtifactLedger({
+  records,
+  modeRuns,
+  evidence,
+}: {
+  records: MemoryRecord[];
+  modeRuns: GameModeRun[];
+  evidence: ShareArtifactEvidence[];
+}) {
+  const artifactFor = (id: string, kind: ShareArtifactEvidence["kind"]) =>
+    evidence.find((item) => item.id === id && item.kind === kind);
+  const rows = [
+    ...records.map((record) => ({
+      id: record.capsule.id,
+      kind: "record" as const,
+      label: record.capsule.matchLabel,
+      proofUrl: proofUrl(record.capsule.id),
+      evidence: artifactFor(record.capsule.id, "record"),
+    })),
+    ...modeRuns.map((run) => ({
+      id: run.id,
+      kind: "mode" as const,
+      label: run.title,
+      proofUrl: modeRunUrl(run.id),
+      evidence: artifactFor(run.id, "mode"),
+    })),
+  ];
+  const publishable = rows.filter((row) => isPublishableShareArtifact(row.evidence)).length;
+  return (
+    <div className="share-artifact-ledger" aria-label="Share artifact ledger">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Share artifacts</p>
+          <h3>Publishable proof cards</h3>
+        </div>
+        <span className="pill">{publishable}/{rows.length}</span>
+      </div>
+      {rows.length === 0 ? (
+        <article>
+          <div>
+            <ImageDown size={16} />
+            <strong>No proof artifacts yet</strong>
+            <span>Lock predictions and mode runs first.</span>
+          </div>
+        </article>
+      ) : (
+        rows.map((row) => {
+          const ready = isPublishableShareArtifact(row.evidence);
+          const channel = row.evidence?.nativeShareOpenedAt ? "native share" : row.evidence?.xIntentOpenedAt ? "X intent" : "not opened";
+          return (
+            <article key={`${row.kind}-${row.id}`} className={ready ? "passed" : ""}>
+              <div>
+                <ImageDown size={16} />
+                <strong>{row.label}</strong>
+                <span>{row.kind}</span>
+              </div>
+              <small>Card: {ready ? `${row.evidence?.fileName} · ${Math.round((row.evidence?.imageByteLength ?? 0) / 1024)} KB` : "missing publishable PNG manifest"}</small>
+              <small>Hash: {row.evidence?.imageHash ? `${row.evidence.imageHash.slice(0, 16)}...` : "none"}</small>
+              <small>Image URL: {row.evidence?.imageUrl ?? "not publicly hosted"}</small>
+              <small>Channel: {channel}</small>
+              <small>URL: {row.evidence?.proofUrl ?? row.proofUrl}</small>
+            </article>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+function UtilityDrawer({
+  mode,
+  cloudState,
+  profile,
+  providerHealth,
+  forceFallback,
+  leaderboardScope,
+  productionReadiness,
+  productionSummary,
+  onClose,
+  onForceFallback,
+  onLeaderboardScope,
+  onRefreshMatches,
+  onSync,
+  onOpenAccount,
+}: {
+  mode: "settings" | "help";
+  cloudState: CloudSyncState;
+  profile: ReturnType<typeof loadProfile>;
+  providerHealth: ProviderHealthSnapshot;
+  forceFallback: boolean;
+  leaderboardScope: LeaderboardScope;
+  productionReadiness: ReturnType<typeof buildProductionReadiness>;
+  productionSummary: ReturnType<typeof summarizeProductionReadiness>;
+  onClose: () => void;
+  onForceFallback: (value: boolean) => void;
+  onLeaderboardScope: (scope: LeaderboardScope) => void;
+  onRefreshMatches: () => void;
+  onSync: () => void;
+  onOpenAccount: () => void;
+}) {
+  const blockedItems = productionReadiness.filter((item) => item.level === "blocked");
+  const title = mode === "settings" ? "Control room" : "Launch checks";
+  return (
+    <section className="utility-drawer" aria-label={mode === "settings" ? "Settings panel" : "Help panel"}>
+      <div className="utility-backdrop" onClick={onClose} />
+      <aside className="utility-panel">
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">{mode === "settings" ? "Settings" : "Help"}</p>
+            <h3>{title}</h3>
+          </div>
+          <button className="icon-button" onClick={onClose} title="Close panel">
+            <ShieldCheck size={18} />
+          </button>
+        </div>
+
+        {mode === "settings" ? (
+          <>
+            <div className="utility-stats">
+              <div>
+                <span>Profile</span>
+                <strong>{profile.cloudMode}</strong>
+              </div>
+              <div>
+                <span>Cloud</span>
+                <strong>{cloudState.status}</strong>
+              </div>
+              <div>
+                <span>Data</span>
+                <strong>{providerHealth.status}</strong>
+              </div>
+            </div>
+            <label className="toggle-row utility-toggle">
+              <input
+                type="checkbox"
+                checked={forceFallback}
+                onChange={(event) => onForceFallback(event.target.checked)}
+              />
+              Force fallback test
+            </label>
+            <div className="utility-actions">
+              <button onClick={onRefreshMatches}>
+                <RefreshCcw size={16} /> Refresh data
+              </button>
+              <button onClick={onSync}>
+                <UploadCloud size={16} /> Sync cloud
+              </button>
+              <button onClick={onOpenAccount}>
+                <UserCircle2 size={16} /> Account
+              </button>
+            </div>
+            <div className="utility-section">
+              <strong>Leaderboard scope</strong>
+              <div className="segmented-control">
+                {leaderboardScopes.map((scope) => (
+                  <button
+                    key={scope}
+                    className={leaderboardScope === scope ? "active" : ""}
+                    onClick={() => onLeaderboardScope(scope)}
+                  >
+                    {scope}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="utility-section">
+              <strong>Realtime data</strong>
+              <small>{providerHealth.detail}</small>
+              <p>{providerHealth.nextAction}</p>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="utility-stats">
+              <div>
+                <span>Ready</span>
+                <strong>{productionSummary.score}%</strong>
+              </div>
+              <div>
+                <span>Verified</span>
+                <strong>{productionSummary.verified}</strong>
+              </div>
+              <div>
+                <span>Blocked</span>
+                <strong>{productionSummary.blocked}</strong>
+              </div>
+            </div>
+            <div className="utility-section">
+              <strong>Open acceptance items</strong>
+              <div className="utility-list">
+                {(blockedItems.length > 0 ? blockedItems : productionReadiness).slice(0, 4).map((item) => (
+                  <article key={item.key}>
+                    <span>{item.label}</span>
+                    <b>{item.passed}/{item.total} · {item.level}</b>
+                    <small>{item.nextAction}</small>
+                  </article>
+                ))}
+              </div>
+            </div>
+            <div className="utility-section">
+              <strong>Test suites</strong>
+              <div className="utility-list compact">
+                {ACCEPTANCE_TEST_SUITES.map((suite) => (
+                  <article key={suite.id}>
+                    <span>{suite.label}</span>
+                    <code>{suite.command}</code>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </aside>
     </section>
   );
 }
@@ -3249,7 +4486,15 @@ function ProductionReadinessPanel({
   );
 }
 
-function AcceptanceTestPanel() {
+function AcceptanceTestPanel({
+  evidence,
+  status,
+}: {
+  evidence?: AcceptanceEvidencePacket;
+  status: string;
+}) {
+  const runEvidence = summarizeAcceptanceRunEvidence(evidence);
+  const evidenceBySuite = new Map(evidence?.suites.map((suite) => [suite.suiteId, suite]));
   return (
     <section className="acceptance-tests" aria-label="Acceptance test cases">
       <div className="panel-head">
@@ -3257,18 +4502,42 @@ function AcceptanceTestPanel() {
           <p className="eyebrow">Acceptance tests</p>
           <h3>验收用例与测试规则</h3>
         </div>
-        <span className="pill">{ACCEPTANCE_TEST_SUITES.length} suites</span>
+        <span className="pill">{runEvidence.passed}/{runEvidence.total} passed</span>
+      </div>
+      <div className={`acceptance-evidence ${runEvidence.complete ? "passed" : ""}`} aria-label="Acceptance run evidence">
+        <div>
+          <strong>{runEvidence.complete ? "Run evidence verified" : "Run evidence pending"}</strong>
+          <span>
+            {runEvidence.manifestHashMismatch
+              ? "Acceptance suite manifest changed; regenerate evidence."
+              : runEvidence.evidenceStale
+                ? "Acceptance evidence is older than 7 days; regenerate before release."
+                : status}
+          </span>
+        </div>
+        <code>
+          {evidence
+            ? `${evidence.generatedAt} · ${
+                runEvidence.manifestHashMismatch
+                  ? "manifest stale"
+                  : runEvidence.evidenceStale
+                    ? "evidence stale"
+                    : runEvidence.suiteManifestHash ?? "manifest missing"
+              }`
+            : "no acceptance-evidence.json loaded"}
+        </code>
       </div>
       <div className="acceptance-test-grid">
         {ACCEPTANCE_TEST_SUITES.map((suite) => (
-          <article key={suite.id}>
+          <article key={suite.id} className={evidenceBySuite.get(suite.id)?.status === "passed" ? "passed" : ""}>
             <div>
               <CheckCircle2 size={17} />
               <strong>{suite.label}</strong>
+              <span>{evidenceBySuite.get(suite.id)?.status ?? "not run"}</span>
             </div>
             <code>{suite.command}</code>
             <small>{suite.file}</small>
-            <p>{suite.proves}</p>
+            <p>{evidenceBySuite.get(suite.id)?.summary ?? suite.proves}</p>
           </article>
         ))}
       </div>

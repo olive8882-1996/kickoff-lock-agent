@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createCapsule, stableJson } from "./proof";
+import { applyVerifiedProof, createCapsule, stableJson } from "./proof";
 import type { Match, PredictionDraft } from "./types";
 
 const match: Match = {
@@ -40,5 +40,58 @@ describe("proof capsules", () => {
     expect(capsule.lateLock).toBe(false);
     expect(capsule.payloadHash).toHaveLength(64);
     expect(capsule.filecoinProof.cid).toContain("bafy-kickoff-");
+  });
+
+  it("attaches a queried real proof only when the payload hash matches", async () => {
+    const capsule = await createCapsule(match, prediction);
+    const updated = applyVerifiedProof(capsule, {
+      cid: "bafy-real-proof",
+      pieceCid: "baga-real-proof",
+      provider: "synapse-provider",
+      dataSetId: "dataset-1",
+      proofStatus: "verified",
+      payloadHash: capsule.payloadHash,
+      byteLength: 1024,
+    });
+
+    expect(updated.filecoinProof.mode).toBe("real");
+    expect(updated.filecoinProof.cid).toBe("bafy-real-proof");
+    expect(updated.filecoinProof.payloadHash).toBe(capsule.payloadHash);
+    expect(updated.filecoinProof.byteLength).toBe(1024);
+  });
+
+  it("rejects a queried proof for a different capsule payload", async () => {
+    const capsule = await createCapsule(match, prediction);
+
+    expect(() =>
+      applyVerifiedProof(capsule, {
+        cid: "bafy-wrong-proof",
+        pieceCid: "baga-wrong-proof",
+        provider: "synapse-provider",
+        dataSetId: "dataset-1",
+        proofStatus: "verified",
+        payloadHash: "0".repeat(64),
+      }),
+    ).toThrow(/payload hash/i);
+  });
+
+  it("allows a proof hash that matches the uploaded seal payload hash", async () => {
+    const capsule = await createCapsule(match, prediction);
+    const uploadedPayloadHash = "f".repeat(64);
+    const updated = applyVerifiedProof(
+      capsule,
+      {
+        cid: "bafy-upload-hash",
+        pieceCid: "baga-upload-hash",
+        provider: "synapse-provider",
+        dataSetId: "dataset-2",
+        proofStatus: "verified",
+        payloadHash: uploadedPayloadHash,
+      },
+      { expectedPayloadHashes: [capsule.payloadHash, uploadedPayloadHash] },
+    );
+
+    expect(updated.filecoinProof.cid).toBe("bafy-upload-hash");
+    expect(updated.filecoinProof.payloadHash).toBe(uploadedPayloadHash);
   });
 });

@@ -7,3 +7,7 @@ dist/
 node_modules/.tmp/
 test-results/
 playwright-report/
+public/acceptance-evidence.json
+acceptance-evidence.json
+public/production-evidence.json
+production-evidence.json

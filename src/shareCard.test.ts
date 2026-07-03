@@ -4,9 +4,13 @@ import {
   buildModeRunShareCardPayload,
   buildModeXIntentUrl,
   buildProofShareText,
+  buildShareArtifactEvidence,
   buildShareCardPayload,
   buildXIntentUrl,
   canNativeShareFiles,
+  isPublishableShareArtifact,
+  isProductionProofUrl,
+  isProductionShareArtifact,
 } from "./shareCard";
 import type { GameModeRun, MemoryRecord } from "./types";
 
@@ -164,5 +168,72 @@ describe("share card payload", () => {
 
     expect(canNativeShareFiles(files, { share: async () => undefined, canShare: () => true } as Navigator)).toBe(true);
     expect(canNativeShareFiles(files, { share: async () => undefined, canShare: () => false } as Navigator)).toBe(false);
+  });
+
+  it("builds a publishable share artifact manifest with image hash and byte size", async () => {
+    const dataUrl = `data:image/png;base64,${"a".repeat(16_000)}`;
+    const evidence = await buildShareArtifactEvidence({
+      id: "cap-share",
+      kind: "record",
+      proofUrl: "https://example.com/kickoff-lock-agent/?proof=cap-share",
+      dataUrl,
+      fileName: "cap-share-card.png",
+      imageUrl: "https://example.com/cards/cap-share-card.png",
+      xIntentUrl: buildXIntentUrl(record, "https://example.com/kickoff-lock-agent/?proof=cap-share"),
+    });
+
+    expect(evidence.imageGenerated).toBe(true);
+    expect(evidence.imageMime).toBe("image/png");
+    expect(evidence.imageByteLength).toBeGreaterThan(10_000);
+    expect(evidence.imageHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(evidence.fileName).toBe("cap-share-card.png");
+    expect(evidence.imageUrl).toBe("https://example.com/cards/cap-share-card.png");
+    expect(evidence.xIntentUrl).toContain("twitter.com/intent/tweet");
+    expect(isPublishableShareArtifact(evidence)).toBe(true);
+    expect(isProductionShareArtifact(evidence)).toBe(true);
+  });
+
+  it("rejects incomplete share evidence as non-publishable", () => {
+    expect(
+      isPublishableShareArtifact({
+        id: "cap-share",
+        kind: "record",
+        proofUrl: "https://example.com/?proof=cap-share",
+        imageGenerated: true,
+        imageMime: "image/png",
+        imageByteLength: 100,
+        imageHash: "not-a-real-hash",
+        fileName: "cap-share-card.png",
+      }),
+    ).toBe(false);
+  });
+
+  it("requires deployed HTTPS proof URLs for production sharing evidence", async () => {
+    const dataUrl = `data:image/png;base64,${"a".repeat(16_000)}`;
+    const localhostEvidence = await buildShareArtifactEvidence({
+      id: "cap-local",
+      kind: "record",
+      proofUrl: "http://localhost:5173/kickoff-lock-agent/?proof=cap-local",
+      dataUrl,
+      fileName: "cap-local-card.png",
+    });
+
+    expect(isProductionProofUrl("https://example.com/kickoff-lock-agent/?proof=cap-share")).toBe(true);
+    expect(isProductionProofUrl("https://example.com/cards/cap-share.png")).toBe(true);
+    expect(isProductionProofUrl("http://localhost:5173/kickoff-lock-agent/?proof=cap-share")).toBe(false);
+    expect(isProductionProofUrl("https://127.0.0.1:5173/kickoff-lock-agent/?proof=cap-share")).toBe(false);
+    expect(isProductionProofUrl("/kickoff-lock-agent/?proof=cap-share")).toBe(false);
+    expect(isPublishableShareArtifact(localhostEvidence)).toBe(true);
+    expect(isProductionShareArtifact(localhostEvidence)).toBe(false);
+
+    const proofOnlyEvidence = await buildShareArtifactEvidence({
+      id: "cap-no-image-url",
+      kind: "record",
+      proofUrl: "https://example.com/kickoff-lock-agent/?proof=cap-no-image-url",
+      dataUrl,
+      fileName: "cap-no-image-url-card.png",
+    });
+    expect(isPublishableShareArtifact(proofOnlyEvidence)).toBe(true);
+    expect(isProductionShareArtifact(proofOnlyEvidence)).toBe(false);
   });
 });

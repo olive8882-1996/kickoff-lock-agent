@@ -45,6 +45,9 @@ export type ProviderHealthSnapshot = {
   lastSyncedAt?: string;
   ageSeconds?: number;
   fresh: boolean;
+  responseVerified: boolean;
+  responseAudit?: ProviderResponseAudit;
+  enrichmentAudit?: ProviderEnrichmentAudit;
   liveOrConfigured: number;
   totalSignals: number;
   activeRoute?: string;
@@ -52,6 +55,48 @@ export type ProviderHealthSnapshot = {
   evidence: string[];
   detail: string;
   nextAction: string;
+};
+
+export type RealtimeDataAuditSignal = {
+  key: DataCoverageItem["key"];
+  label: string;
+  bestStatus: DataCoverageStatus;
+  bestSource: string;
+  live: number;
+  configured: number;
+  fallback: number;
+  manual: number;
+  missing: number;
+  total: number;
+};
+
+export type RealtimeDataAuditSample = {
+  id: string;
+  label: string;
+  status: MatchStatus;
+  kickoffAt: string;
+  liveOrConfigured: number;
+  missing: DataCoverageItem["key"][];
+};
+
+export type RealtimeDataAudit = {
+  checkedAt: string;
+  source: DataSource;
+  sourceLabel: string;
+  routeStatus: ProviderRouteAuditItem["status"] | "unknown";
+  responseVerified: boolean;
+  responseAudit?: ProviderResponseAudit;
+  enrichmentAudit?: ProviderEnrichmentAudit;
+  matchCount: number;
+  liveMatches: number;
+  finishedMatches: number;
+  upcomingMatches: number;
+  productionReady: boolean;
+  warning?: string;
+  evidence: string[];
+  missingSignals: DataCoverageItem["key"][];
+  signals: RealtimeDataAuditSignal[];
+  samples: RealtimeDataAuditSample[];
 };
 
 export type MatchIntelligenceScore = {
@@ -133,7 +178,7 @@ export type FilecoinLookupState = {
 export type SealStepStatus = "queued" | "running" | "passed" | "failed" | "needs-config";
 
 export type SealStep = {
-  id: "payload" | "health" | "upload" | "deal" | "poll" | "verify";
+  id: "payload" | "health" | "upload" | "deal" | "poll" | "registry" | "verify";
   label: string;
   status: SealStepStatus;
   detail: string;
@@ -145,6 +190,8 @@ export type SealBackendHealth = {
   mockMode?: boolean;
   hasPrivateKey?: boolean;
   authRequired?: boolean;
+  productionReady?: boolean;
+  blockers?: string[];
   proofCount?: number;
   persistence?: "file" | "memory" | string;
   maxUploadBytes?: number;
@@ -166,6 +213,9 @@ export type SealJob = {
   uploadByteLength?: number;
   pollAttempts?: number;
   lastCheckedAt?: string;
+  proofRegistryStatus?: "unchecked" | "verified" | "failed";
+  proofRegistryCheckedAt?: string;
+  proofRegistryHash?: string;
   steps: SealStep[];
   proof?: FilecoinProof;
   error?: string;
@@ -240,14 +290,55 @@ export type CloudSyncState = {
 
 export type CloudSyncVerification = {
   checkedAt: string;
+  backendHealth?: CloudBackendHealth;
   profile: boolean;
   records: number;
   modeRuns: number;
   publicProofs: number;
+  shareArtifacts?: number;
+  publicShareImages?: number;
   publicProfile: boolean;
   expectedRecords: number;
   expectedModeRuns: number;
+  expectedShareArtifacts?: number;
+  recordIds?: string[];
+  modeRunIds?: string[];
+  publicProofIds?: string[];
+  shareArtifactIds?: string[];
+  publicShareImageIds?: string[];
+  publicProfileRecordIds?: string[];
+  publicProfileModeRunIds?: string[];
+  publicProfileShareArtifactIds?: string[];
+  recordContentIds?: string[];
+  modeRunContentIds?: string[];
+  shareArtifactContentIds?: string[];
+  missingRecordIds?: string[];
+  missingModeRunIds?: string[];
+  missingPublicProofIds?: string[];
+  missingShareArtifactIds?: string[];
+  missingPublicShareImageIds?: string[];
+  missingPublicProfileRecordIds?: string[];
+  missingPublicProfileModeRunIds?: string[];
+  missingPublicProfileShareArtifactIds?: string[];
+  missingRecordContentIds?: string[];
+  missingModeRunContentIds?: string[];
+  missingShareArtifactContentIds?: string[];
   message: string;
+};
+
+export type CloudBackendHealth = {
+  checkedAt: string;
+  schemaVersion?: string;
+  ready: boolean;
+  requiredTables: string[];
+  missingTables: string[];
+  requiredViews: string[];
+  missingViews: string[];
+  rlsTables: string[];
+  missingRlsTables: string[];
+  policyCount: number;
+  requiredPolicyCount: number;
+  detail: string;
 };
 
 export type LeaderboardScope = "global" | "friend" | "season";
@@ -279,8 +370,20 @@ export type LeaderboardReadinessItem = {
   detail: string;
 };
 
+export type LeaderboardScopeEvidence = {
+  scope: LeaderboardScope;
+  status: "unchecked" | "loading" | "loaded" | "empty" | "error";
+  rows: number;
+  filter: string;
+  currentUserPresent: boolean;
+  currentUserRank?: number;
+  checkedAt?: string;
+  sampleIds?: string[];
+  error?: string;
+};
+
 export type CloudSyncAuditItem = {
-  key: "profile" | "records" | "modeRuns" | "publicProofs" | "publicProfile" | "leaderboard";
+  key: "backend" | "profile" | "records" | "modeRuns" | "shareArtifacts" | "contentFingerprints" | "publicProofs" | "publicProfile" | "leaderboard";
   label: string;
   status: "passed" | "pending" | "blocked";
   synced: number;
@@ -295,6 +398,12 @@ export type ShareArtifactEvidence = {
   proofUrl: string;
   imageGenerated: boolean;
   generatedAt?: string;
+  fileName?: string;
+  imageUrl?: string;
+  imageMime?: string;
+  imageByteLength?: number;
+  imageHash?: string;
+  xIntentUrl?: string;
   xIntentOpenedAt?: string;
   nativeShareOpenedAt?: string;
 };
@@ -328,6 +437,7 @@ export type PublicProfile = {
   friendCode?: string;
   records: MemoryRecord[];
   modeRuns: GameModeRun[];
+  shareArtifacts: ShareArtifactEvidence[];
   locks: number;
   revealed: number;
   modeProofs: number;
@@ -358,6 +468,7 @@ export type GameModeRun = {
   summary: string;
   requirements: string[];
   artifact?: ModeArtifact;
+  sealJob?: SealJob;
 };
 
 export type ModeArtifact =
@@ -413,5 +524,38 @@ export type ProviderResult = {
   matches: Match[];
   warning?: string;
   evidence?: string[];
+  responseAudit?: ProviderResponseAudit;
+  enrichmentAudit?: ProviderEnrichmentAudit;
   routeAudit?: ProviderRouteAuditItem[];
+};
+
+export type ProviderEnrichmentEndpointAudit = {
+  key: "lineups" | "injuries" | "odds";
+  endpoint: string;
+  attempted: number;
+  fulfilled: number;
+  live: number;
+  errors: number;
+  sampleIds: string[];
+};
+
+export type ProviderEnrichmentAudit = {
+  source: DataSource;
+  checkedAt: string;
+  totalFixtures: number;
+  attemptedFixtures: number;
+  endpointAudits: ProviderEnrichmentEndpointAudit[];
+  detail: string;
+};
+
+export type ProviderResponseAudit = {
+  source: DataSource;
+  endpoint: string;
+  status: "ok" | "empty" | "error" | "fallback";
+  httpStatus?: number;
+  checkedAt: string;
+  rowCount: number;
+  sampleIds: string[];
+  durationMs?: number;
+  detail: string;
 };

@@ -1,6 +1,9 @@
 import { expect, test } from "@playwright/test";
 
 test("expanded product workflow is usable", async ({ page }) => {
+  const jsonLdText = () =>
+    page.locator('script[data-kickoff-public-proof="jsonld"]').evaluate((node) => node.textContent ?? "");
+
   await page.goto("?reset=1&e2e=1");
   await expect(page.getByRole("heading", { name: /matches/i })).toBeVisible();
   await expect(page.getByText(/matches loaded/i)).toBeVisible();
@@ -10,6 +13,9 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".provider-readiness")).toContainText(/Odds/i);
   await expect(page.getByLabel("Realtime data health")).toContainText(/Realtime data health/i);
   await expect(page.getByLabel("Realtime data health")).toContainText(/signals/i);
+  await expect(page.getByLabel("Realtime data evidence")).toContainText(/Realtime evidence packet/i);
+  await expect(page.getByLabel("Realtime data evidence")).toContainText(/matches/i);
+  await expect(page.getByLabel("Realtime data evidence")).toContainText(/Schedule/i);
   await expect(page.getByLabel("Provider route audit")).toContainText(/Provider route audit/i);
   await expect(page.getByLabel("Provider route audit")).toContainText(/API-Football/i);
   await expect(page.getByLabel("Provider route audit")).toContainText(/Seed continuity/i);
@@ -24,6 +30,15 @@ test("expanded product workflow is usable", async ({ page }) => {
     .poll(async () => page.locator(".brand-lockup img").evaluate((image: HTMLImageElement) => image.naturalWidth))
     .toBeGreaterThan(0);
 
+  await mainNav.getByRole("button", { name: "Settings" }).click();
+  await expect(page.getByLabel("Settings panel")).toContainText(/Control room/i);
+  await expect(page.getByLabel("Settings panel")).toContainText(/Leaderboard scope/i);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await mainNav.getByRole("button", { name: "Help" }).click();
+  await expect(page.getByLabel("Help panel")).toContainText(/Launch checks/i);
+  await expect(page.getByLabel("Help panel")).toContainText(/Test suites/i);
+  await page.getByRole("button", { name: "Close panel" }).click();
+
   await mainNav.getByRole("button", { name: "Account" }).click();
   await expect(page.getByRole("heading", { name: /Profile sync center/i })).toBeVisible();
   await expect(page.locator(".cloud-status-grid")).toContainText(/Auto reconcile/i);
@@ -36,8 +51,19 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".cloud-checklist")).toContainText(/Sync coverage/i);
   await expect(page.getByLabel("Cloud sync audit")).toContainText(/Cloud sync coverage/i);
   await expect(page.getByLabel("Cloud sync audit")).toContainText(/Prediction history/i);
+  await expect(page.getByLabel("Cloud sync audit")).toContainText(/Content fingerprints/i);
   await expect(page.getByLabel("Cloud sync audit")).toContainText(/Public proof links/i);
   await expect(page.getByLabel("Cloud sync audit")).toContainText(/Leaderboard backend/i);
+  await expect(page.getByLabel("Production runtime config")).toContainText(/Production environment gates/i);
+  await expect(page.getByLabel("Production runtime config")).toContainText(/Supabase auth/i);
+  await expect(page.getByLabel("Production runtime config")).toContainText(/Browser seal endpoint/i);
+  await expect(page.getByLabel("Cloud read-back ledger")).toContainText(/Remote proof evidence/i);
+  await expect(page.getByLabel("Cloud read-back ledger")).toContainText(/Private profile row/i);
+  await expect(page.getByLabel("Cloud read-back ledger")).toContainText(/Share manifest rows/i);
+  await expect(page.getByLabel("Cloud read-back ledger")).toContainText(/Content fingerprints/i);
+  await expect(page.getByLabel("Cloud read-back ledger")).toContainText(/Anonymous proof links/i);
+  await expect(page.getByLabel("Leaderboard query evidence")).toContainText(/Leaderboard scope read-back/i);
+  await expect(page.getByLabel("Share artifact ledger")).toContainText(/Publishable proof cards/i);
   await expect(page.getByLabel("Production acceptance")).toContainText(/真实成品验收雷达/i);
   await expect(page.getByLabel("Production acceptance")).toContainText(/真实账号系统/i);
   await expect(page.getByLabel("Production acceptance")).toContainText(/真实 Filecoin 自动封存/i);
@@ -47,7 +73,7 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Acceptance test cases")).toContainText(/Cloud account and read-back/i);
   await expect(page.locator(".cloud-status-grid")).toContainText(/Pending sync/i);
   await expect(page.getByRole("button", { name: /Continue with Google/i })).toBeVisible();
-  await expect(page.getByText(/Pull cloud history/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: /Pull cloud history/i })).toBeVisible();
 
   await mainNav.getByRole("button", { name: "Modes" }).click();
   await expect(page.getByRole("heading", { name: /Beyond single-match locks/i })).toBeVisible();
@@ -58,6 +84,7 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByText(/Agent vs Human/i)).toBeVisible();
   await expect(page.locator(".mode-grid article").filter({ hasText: "Upset challenge" })).toContainText(/playable/i);
 
+  await mainNav.getByRole("button", { name: "Match board" }).click();
   const upcoming = page.locator(".match-card").filter({ hasText: "upcoming" }).first();
   await expect(upcoming).toBeVisible();
   await upcoming.click();
@@ -78,9 +105,13 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".leaderboard-readiness")).toContainText(/Supabase view/i);
   await expect(page.locator(".leaderboard-readiness")).toContainText(/Remote rows/i);
   await expect(page.locator(".leaderboard-readiness")).toContainText(/local fallback/i);
-  await expect(page.locator(".leaderboard article")).toContainText(/locks/i);
-  await expect(page.locator(".leaderboard article")).toContainText(/real proofs/i);
-  await expect(page.locator(".leaderboard article")).toContainText(/mode proofs/i);
+  await expect(page.getByLabel("Leaderboard query evidence")).toContainText(/Leaderboard scope read-back/i);
+  await expect(page.getByLabel("Leaderboard query evidence")).toContainText(/global/i);
+  await expect(page.getByLabel("Leaderboard query evidence")).toContainText(/friend_code/i);
+  await expect(page.getByLabel("Leaderboard query evidence")).toContainText(/season_key/i);
+  await expect(page.locator(".leaderboard > article")).toContainText(/locks/i);
+  await expect(page.locator(".leaderboard > article")).toContainText(/real proofs/i);
+  await expect(page.locator(".leaderboard > article")).toContainText(/mode proofs/i);
 
   await mainNav.getByRole("button", { name: "Account" }).click();
   await page.getByRole("button", { name: /Open public profile/i }).click();
@@ -89,14 +120,24 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /Tournament mode runs/i })).toBeVisible();
   await expect(page.getByText(/Bracket path sealed/i)).toBeVisible();
   await expect(page.getByText(/Prediction 0-1/i)).toBeVisible();
+  await expect(page.getByLabel("Social metadata")).toContainText(/Public profile/i);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /[?&]profile=/);
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Kickoff Analyst/i);
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", "summary_large_image");
+  await expect.poll(jsonLdText).toMatch(/Person/i);
   await page.locator(".profile-records").filter({ hasText: "Tournament mode runs" }).getByRole("button", { name: /Verify/i }).first().click();
   await expect(page.getByRole("heading", { name: /Mode proof verification/i })).toBeVisible();
   await expect(page.locator(".proof-facts")).toContainText(/Mode proof facts/i);
   await expect(page.locator(".locked-payload")).toContainText(/modeRun/i);
+  await expect(page.getByLabel("Social metadata")).toContainText(/Mode proof/i);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /[?&]mode=/);
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Mode proof/i);
+  await expect.poll(jsonLdText).toMatch(/CreativeWork/i);
   await page.getByRole("button", { name: /Generate mode share image/i }).click();
   await expect(page.getByRole("heading", { name: /Mode share image/i })).toBeVisible();
   await expect(page.locator(".public-share-card img")).toHaveAttribute("src", /data:image\/png;base64,/);
 
+  await mainNav.getByRole("button", { name: "Match board" }).click();
   await page.getByRole("button", { name: /Auto seal to Filecoin/i }).click();
   await expect(page.getByText(/Auto seal status/i)).toBeVisible();
   await expect(page.getByText(/needs-config/i).first()).toBeVisible();
@@ -111,10 +152,33 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".public-proof-hero")).toContainText(/Prediction/i);
   await expect(page.locator(".public-proof-rail")).toContainText(/Public URL/i);
   await expect(page.locator(".proof-facts")).toContainText(/Proof facts/i);
+  await expect(page.getByLabel("Social metadata")).toContainText(/Prediction/i);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /[?&]proof=/);
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Prediction/i);
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", /kickoff-lock-icon\.png|data:image\/png/i);
+  await expect.poll(jsonLdText).toMatch(/CreativeWork/i);
   await page.getByLabel("Filecoin CID").fill("bafy-kickoff-test");
   await page.getByRole("button", { name: /Query CID/i }).click();
-  await expect(page.locator(".cid-lookup")).toContainText(/VITE_FILECOIN_SEAL_API|Failed to fetch/i);
+  await expect(page.locator(".cid-lookup")).toContainText(
+    /VITE_FILECOIN_SEAL_API|Failed to fetch|No proof metadata found/i,
+  );
   await page.getByRole("button", { name: /Generate public share image/i }).click();
   await expect(page.getByRole("heading", { name: /Share image/i })).toBeVisible();
   await expect(page.locator(".public-share-card img")).toHaveAttribute("src", /data:image\/png;base64,/);
+  await expect(page.getByLabel("Share card manifest")).toContainText(/Share card manifest/i);
+  await expect(page.getByLabel("Share card manifest")).toContainText(/Hash/i);
+  await expect(page.getByLabel("Share card manifest")).toContainText(/not publicly hosted yet/i);
+
+  await mainNav.getByRole("button", { name: "Account" }).click();
+  await expect(page.getByLabel("Share artifact ledger")).toContainText(/Publishable proof cards/i);
+  await expect(page.getByLabel("Share artifact ledger")).toContainText(/KB/i);
+  await expect(page.getByLabel("Share artifact ledger")).toContainText(/Hash:/i);
+  await expect(page.getByLabel("Share artifact ledger")).toContainText(/not publicly hosted/i);
+  await page.getByRole("button", { name: /Open public profile/i }).click();
+  await expect(page.locator(".public-profile-stats")).toContainText(/share cards/i);
+  await expect(page.getByLabel("Profile share card evidence")).toHaveCount(2);
+  const readyProfileShareBadges = page.locator(".profile-share-badge.ready");
+  await expect(readyProfileShareBadges).toHaveCount(2);
+  await expect(readyProfileShareBadges.first()).toContainText(/share card synced/i);
+  await expect(readyProfileShareBadges.nth(1)).toContainText(/share card synced/i);
 });

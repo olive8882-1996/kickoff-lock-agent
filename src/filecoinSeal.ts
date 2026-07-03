@@ -2,6 +2,7 @@ import { sha256, stableJson } from "./proof";
 import type {
   FilecoinLookupState,
   FilecoinProof,
+  GameModeRun,
   MemoryRecord,
   PredictionCapsule,
   SealBackendHealth,
@@ -42,6 +43,12 @@ const baseSteps = (): SealStep[] => [
     label: "Poll retrievability",
     status: "queued",
     detail: "Verifier polls until CID is retrievable.",
+  },
+  {
+    id: "registry",
+    label: "Read proof registry",
+    status: "queued",
+    detail: "Reads /proof/:cid back from the seal API and checks the uploaded payload hash.",
   },
   {
     id: "verify",
@@ -103,6 +110,17 @@ const verifyEndpoint = (cid: string) => {
   return url;
 };
 
+export const sealBackendProductionReady = (health?: SealBackendHealth) =>
+  Boolean(
+    health?.ok &&
+      health.productionReady === true &&
+      !health.mockMode &&
+      health.hasPrivateKey &&
+      health.authRequired &&
+      health.persistence === "file" &&
+      health.maxUploadBytes,
+  );
+
 const failJob = (
   record: MemoryRecord,
   job: SealJob,
@@ -110,6 +128,23 @@ const failJob = (
   message: string,
 ): MemoryRecord => ({
   ...record,
+  sealJob: {
+    ...job,
+    status: "failed",
+    healthStatus: failedStep === "health" ? "failed" : job.healthStatus,
+    updatedAt: new Date().toISOString(),
+    steps: mark(job.steps, [failedStep], "failed", message),
+    error: message,
+  },
+});
+
+const failModeJob = (
+  run: GameModeRun,
+  job: SealJob,
+  failedStep: SealStep["id"],
+  message: string,
+): GameModeRun => ({
+  ...run,
   sealJob: {
     ...job,
     status: "failed",
@@ -203,9 +238,37 @@ const pollProofStatus = async (proof: FilecoinProof): Promise<{ proof: FilecoinP
   return { proof, attempts: 5, checkedAt };
 };
 
-export const createSealJob = (capsule: PredictionCapsule): SealJob => ({
-  id: `seal-${capsule.id}-${Date.now()}`,
-  capsuleId: capsule.id,
+const readProofRegistry = async (
+  proof: FilecoinProof,
+  expectedPayloadHash: string,
+  expectedByteLength: number,
+): Promise<{ proof: FilecoinProof; checkedAt: string; hash: string }> => {
+  const proofUrl = sealApiUrl("proof", proof.cid);
+  if (!proofUrl) throw new Error("Proof registry URL is unavailable.");
+  const res = await fetch(proofUrl).catch(() => undefined);
+  if (!res?.ok) {
+    throw new Error(`Proof registry returned ${res?.status ?? "no response"}.`);
+  }
+  const payload = (await res.json()) as Partial<FilecoinProof> & { ok?: boolean; checkedAt?: string; storedAt?: string };
+  if (payload.cid && payload.cid !== proof.cid) {
+    throw new Error("Proof registry CID did not match the sealed proof.");
+  }
+  if (payload.payloadHash && payload.payloadHash !== expectedPayloadHash) {
+    throw new Error("Proof registry payload hash did not match the uploaded capsule payload.");
+  }
+  if (payload.byteLength && payload.byteLength !== expectedByteLength) {
+    throw new Error("Proof registry byte length did not match the uploaded capsule payload.");
+  }
+  return {
+    proof: normalizeLookupProof(proof.cid, { ...proof, ...payload }),
+    checkedAt: payload.checkedAt ?? new Date().toISOString(),
+    hash: payload.payloadHash ?? expectedPayloadHash,
+  };
+};
+
+export const createSealJob = (artifact: Pick<PredictionCapsule, "id">): SealJob => ({
+  id: `seal-${artifact.id}-${Date.now()}`,
+  capsuleId: artifact.id,
   status: sealEndpoint ? "queued" : "needs-config",
   startedAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -215,7 +278,7 @@ export const createSealJob = (capsule: PredictionCapsule): SealJob => ({
     ? mark(baseSteps(), ["payload"], "passed", "Capsule payload is deterministic and ready to upload.")
     : mark(
         mark(baseSteps(), ["payload"], "passed", "Capsule payload is deterministic and ready to upload."),
-        ["health", "upload", "deal", "poll", "verify"],
+        ["health", "upload", "deal", "poll", "registry", "verify"],
         "needs-config",
         "Set VITE_FILECOIN_SEAL_API to a trusted backend endpoint.",
       ),
@@ -245,9 +308,12 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
     : backendHealth.hasPrivateKey
       ? "real Synapse seal API"
       : "seal API missing SYNAPSE_PRIVATE_KEY";
+  const productionDetail = sealBackendProductionReady(backendHealth)
+    ? "production-ready"
+    : `production blockers: ${backendHealth.blockers?.join(", ") || "health response did not declare production readiness"}`;
   const healthDetail = `${backendMode}; ${backendHealth.persistence ?? "unknown"} proof registry; ${
     backendHealth.authRequired ? "token required" : "token not required"
-  }.`;
+  }; ${productionDetail}.`;
 
   job = {
     ...job,
@@ -304,10 +370,40 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
     ),
   };
   const pollResult = await pollProofStatus(realProof);
-  const verifiedProof = pollResult.proof;
+  const verifyUrl = sealApiUrl("verify", pollResult.proof.cid);
+  const proofUrl = sealApiUrl("proof", pollResult.proof.cid);
+  let registryResult: Awaited<ReturnType<typeof readProofRegistry>>;
+  try {
+    registryResult = await readProofRegistry(pollResult.proof, uploadPayloadHash, uploadByteLength);
+  } catch (error) {
+    return {
+      ...failJob(
+        record,
+        {
+          ...job,
+          proof: pollResult.proof,
+          proofUrl,
+          verifyUrl,
+          uploadPayloadHash,
+          uploadByteLength,
+          pollAttempts: pollResult.attempts,
+          lastCheckedAt: pollResult.checkedAt ?? new Date().toISOString(),
+          proofRegistryStatus: "failed",
+          proofRegistryCheckedAt: new Date().toISOString(),
+          steps: mark(
+            mark(job.steps, ["poll"], "passed", `CID ${pollResult.proof.cid} is retrievable.`),
+            ["registry"],
+            "failed",
+            (error as Error).message,
+          ),
+        },
+        "registry",
+        (error as Error).message,
+      ),
+    };
+  }
+  const verifiedProof = registryResult.proof;
   const verified = verifiedProof.proofStatus === "verified";
-  const verifyUrl = sealApiUrl("verify", verifiedProof.cid);
-  const proofUrl = sealApiUrl("proof", verifiedProof.cid);
 
   return {
     ...record,
@@ -325,17 +421,196 @@ export const runSealJob = async (record: MemoryRecord): Promise<MemoryRecord> =>
       uploadPayloadHash,
       uploadByteLength,
       pollAttempts: pollResult.attempts,
-      lastCheckedAt: pollResult.checkedAt ?? new Date().toISOString(),
+      lastCheckedAt: pollResult.checkedAt ?? registryResult.checkedAt,
+      proofRegistryStatus: "verified",
+      proofRegistryCheckedAt: registryResult.checkedAt,
+      proofRegistryHash: registryResult.hash,
       updatedAt: new Date().toISOString(),
       steps: verified
         ? mark(
-            mark(job.steps, ["poll"], "passed", `CID ${verifiedProof.cid} is retrievable.`),
+            mark(
+              mark(job.steps, ["poll"], "passed", `CID ${verifiedProof.cid} is retrievable.`),
+              ["registry"],
+              "passed",
+              `Proof registry read back ${registryResult.hash.slice(0, 12)}... for ${verifiedProof.cid}.`,
+            ),
             ["verify"],
             "passed",
             "CID is verified by the configured seal API.",
           )
         : mark(
-            mark(job.steps, ["poll"], "passed", "CID is retrievable but final verification is still pending."),
+            mark(
+              mark(job.steps, ["poll"], "passed", "CID is retrievable but final verification is still pending."),
+              ["registry"],
+              "passed",
+              `Proof registry read back ${registryResult.hash.slice(0, 12)}... for ${verifiedProof.cid}.`,
+            ),
+            ["verify"],
+            "running",
+            "Run Auto seal again to re-check final verification.",
+          ),
+    },
+  };
+};
+
+export const runModeSealJob = async (run: GameModeRun): Promise<GameModeRun> => {
+  let job = createSealJob(run);
+  if (!sealEndpoint) return { ...run, sealJob: job };
+
+  job = {
+    ...job,
+    status: "running",
+    updatedAt: new Date().toISOString(),
+    steps: mark(job.steps, ["health"], "running", "Checking the configured seal API before uploading the mode proof."),
+  };
+
+  const healthUrl = sealApiUrl("health");
+  const sealUrl = sealApiUrl("seal");
+  const healthRes = await fetch(healthUrl).catch(() => undefined);
+  if (!healthRes?.ok) {
+    return failModeJob(run, job, "health", `Seal API health check failed${healthRes ? ` with ${healthRes.status}` : ""}.`);
+  }
+  const backendHealth = (await healthRes.json().catch(() => ({ ok: true }))) as SealBackendHealth;
+  const backendMode = backendHealth.mockMode
+    ? "mock seal API"
+    : backendHealth.hasPrivateKey
+      ? "real Synapse seal API"
+      : "seal API missing SYNAPSE_PRIVATE_KEY";
+  const productionDetail = sealBackendProductionReady(backendHealth)
+    ? "production-ready"
+    : `production blockers: ${backendHealth.blockers?.join(", ") || "health response did not declare production readiness"}`;
+  const healthDetail = `${backendMode}; ${backendHealth.persistence ?? "unknown"} proof registry; ${
+    backendHealth.authRequired ? "token required" : "token not required"
+  }; ${productionDetail}.`;
+
+  job = {
+    ...job,
+    healthStatus: "ready",
+    backendHealth,
+    updatedAt: new Date().toISOString(),
+    steps: mark(
+      mark(job.steps, ["health"], "passed", healthDetail),
+      ["upload"],
+      "running",
+      "Uploading mode proof payload to the configured seal API.",
+    ),
+  };
+
+  const { sealJob: _previousSealJob, ...modeRunPayload } = run;
+  const uploadPayload = stableJson({ modeRun: modeRunPayload });
+  const uploadPayloadHash = await sha256(uploadPayload);
+  const uploadByteLength = new TextEncoder().encode(uploadPayload).byteLength;
+
+  const res = await fetch(sealUrl, {
+    method: "POST",
+    headers: sealApiHeaders({ "Content-Type": "application/json" }),
+    body: uploadPayload,
+  }).catch(() => undefined);
+  if (!res?.ok) {
+    return failModeJob(run, job, "upload", `Seal API returned ${res?.status ?? "no response"}.`);
+  }
+
+  const proof = (await res.json()) as Partial<FilecoinProof>;
+  if (!proof.cid) {
+    return failModeJob(run, job, "deal", "Seal API did not return a CID.");
+  }
+  if (proof.payloadHash && proof.payloadHash !== uploadPayloadHash) {
+    return failModeJob(run, job, "deal", "Seal API payload hash did not match the uploaded mode proof payload.");
+  }
+  const realProof: FilecoinProof = {
+    mode: "real",
+    cid: String(proof.cid ?? run.filecoinProof.cid),
+    pieceCid: String(proof.pieceCid ?? proof.cid ?? run.filecoinProof.pieceCid),
+    provider: String(proof.provider ?? "seal-api-provider"),
+    dataSetId: String(proof.dataSetId ?? "seal-api-dataset"),
+    proofStatus: (proof.proofStatus as FilecoinProof["proofStatus"]) ?? "verified",
+    uploadedAt: new Date().toISOString(),
+    retrievalUrl: proof.retrievalUrl,
+    payloadHash: proof.payloadHash ?? uploadPayloadHash,
+    byteLength: proof.byteLength ?? uploadByteLength,
+  };
+  job = {
+    ...job,
+    steps: mark(
+      mark(job.steps, ["upload", "deal"], "passed", "Seal API accepted the mode proof and returned provider proof metadata."),
+      ["poll"],
+      "running",
+      `Polling CID ${realProof.cid} for retrievability.`,
+    ),
+  };
+  const pollResult = await pollProofStatus(realProof);
+  const verifyUrl = sealApiUrl("verify", pollResult.proof.cid);
+  const proofUrl = sealApiUrl("proof", pollResult.proof.cid);
+  let registryResult: Awaited<ReturnType<typeof readProofRegistry>>;
+  try {
+    registryResult = await readProofRegistry(pollResult.proof, uploadPayloadHash, uploadByteLength);
+  } catch (error) {
+    return {
+      ...failModeJob(
+        run,
+        {
+          ...job,
+          proof: pollResult.proof,
+          proofUrl,
+          verifyUrl,
+          uploadPayloadHash,
+          uploadByteLength,
+          pollAttempts: pollResult.attempts,
+          lastCheckedAt: pollResult.checkedAt ?? new Date().toISOString(),
+          proofRegistryStatus: "failed",
+          proofRegistryCheckedAt: new Date().toISOString(),
+          steps: mark(
+            mark(job.steps, ["poll"], "passed", `CID ${pollResult.proof.cid} is retrievable.`),
+            ["registry"],
+            "failed",
+            (error as Error).message,
+          ),
+        },
+        "registry",
+        (error as Error).message,
+      ),
+    };
+  }
+  const verifiedProof = registryResult.proof;
+  const verified = verifiedProof.proofStatus === "verified";
+
+  return {
+    ...run,
+    filecoinProof: verifiedProof,
+    sealJob: {
+      ...job,
+      status: verified ? "verified" : "running",
+      backendHealth,
+      proof: verifiedProof,
+      proofUrl,
+      verifyUrl,
+      uploadPayloadHash,
+      uploadByteLength,
+      pollAttempts: pollResult.attempts,
+      lastCheckedAt: pollResult.checkedAt ?? registryResult.checkedAt,
+      proofRegistryStatus: "verified",
+      proofRegistryCheckedAt: registryResult.checkedAt,
+      proofRegistryHash: registryResult.hash,
+      updatedAt: new Date().toISOString(),
+      steps: verified
+        ? mark(
+            mark(
+              mark(job.steps, ["poll"], "passed", `CID ${verifiedProof.cid} is retrievable.`),
+              ["registry"],
+              "passed",
+              `Proof registry read back ${registryResult.hash.slice(0, 12)}... for ${verifiedProof.cid}.`,
+            ),
+            ["verify"],
+            "passed",
+            "Mode proof CID is verified by the configured seal API.",
+          )
+        : mark(
+            mark(
+              mark(job.steps, ["poll"], "passed", "CID is retrievable but final verification is still pending."),
+              ["registry"],
+              "passed",
+              `Proof registry read back ${registryResult.hash.slice(0, 12)}... for ${verifiedProof.cid}.`,
+            ),
             ["verify"],
             "running",
             "Run Auto seal again to re-check final verification.",

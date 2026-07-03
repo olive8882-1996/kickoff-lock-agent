@@ -67,6 +67,14 @@ export const applyRealProof = (
   proofJson: string,
 ): PredictionCapsule => {
   const parsed = JSON.parse(proofJson) as Partial<FilecoinProof>;
+  return applyVerifiedProof(capsule, parsed);
+};
+
+export const applyVerifiedProof = (
+  capsule: PredictionCapsule,
+  proof: Partial<FilecoinProof>,
+  options: { expectedPayloadHashes?: string[] } = {},
+): PredictionCapsule => {
   const required: Array<keyof FilecoinProof> = [
     "cid",
     "pieceCid",
@@ -74,19 +82,29 @@ export const applyRealProof = (
     "dataSetId",
     "proofStatus",
   ];
-  const missing = required.filter((field) => !parsed[field]);
+  const missing = required.filter((field) => !proof[field]);
   if (missing.length > 0) {
     throw new Error(`Missing proof fields: ${missing.join(", ")}`);
+  }
+  const expectedPayloadHashes = options.expectedPayloadHashes?.length
+    ? options.expectedPayloadHashes
+    : [capsule.payloadHash];
+  if (proof.payloadHash && !expectedPayloadHashes.includes(proof.payloadHash)) {
+    throw new Error("Proof payload hash does not match this capsule.");
   }
   return {
     ...capsule,
     filecoinProof: {
       mode: "real",
-      cid: String(parsed.cid),
-      pieceCid: String(parsed.pieceCid),
-      provider: String(parsed.provider),
-      dataSetId: String(parsed.dataSetId),
-      proofStatus: parsed.proofStatus as FilecoinProof["proofStatus"],
+      cid: String(proof.cid),
+      pieceCid: String(proof.pieceCid),
+      provider: String(proof.provider),
+      dataSetId: String(proof.dataSetId),
+      proofStatus: proof.proofStatus as FilecoinProof["proofStatus"],
+      uploadedAt: proof.uploadedAt,
+      retrievalUrl: proof.retrievalUrl,
+      payloadHash: proof.payloadHash ?? capsule.payloadHash,
+      byteLength: proof.byteLength,
     },
   };
 };

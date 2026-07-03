@@ -94,6 +94,80 @@ create index if not exists kickoff_mode_runs_user_updated_idx
 create index if not exists kickoff_mode_runs_scope_score_idx
   on public.kickoff_mode_runs (season_key, friend_code, score desc);
 
+create table if not exists public.kickoff_share_artifacts (
+  id text not null,
+  kind text not null check (kind in ('record', 'mode')),
+  user_id text not null,
+  email text not null,
+  display_name text not null,
+  location text not null,
+  friend_code text not null default 'global',
+  season_key text not null default 'world-cup-run',
+  proof_url text not null,
+  image_generated boolean not null default false,
+  generated_at timestamptz,
+  file_name text,
+  image_url text,
+  image_mime text,
+  image_byte_length integer,
+  image_hash text,
+  x_intent_url text,
+  x_intent_opened_at timestamptz,
+  native_share_opened_at timestamptz,
+  artifact jsonb not null,
+  updated_at timestamptz not null default now(),
+  primary key (id, kind)
+);
+
+alter table public.kickoff_share_artifacts enable row level security;
+
+create policy "users can read public share artifacts"
+  on public.kickoff_share_artifacts
+  for select
+  using (true);
+
+create policy "users can upsert their own share artifacts"
+  on public.kickoff_share_artifacts
+  for all
+  using (auth.uid()::text = user_id or auth.jwt() ->> 'email' = email)
+  with check (auth.uid()::text = user_id or auth.jwt() ->> 'email' = email);
+
+create index if not exists kickoff_share_artifacts_user_updated_idx
+  on public.kickoff_share_artifacts (user_id, updated_at desc);
+
+create index if not exists kickoff_share_artifacts_scope_idx
+  on public.kickoff_share_artifacts (season_key, friend_code, kind);
+
+create index if not exists kickoff_share_artifacts_hash_idx
+  on public.kickoff_share_artifacts (kind, image_hash)
+  where image_hash is not null;
+
+create index if not exists kickoff_share_artifacts_image_url_idx
+  on public.kickoff_share_artifacts (kind, image_url)
+  where image_url is not null;
+
+insert into storage.buckets (id, name, public)
+values ('kickoff-share-cards', 'kickoff-share-cards', true)
+on conflict (id) do update set public = true;
+
+create policy "public can read kickoff share card images"
+  on storage.objects
+  for select
+  using (bucket_id = 'kickoff-share-cards');
+
+create policy "authenticated users can upload kickoff share card images"
+  on storage.objects
+  for insert
+  to authenticated
+  with check (bucket_id = 'kickoff-share-cards');
+
+create policy "authenticated users can update kickoff share card images"
+  on storage.objects
+  for update
+  to authenticated
+  using (bucket_id = 'kickoff-share-cards')
+  with check (bucket_id = 'kickoff-share-cards');
+
 create or replace view public.kickoff_leaderboard as
 with record_rows as (
   select
@@ -221,3 +295,122 @@ order by aggregate_rows.xp desc, aggregate_rows.best_score desc, aggregate_rows.
 
 comment on view public.kickoff_leaderboard is
   'Public ranking view for Kickoff Lock Agent. Supports global, friend_code and season_key filters with locks, revealed proofs, mode proofs, exact hits, verified Filecoin proofs, XP and current winner streak.';
+
+create or replace view public.kickoff_backend_health as
+with required_tables as (
+  select unnest(array[
+    'kickoff_profiles',
+    'kickoff_records',
+    'kickoff_mode_runs',
+    'kickoff_share_artifacts'
+  ]) as name
+),
+required_views as (
+  select unnest(array[
+    'kickoff_leaderboard',
+    'kickoff_backend_health'
+  ]) as name
+),
+required_rls as (
+  select name from required_tables
+),
+existing_tables as (
+  select table_name as name
+  from information_schema.tables
+  where table_schema = 'public'
+    and table_type = 'BASE TABLE'
+),
+existing_views as (
+  select table_name as name
+  from information_schema.views
+  where table_schema = 'public'
+),
+rls_enabled as (
+  select relname as name
+  from pg_class
+  join pg_namespace on pg_namespace.oid = pg_class.relnamespace
+  where pg_namespace.nspname = 'public'
+    and pg_class.relrowsecurity
+),
+policy_rows as (
+  select count(*)::integer as policy_count
+  from pg_policies
+  where schemaname = 'public'
+    and tablename in (
+      'kickoff_profiles',
+      'kickoff_records',
+      'kickoff_mode_runs',
+      'kickoff_share_artifacts'
+    )
+),
+summary as (
+  select
+    array(select name from required_tables order by name) as required_tables,
+    array(
+      select required_tables.name
+      from required_tables
+      left join existing_tables on existing_tables.name = required_tables.name
+      where existing_tables.name is null
+      order by required_tables.name
+    ) as missing_tables,
+    array(select name from required_views order by name) as required_views,
+    array(
+      select required_views.name
+      from required_views
+      left join existing_views on existing_views.name = required_views.name
+      where existing_views.name is null
+      order by required_views.name
+    ) as missing_views,
+    array(select name from required_rls order by name) as rls_tables,
+    array(
+      select required_rls.name
+      from required_rls
+      left join rls_enabled on rls_enabled.name = required_rls.name
+      where rls_enabled.name is null
+      order by required_rls.name
+    ) as missing_rls_tables,
+    policy_rows.policy_count,
+    8::integer as required_policy_count
+  from policy_rows
+)
+select
+  '2026-07-03-cloud-v2'::text as schema_version,
+  now() as checked_at,
+  required_tables,
+  missing_tables,
+  required_views,
+  missing_views,
+  rls_tables,
+  missing_rls_tables,
+  policy_count,
+  required_policy_count,
+  (
+    cardinality(missing_tables) = 0
+    and cardinality(missing_views) = 0
+    and cardinality(missing_rls_tables) = 0
+    and policy_count >= required_policy_count
+  ) as ready,
+  format(
+    'tables missing %s, views missing %s, RLS missing %s, policies %s/%s',
+    cardinality(missing_tables),
+    cardinality(missing_views),
+    cardinality(missing_rls_tables),
+    policy_count,
+    required_policy_count
+  ) as detail
+from summary;
+
+comment on view public.kickoff_backend_health is
+  'Public backend health row for Kickoff Lock Agent. Verifies required tables, views, RLS and policy count for production account sync.';
+
+grant usage on schema public to anon, authenticated;
+grant select on public.kickoff_profiles to anon, authenticated;
+grant select on public.kickoff_records to anon, authenticated;
+grant select on public.kickoff_mode_runs to anon, authenticated;
+grant select on public.kickoff_share_artifacts to anon, authenticated;
+grant insert, update, delete on public.kickoff_profiles to authenticated;
+grant insert, update, delete on public.kickoff_records to authenticated;
+grant insert, update, delete on public.kickoff_mode_runs to authenticated;
+grant insert, update, delete on public.kickoff_share_artifacts to authenticated;
+grant select on public.kickoff_leaderboard to anon, authenticated;
+grant select on public.kickoff_backend_health to anon, authenticated;

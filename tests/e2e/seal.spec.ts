@@ -22,6 +22,7 @@ test("mock Filecoin seal flow verifies a real proof end to end", async ({ page }
   await expect(page.locator(".seal-checklist")).toContainText(/mock seal API/i);
   await expect(page.locator(".seal-checklist")).toContainText(/Proof registry/i);
   await expect(page.locator(".seal-checklist")).toContainText(/memory storage/i);
+  await expect(page.locator(".seal-checklist")).toContainText(/Registry read-back/i);
   await expect(page.locator(".seal-checklist")).toContainText(/Upload auth/i);
   await expect(page.locator(".seal-checklist")).toContainText(/token not required/i);
   await expect(page.locator(".seal-checklist")).toContainText(/Upload limit/i);
@@ -35,8 +36,24 @@ test("mock Filecoin seal flow verifies a real proof end to end", async ({ page }
   await page.getByRole("button", { name: /Query CID/i }).click();
   await expect(page.locator(".cid-lookup")).toContainText(/CID verified by the seal API/i);
   await expect(page.locator(".cid-result")).toContainText(/mock-synapse-provider/i);
+  await expect(page.locator(".cid-result")).toContainText(/hash match/i);
+  await page.getByRole("button", { name: /Attach to this capsule/i }).click();
+  await expect(page.getByText(/CID proof attached after payload hash match/i)).toBeVisible();
 
   await page.getByLabel("Filecoin CID").fill("bafy-not-registered");
   await page.getByRole("button", { name: /Query CID/i }).click();
   await expect(page.locator(".cid-lookup")).toContainText(/No proof metadata found/i);
+
+  await page.getByLabel("Main views").getByRole("button", { name: /Modes/i }).click();
+  await page.getByRole("button", { name: /Seal bracket proof/i }).click();
+  await expect(page.locator(".bracket-runs")).toContainText(/Bracket path sealed/i);
+  await page.getByRole("button", { name: /Auto seal mode proof/i }).first().click();
+  await expect(page.getByText(/Real Filecoin proof attached to mode proof/i)).toBeVisible();
+  const modeRun = page.locator(".mode-runs > div").first();
+  await expect(modeRun).toContainText(/Mode seal status/i);
+  await expect(modeRun).toContainText(/verified/);
+  await expect(modeRun).toContainText(/bafy-mock-/);
+  await expect(modeRun.locator(".seal-checklist")).toContainText(/Payload hash match/i);
+  await expect(modeRun.locator(".seal-checklist")).toContainText(/Registry read-back/i);
+  await expect(modeRun.locator(".seal-links")).toContainText(/Verify CID/i);
 });

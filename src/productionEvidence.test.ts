@@ -1,0 +1,110 @@
+import { describe, expect, it } from "vitest";
+import {
+  buildProductionVerifyEnv,
+  parseEnvText,
+  productionFriendCode,
+  summarizeProductionEvidence,
+  type ProductionEvidencePacket,
+} from "./productionEvidence";
+
+const packet = (checks: ProductionEvidencePacket["checks"]): ProductionEvidencePacket => ({
+  generatedAt: "2026-07-03T00:00:00.000Z",
+  source: "local-script",
+  strict: true,
+  checks,
+});
+
+describe("production evidence summary", () => {
+  it("parses dotenv-style verification variables", () => {
+    expect(
+      parseEnvText(`
+        # production verification
+        export VITE_PUBLIC_APP_URL="https://example.com/kickoff-lock-agent/"
+        KICKOFF_VERIFY_USER_ID=user-1
+        KICKOFF_VERIFY_SHARE_IMAGE_URL=https://example.com/card.png # public image
+        bad-key=value
+      `),
+    ).toEqual({
+      VITE_PUBLIC_APP_URL: "https://example.com/kickoff-lock-agent/",
+      KICKOFF_VERIFY_USER_ID: "user-1",
+      KICKOFF_VERIFY_SHARE_IMAGE_URL: "https://example.com/card.png",
+    });
+  });
+
+  it("builds copyable production verification target env", () => {
+    const env = buildProductionVerifyEnv({
+      userId: "user-1",
+      profileId: "user-1",
+      proofId: "cap-1",
+      modeId: "mode-1",
+      friendCode: productionFriendCode("Chengdu, Sichuan", "fan@example.com"),
+      shareImageUrl: "https://example.com/cards/cap-1.png",
+    });
+
+    expect(env).toContain("KICKOFF_VERIFY_USER_ID=user-1");
+    expect(env).toContain("KICKOFF_VERIFY_FRIEND_CODE=chengdu-sichuan");
+    expect(env).toContain("KICKOFF_VERIFY_SEASON_KEY=world-cup-run");
+    expect(env).toContain("KICKOFF_VERIFY_FIXTURE_ID=");
+    expect(parseEnvText(env).KICKOFF_VERIFY_SHARE_IMAGE_URL).toBe("https://example.com/cards/cap-1.png");
+  });
+
+  it("requires every required external check to pass", () => {
+    const summary = summarizeProductionEvidence(
+      packet([
+        {
+          id: "public-app-root",
+          category: "public-app",
+          label: "Public app root",
+          required: true,
+          status: "passed",
+          detail: "HTTP 200",
+          checkedAt: "2026-07-03T00:00:00.000Z",
+        },
+        {
+          id: "supabase-backend-health",
+          category: "supabase",
+          label: "Backend schema health",
+          required: true,
+          status: "failed",
+          detail: "not ready",
+          checkedAt: "2026-07-03T00:00:00.000Z",
+        },
+        {
+          id: "football-data-backup",
+          category: "runtime",
+          label: "Backup feed",
+          required: false,
+          status: "warning",
+          detail: "optional token missing",
+          checkedAt: "2026-07-03T00:00:00.000Z",
+        },
+      ]),
+    );
+
+    expect(summary.complete).toBe(false);
+    expect(summary.requiredPassed).toBe(1);
+    expect(summary.requiredTotal).toBe(2);
+    expect(summary.optionalTotal).toBe(1);
+    expect(summary.failedRequired.map((check) => check.id)).toEqual(["supabase-backend-health"]);
+  });
+
+  it("marks the packet complete when all required checks pass", () => {
+    const summary = summarizeProductionEvidence(
+      packet([
+        {
+          id: "public-app-root",
+          category: "public-app",
+          label: "Public app root",
+          required: true,
+          status: "passed",
+          detail: "HTTP 200",
+          checkedAt: "2026-07-03T00:00:00.000Z",
+        },
+      ]),
+    );
+
+    expect(summary.loaded).toBe(true);
+    expect(summary.complete).toBe(true);
+    expect(summary.openRequired).toEqual([]);
+  });
+});

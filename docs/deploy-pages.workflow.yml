@@ -1,0 +1,66 @@
+name: Deploy Kickoff Lock Agent
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kickoff-lock-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure deploy identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+
+      - name: Generate acceptance evidence
+        run: bun run verify:acceptance
+
+      - name: Build acceptance evidence release
+        run: bun run build
+
+      - name: Publish acceptance evidence
+        env:
+          DEPLOY_MESSAGE: "Refresh acceptance evidence"
+        run: bun scripts/deploy-gh-pages.mjs
+
+      - name: Wait for GitHub Pages propagation
+        run: sleep 30
+
+      - name: Generate production evidence
+        env:
+          KICKOFF_VERIFY_ALLOW_FAILURES: "1"
+        run: bun run verify:production
+
+      - name: Build production evidence release
+        run: bun run build
+
+      - name: Publish production evidence
+        env:
+          DEPLOY_MESSAGE: "Refresh production evidence"
+        run: bun scripts/deploy-gh-pages.mjs

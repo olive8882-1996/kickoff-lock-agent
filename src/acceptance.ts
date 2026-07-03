@@ -18,6 +18,26 @@ export type AcceptanceTestSuite = {
   proves: string;
 };
 
+export type AcceptanceSuiteRunEvidence = {
+  suiteId: string;
+  command: string;
+  status: "passed" | "failed";
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
+  exitCode: number;
+  logFile?: string;
+  summary: string;
+};
+
+export type AcceptanceEvidencePacket = {
+  generatedAt: string;
+  source: "local-script" | "ci" | "manual";
+  appVersion?: string;
+  suiteManifestHash?: string;
+  suites: AcceptanceSuiteRunEvidence[];
+};
+
 export const ACCEPTANCE_TEST_SUITES: AcceptanceTestSuite[] = [
   {
     id: "scoring-proof",
@@ -33,7 +53,7 @@ export const ACCEPTANCE_TEST_SUITES: AcceptanceTestSuite[] = [
     command: "bun run test",
     file: "src/cloud.test.ts, src/readiness.test.ts",
     coverage: ["cloud-readback"],
-    proves: "Supabase session handling, history merge, leaderboard scope checks and strict cloud read-back readiness",
+    proves: "Supabase session handling, history merge, current-user leaderboard scope checks, public mode proof gates, public share image URL read-back, strict cloud read-back readiness, acceptance evidence freshness rejection, external production evidence summaries, production verification target env generation, explicit Supabase target-row checks and production radar external-evidence gating",
   },
   {
     id: "live-data",
@@ -41,7 +61,7 @@ export const ACCEPTANCE_TEST_SUITES: AcceptanceTestSuite[] = [
     command: "bun run test",
     file: "src/providers.test.ts",
     coverage: ["providers"],
-    proves: "provider routing, fallback behavior, live-data readiness and odds enrichment merging",
+    proves: "provider routing, fallback behavior, structured realtime evidence packets, API-Football enrichment read-back, live-data readiness and odds enrichment merging",
   },
   {
     id: "share-cards",
@@ -49,7 +69,7 @@ export const ACCEPTANCE_TEST_SUITES: AcceptanceTestSuite[] = [
     command: "bun run test",
     file: "src/shareCard.test.ts",
     coverage: ["share-cards"],
-    proves: "proof text, X intent URLs, generated social card payloads and native-share capability detection",
+    proves: "proof text, X intent URLs, generated social card payloads, publishable PNG manifests, public image URL read-back, image hashes and native-share capability detection",
   },
   {
     id: "filecoin-api",
@@ -57,7 +77,7 @@ export const ACCEPTANCE_TEST_SUITES: AcceptanceTestSuite[] = [
     command: "bun run test",
     file: "src/filecoinSeal.test.ts, src/filecoinSealApi.test.ts",
     coverage: ["filecoin-api"],
-    proves: "seal API health, upload payload hash matching, CID lookup and proof registry behavior",
+    proves: "seal API health, prediction and mode proof upload payload hash matching, CID lookup and proof registry behavior",
   },
   {
     id: "game-modes",
@@ -97,6 +117,37 @@ export const REQUIRED_ACCEPTANCE_COVERAGE: AcceptanceCoverageKey[] = [
   "seal-e2e",
 ];
 
+export const ACCEPTANCE_EVIDENCE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+const hashString = (input: string) => {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let index = 0; index < input.length; index += 1) {
+    const ch = input.charCodeAt(index);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return ((h2 >>> 0).toString(16).padStart(8, "0") + (h1 >>> 0).toString(16).padStart(8, "0")).slice(0, 16);
+};
+
+export const acceptanceManifestHash = (suites = ACCEPTANCE_TEST_SUITES) => {
+  const payload = JSON.stringify({
+    version: 1,
+    required: REQUIRED_ACCEPTANCE_COVERAGE,
+    suites: suites.map((suite) => ({
+      id: suite.id,
+      label: suite.label,
+      command: suite.command,
+      file: suite.file,
+      coverage: [...suite.coverage].sort(),
+      proves: suite.proves,
+    })),
+  });
+  return `acceptance-v1-${hashString(payload)}`;
+};
+
 export const summarizeAcceptanceCoverage = (suites = ACCEPTANCE_TEST_SUITES) => {
   const covered = new Set<AcceptanceCoverageKey>(suites.flatMap((suite) => suite.coverage));
   const missing = REQUIRED_ACCEPTANCE_COVERAGE.filter((key) => !covered.has(key));
@@ -105,5 +156,70 @@ export const summarizeAcceptanceCoverage = (suites = ACCEPTANCE_TEST_SUITES) => 
     total: REQUIRED_ACCEPTANCE_COVERAGE.length,
     missing,
     complete: missing.length === 0,
+  };
+};
+
+export const summarizeAcceptanceRunEvidence = (
+  packet: AcceptanceEvidencePacket | undefined,
+  suites = ACCEPTANCE_TEST_SUITES,
+  {
+    now = Date.now(),
+    maxAgeMs = ACCEPTANCE_EVIDENCE_MAX_AGE_MS,
+  }: {
+    now?: number;
+    maxAgeMs?: number;
+  } = {},
+) => {
+  const expectedSuiteManifestHash = acceptanceManifestHash(suites);
+  const manifestHashMismatch = Boolean(packet && packet.suiteManifestHash !== expectedSuiteManifestHash);
+  const generatedAtMs = packet?.generatedAt ? new Date(packet.generatedAt).getTime() : Number.NaN;
+  const ageMs = Number.isFinite(generatedAtMs) ? Math.max(0, now - generatedAtMs) : undefined;
+  const evidenceStale = Boolean(packet && (ageMs === undefined || ageMs > maxAgeMs));
+  const evidenceBySuite = new Map(packet?.suites.map((suite) => [suite.suiteId, suite]));
+  const passedSuiteIds = suites
+    .filter((suite) => {
+      const evidence = evidenceBySuite.get(suite.id);
+      return evidence?.status === "passed" && evidence.command === suite.command && evidence.exitCode === 0;
+    })
+    .map((suite) => suite.id);
+  const failedSuiteIds = suites
+    .filter((suite) => {
+      const evidence = evidenceBySuite.get(suite.id);
+      return evidence?.status === "failed" || (evidence && evidence.exitCode !== 0);
+    })
+    .map((suite) => suite.id);
+  const missingSuiteIds = suites
+    .filter((suite) => !evidenceBySuite.has(suite.id))
+    .map((suite) => suite.id);
+  const commandMismatches = suites
+    .filter((suite) => {
+      const evidence = evidenceBySuite.get(suite.id);
+      return evidence && evidence.command !== suite.command;
+    })
+    .map((suite) => suite.id);
+
+  return {
+    generatedAt: packet?.generatedAt,
+    source: packet?.source,
+    suiteManifestHash: packet?.suiteManifestHash,
+    expectedSuiteManifestHash,
+    manifestHashMismatch,
+    ageMs,
+    maxAgeMs,
+    evidenceStale,
+    passed: passedSuiteIds.length,
+    total: suites.length,
+    passedSuiteIds,
+    failedSuiteIds,
+    missingSuiteIds,
+    commandMismatches,
+    complete:
+      Boolean(packet) &&
+      passedSuiteIds.length === suites.length &&
+      failedSuiteIds.length === 0 &&
+      missingSuiteIds.length === 0 &&
+      commandMismatches.length === 0 &&
+      !manifestHashMismatch &&
+      !evidenceStale,
   };
 };

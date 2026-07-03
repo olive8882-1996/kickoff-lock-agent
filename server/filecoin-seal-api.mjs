@@ -12,6 +12,34 @@ const sealToken = process.env.FILECOIN_SEAL_TOKEN;
 const maxUploadBytes = Number(process.env.FILECOIN_MAX_UPLOAD_BYTES || 262_144);
 const proofStore = new Map();
 
+const productionBlockers = () => {
+  const blockers = [];
+  if (mockMode) blockers.push("FILECOIN_SEAL_MOCK is enabled");
+  if (!privateKey) blockers.push("SYNAPSE_PRIVATE_KEY is missing");
+  if (!sealToken) blockers.push("FILECOIN_SEAL_TOKEN is missing");
+  if (!proofStorePath) blockers.push("FILECOIN_PROOF_STORE_PATH is missing");
+  if (!Number.isFinite(maxUploadBytes) || maxUploadBytes <= 0) blockers.push("FILECOIN_MAX_UPLOAD_BYTES is invalid");
+  return blockers;
+};
+
+const sealApiHealth = () => {
+  const blockers = productionBlockers();
+  return {
+    ok: true,
+    mockMode,
+    hasPrivateKey: Boolean(privateKey),
+    authRequired: Boolean(sealToken),
+    productionReady: blockers.length === 0,
+    blockers,
+    service: "kickoff-lock-filecoin-seal-api",
+    proofCount: proofStore.size,
+    persistence: proofStorePath ? "file" : "memory",
+    maxUploadBytes,
+    proofStorePath: proofStorePath ? "configured" : undefined,
+    endpoints: ["POST /seal", "GET /verify?cid=", "GET /proof/:cid"],
+  };
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": process.env.ALLOW_ORIGIN ?? "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
@@ -75,16 +103,43 @@ const validateSealPayload = (bytes) => {
   } catch {
     return "Seal payload must be valid JSON.";
   }
-  if (!payload || typeof payload !== "object" || !payload.capsule || typeof payload.capsule !== "object") {
-    return "Seal payload must include a capsule object.";
+  if (!payload || typeof payload !== "object") {
+    return "Seal payload must be a JSON object.";
   }
-  if (typeof payload.capsule.id !== "string" || payload.capsule.id.length === 0) {
-    return "Seal payload capsule.id is required.";
+  if (payload.capsule && typeof payload.capsule === "object") {
+    if (typeof payload.capsule.id !== "string" || payload.capsule.id.length === 0) {
+      return "Seal payload capsule.id is required.";
+    }
+    if (typeof payload.capsule.payloadHash !== "string" || !/^[a-f0-9]{64}$/i.test(payload.capsule.payloadHash)) {
+      return "Seal payload capsule.payloadHash must be a 64-character SHA-256 hex digest.";
+    }
+    if (payload.capsule.locked !== true) {
+      return "Seal payload capsule.locked must be true.";
+    }
+    if (typeof payload.capsule.sealedAt !== "string" || payload.capsule.sealedAt.length === 0) {
+      return "Seal payload capsule.sealedAt is required.";
+    }
+    if (!payload.capsule.prediction || typeof payload.capsule.prediction !== "object") {
+      return "Seal payload capsule.prediction is required.";
+    }
+    return "";
   }
-  if (typeof payload.capsule.payloadHash !== "string" || payload.capsule.payloadHash.length < 32) {
-    return "Seal payload capsule.payloadHash is required.";
+  if (payload.modeRun && typeof payload.modeRun === "object") {
+    if (typeof payload.modeRun.id !== "string" || payload.modeRun.id.length === 0) {
+      return "Seal payload modeRun.id is required.";
+    }
+    if (typeof payload.modeRun.payloadHash !== "string" || !/^[a-f0-9]{64}$/i.test(payload.modeRun.payloadHash)) {
+      return "Seal payload modeRun.payloadHash must be a 64-character SHA-256 hex digest.";
+    }
+    if (!["sealed", "scored"].includes(payload.modeRun.status)) {
+      return "Seal payload modeRun.status must be sealed or scored.";
+    }
+    if (!Array.isArray(payload.modeRun.capsuleIds) || payload.modeRun.capsuleIds.length === 0) {
+      return "Seal payload modeRun.capsuleIds is required.";
+    }
+    return "";
   }
-  return "";
+  return "Seal payload must include a capsule or modeRun object.";
 };
 
 const uploadWithSynapse = async (bytes) => {
@@ -195,18 +250,7 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && url.pathname === "/health") {
-    json(res, 200, {
-      ok: true,
-      mockMode,
-      hasPrivateKey: Boolean(privateKey),
-      authRequired: Boolean(sealToken),
-      service: "kickoff-lock-filecoin-seal-api",
-      proofCount: proofStore.size,
-      persistence: proofStorePath ? "file" : "memory",
-      maxUploadBytes,
-      proofStorePath: proofStorePath ? "configured" : undefined,
-      endpoints: ["POST /seal", "GET /verify?cid=", "GET /proof/:cid"],
-    });
+    json(res, 200, sealApiHealth());
     return;
   }
 

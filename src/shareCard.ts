@@ -1,4 +1,5 @@
-import type { GameModeRun, MemoryRecord } from "./types";
+import { sha256 } from "./proof";
+import type { GameModeRun, MemoryRecord, ShareArtifactEvidence } from "./types";
 
 export type ShareCardPayload = {
   title: string;
@@ -14,6 +15,19 @@ export type ShareCardPayload = {
   hash: string;
   proofUrl: string;
   footer: string;
+};
+
+type ShareArtifactOptions = {
+  id: string;
+  kind: ShareArtifactEvidence["kind"];
+  proofUrl: string;
+  dataUrl: string;
+  fileName: string;
+  imageUrl?: string;
+  generatedAt?: string;
+  xIntentUrl?: string;
+  xIntentOpenedAt?: string;
+  nativeShareOpenedAt?: string;
 };
 
 type ShareNavigator = Navigator & {
@@ -107,6 +121,77 @@ export const buildModeXIntentUrl = (run: GameModeRun, proofUrl: string) => {
   url.searchParams.set("hashtags", "KickoffLock,Filecoin,WorldCup");
   return url.toString();
 };
+
+const dataUrlParts = (dataUrl: string) => {
+  const [header = "", payload = ""] = dataUrl.split(",", 2);
+  const mime = header.match(/^data:([^;]+);/)?.[1] ?? "application/octet-stream";
+  const base64Payload = header.includes(";base64") ? payload : btoa(decodeURIComponent(payload));
+  const padding = base64Payload.endsWith("==") ? 2 : base64Payload.endsWith("=") ? 1 : 0;
+  return {
+    mime,
+    payload: base64Payload,
+    byteLength: Math.max(0, Math.floor((base64Payload.length * 3) / 4) - padding),
+  };
+};
+
+export const buildShareArtifactEvidence = async ({
+  id,
+  kind,
+  proofUrl,
+  dataUrl,
+  fileName,
+  imageUrl,
+  generatedAt = new Date().toISOString(),
+  xIntentUrl,
+  xIntentOpenedAt,
+  nativeShareOpenedAt,
+}: ShareArtifactOptions): Promise<ShareArtifactEvidence> => {
+  const image = dataUrlParts(dataUrl);
+  return {
+    id,
+    kind,
+    proofUrl,
+    imageGenerated: true,
+    generatedAt,
+    fileName,
+    imageUrl,
+    imageMime: image.mime,
+    imageByteLength: image.byteLength,
+    imageHash: await sha256(`${image.mime}:${image.payload}`),
+    xIntentUrl,
+    xIntentOpenedAt,
+    nativeShareOpenedAt,
+  };
+};
+
+export const isPublishableShareArtifact = (evidence?: ShareArtifactEvidence) =>
+  Boolean(
+    evidence?.imageGenerated &&
+      evidence.proofUrl &&
+      evidence.fileName?.endsWith(".png") &&
+      evidence.imageMime === "image/png" &&
+      (evidence.imageByteLength ?? 0) > 10_000 &&
+      /^[a-f0-9]{64}$/.test(evidence.imageHash ?? ""),
+  );
+
+const LOCAL_PROOF_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"]);
+
+export const isProductionProofUrl = (proofUrl?: string) => {
+  if (!proofUrl) return false;
+
+  try {
+    const url = new URL(proofUrl);
+    const hostname = url.hostname.toLowerCase();
+    return url.protocol === "https:" && !LOCAL_PROOF_HOSTS.has(hostname) && !hostname.endsWith(".local");
+  } catch {
+    return false;
+  }
+};
+
+export const isProductionShareArtifact = (evidence?: ShareArtifactEvidence) =>
+  isPublishableShareArtifact(evidence) &&
+  isProductionProofUrl(evidence?.proofUrl) &&
+  isProductionProofUrl(evidence?.imageUrl);
 
 const loadImage = (src: string) =>
   new Promise<HTMLImageElement | undefined>((resolve) => {

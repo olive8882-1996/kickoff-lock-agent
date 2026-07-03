@@ -61,6 +61,49 @@ const startServer = async (port: number, storePath: string, token?: string, maxU
   return waitForHealth(`http://127.0.0.1:${port}`);
 };
 
+const sealPayload = (id: string, patch: Record<string, unknown> = {}) =>
+  JSON.stringify({
+    capsule: {
+      id,
+      payloadHash: "a".repeat(64),
+      locked: true,
+      sealedAt: "2099-01-01T00:00:00.000Z",
+      prediction: {
+        homeScore: 1,
+        awayScore: 0,
+        winner: "Home",
+        confidence: 60,
+        reasoning: "Locked prediction payload for Filecoin seal API tests.",
+      },
+      ...patch,
+    },
+    result: null,
+  });
+
+const modeRunPayload = (id: string, patch: Record<string, unknown> = {}) =>
+  JSON.stringify({
+    modeRun: {
+      id,
+      modeId: "parlay",
+      title: "Multi-match parlay",
+      createdAt: "2099-01-01T00:00:00.000Z",
+      capsuleIds: ["cap-one", "cap-two", "cap-three"],
+      payloadHash: "b".repeat(64),
+      filecoinProof: {
+        mode: "demo",
+        cid: "bafy-mode-demo",
+        pieceCid: "piece-mode-demo",
+        provider: "demo",
+        dataSetId: "mode-set",
+        proofStatus: "retrievable",
+      },
+      status: "sealed",
+      summary: "Mode proof sealed.",
+      requirements: ["3 sealed match capsules"],
+      ...patch,
+    },
+  });
+
 describe("Filecoin seal API", () => {
   afterEach(async () => {
     await stopServer();
@@ -75,13 +118,17 @@ describe("Filecoin seal API", () => {
     const storePath = join(tempDir, "proof-store.json");
     const port = await getPort();
     const baseUrl = `http://127.0.0.1:${port}`;
-    const payload = JSON.stringify({ capsule: { id: "cap-api-test", payloadHash: "a".repeat(64) }, result: null });
+    const payload = sealPayload("cap-api-test");
     const payloadHash = createHash("sha256").update(payload).digest("hex");
 
     const initialHealth = await startServer(port, storePath);
     expect(initialHealth.persistence).toBe("file");
     expect(initialHealth.maxUploadBytes).toBe(262_144);
     expect(initialHealth.proofCount).toBe(0);
+    expect(initialHealth.productionReady).toBe(false);
+    expect(initialHealth.blockers).toContain("FILECOIN_SEAL_MOCK is enabled");
+    expect(initialHealth.blockers).toContain("SYNAPSE_PRIVATE_KEY is missing");
+    expect(initialHealth.blockers).toContain("FILECOIN_SEAL_TOKEN is missing");
 
     const sealRes = await fetch(`${baseUrl}/seal`, {
       method: "POST",
@@ -114,10 +161,13 @@ describe("Filecoin seal API", () => {
     const storePath = join(tempDir, "proof-store.json");
     const port = await getPort();
     const baseUrl = `http://127.0.0.1:${port}`;
-    const payload = JSON.stringify({ capsule: { id: "cap-api-auth-test", payloadHash: "b".repeat(64) }, result: null });
+    const payload = sealPayload("cap-api-auth-test", { payloadHash: "b".repeat(64) });
 
     const health = await startServer(port, storePath, "seal-secret");
     expect(health.authRequired).toBe(true);
+    expect(health.productionReady).toBe(false);
+    expect(health.blockers).not.toContain("FILECOIN_SEAL_TOKEN is missing");
+    expect(health.blockers).toContain("FILECOIN_SEAL_MOCK is enabled");
 
     const unauthorized = await fetch(`${baseUrl}/seal`, {
       method: "POST",
@@ -163,14 +213,71 @@ describe("Filecoin seal API", () => {
     });
     expect(invalidCapsule.status).toBe(400);
     await expect(invalidCapsule.json()).resolves.toMatchObject({
-      error: "Seal payload capsule.payloadHash is required.",
+      error: "Seal payload capsule.payloadHash must be a 64-character SHA-256 hex digest.",
     });
 
     const oversized = await fetch(`${baseUrl}/seal`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ capsule: { id: "too-large", payloadHash: "c".repeat(64), filler: "x".repeat(120) } }),
+      body: sealPayload("too-large", { payloadHash: "c".repeat(64), filler: "x".repeat(120) }),
     });
     expect(oversized.status).toBe(413);
+  }, 15_000);
+
+  it("rejects unlocked draft capsules before spending backend work", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "kickoff-filecoin-locked-"));
+    const storePath = join(tempDir, "proof-store.json");
+    const port = await getPort();
+    const baseUrl = `http://127.0.0.1:${port}`;
+
+    await startServer(port, storePath);
+
+    const unlockedCapsule = await fetch(`${baseUrl}/seal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: sealPayload("unlocked-draft", { locked: false }),
+    });
+    expect(unlockedCapsule.status).toBe(400);
+    await expect(unlockedCapsule.json()).resolves.toMatchObject({
+      error: "Seal payload capsule.locked must be true.",
+    });
+
+    const health = await fetch(`${baseUrl}/health`).then((res) => res.json() as Promise<{ proofCount: number }>);
+    expect(health.proofCount).toBe(0);
+  }, 15_000);
+
+  it("accepts sealed mode proof runs and rejects draft mode payloads", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "kickoff-filecoin-mode-"));
+    const storePath = join(tempDir, "proof-store.json");
+    const port = await getPort();
+    const baseUrl = `http://127.0.0.1:${port}`;
+
+    await startServer(port, storePath);
+
+    const invalidMode = await fetch(`${baseUrl}/seal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: modeRunPayload("mode-draft", { status: "draft" }),
+    });
+    expect(invalidMode.status).toBe(400);
+    await expect(invalidMode.json()).resolves.toMatchObject({
+      error: "Seal payload modeRun.status must be sealed or scored.",
+    });
+
+    const validPayload = modeRunPayload("mode-api-test");
+    const payloadHash = createHash("sha256").update(validPayload).digest("hex");
+    const validMode = await fetch(`${baseUrl}/seal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: validPayload,
+    });
+    expect(validMode.ok).toBe(true);
+    const proof = (await validMode.json()) as { cid: string; payloadHash: string; proofStatus: string };
+    expect(proof.cid).toContain("bafy-mock-");
+    expect(proof.payloadHash).toBe(payloadHash);
+    expect(proof.proofStatus).toBe("verified");
+
+    const lookup = await fetch(`${baseUrl}/proof/${encodeURIComponent(proof.cid)}`).then((res) => res.json() as Promise<{ payloadHash: string }>);
+    expect(lookup.payloadHash).toBe(payloadHash);
   }, 15_000);
 });

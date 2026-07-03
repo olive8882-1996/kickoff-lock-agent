@@ -159,6 +159,7 @@ bun run test:e2e:seal
 bun run verify:acceptance
 bun run verify:production
 bun run doctor:production
+bun run doctor:supabase
 bun run deploy:pages
 bun run pages:rebuild
 ```
@@ -167,6 +168,7 @@ The Account view includes an "Acceptance tests" panel that maps each production 
 The Account view also includes a "Production environment gates" panel. It checks Supabase auth/redirect env vars, TheSportsDB schedule continuity, API-Football lineup/injury enrichment, odds provider keys, browser Filecoin seal API/token configuration and the deployed HTTPS public app URL before treating a local build as production-ready.
 `bun run verify:production` loads `.env.example` as low-priority non-secret defaults, then overlays `.env`, `.env.local`, `.env.production`, and `.env.production.local`, before writing `public/production-evidence.json`. The packet records which env files were loaded without exposing values. It checks the deployed public app URL, published acceptance evidence manifest and 7-day freshness, Supabase backend health, explicit Supabase target rows for profile/prediction/mode/share artifact, leaderboard rows for the current user, free public schedule continuity through TheSportsDB or ESPN, API-Football enrichment routes, the Filecoin seal API health contract, Filecoin record/mode CID proof read-back, browser-rendered public profile/proof/mode pages, and a public share-image URL. Public page checks use Playwright when `KICKOFF_VERIFY_PROFILE_ID`, `KICKOFF_VERIFY_PROOF_ID`, or `KICKOFF_VERIFY_MODE_ID` are present, so a static app-shell HTTP 200 cannot satisfy proof-page acceptance by itself. Filecoin checks require one prediction CID and one mode proof CID to pass both `/verify?cid=` and `/proof/:cid`, with payload hash and byte length read back from the seal API registry. The Account view includes a "Production script env" block that turns the current synced profile, proof, mode proof and public share image into `KICKOFF_VERIFY_*` variables for `.env.production.local`, and the main production radar now scores the loaded production evidence as its own external-evidence gate. Set `KICKOFF_VERIFY_ALLOW_FAILURES=1` when you want a diagnostic packet without failing the command.
 `bun run doctor:production` reads the same env files and `production-evidence.json`, then groups the external checks into seven operator-facing acceptance areas: real account/cloud history, realtime match data, Filecoin auto-seal, public share cards/proof pages, leaderboard backend, public deployment assets, and automated test evidence. It exits non-zero until every group is externally proven, and prints the missing runtime env keys plus the next target IDs/CIDs/share image URLs needed for the next verification run.
+`bun run doctor:supabase` is the focused cloud backend drill-down. It uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to query `kickoff_backend_health`, every public-read table/view, explicit profile/prediction/mode/share target rows, all three current-user leaderboard scopes, and `KICKOFF_VERIFY_SHARE_IMAGE_URL`. If `SUPABASE_SERVICE_ROLE_KEY` is set locally, it also checks the Supabase Storage bucket metadata and confirms `kickoff-share-cards` is public; this service role key is intentionally not a `VITE_` variable and must never be shipped to the browser.
 `docs/deploy-pages.workflow.yml` is a ready-to-install GitHub Actions workflow for the same evidence pipeline. It publishes once after `bun run verify:acceptance`, waits for Pages propagation, runs `KICKOFF_VERIFY_ALLOW_FAILURES=1 bun run verify:production`, then publishes again so the deployed app includes both fresh acceptance evidence and the latest production evidence packet. The file is kept under `docs/` because pushing a live `.github/workflows` file requires a GitHub token with `workflow` scope. Locally, `bun run deploy:pages` uses the same `scripts/deploy-gh-pages.mjs` sync path.
 If GitHub Pages stays in a stale `building` state after pushing `gh-pages`, run `bun run pages:rebuild` to request a fresh Pages build through the GitHub API.
 
@@ -179,6 +181,7 @@ VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
 VITE_SUPABASE_REDIRECT_URL=https://your-site.example/kickoff-lock-agent/
 VITE_SUPABASE_SHARE_BUCKET=kickoff-share-cards
+SUPABASE_SERVICE_ROLE_KEY=... # optional local-only doctor:supabase bucket metadata check; never expose as VITE_
 VITE_PUBLIC_APP_URL=https://your-site.example/kickoff-lock-agent/
 VITE_APIFOOTBALL_KEY=...
 VITE_APIFOOTBALL_ENRICHMENT_LIMIT=12

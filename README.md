@@ -163,6 +163,7 @@ bun run doctor:supabase
 bun run doctor:filecoin
 bun run doctor:data
 bun run doctor:sharing
+bun run seed:production-targets --dry-run
 bun run deploy:pages
 bun run pages:rebuild
 ```
@@ -175,6 +176,7 @@ The Account view also includes a "Production environment gates" panel. It checks
 `bun run doctor:filecoin` is the focused Filecoin drill-down. It checks the configured browser seal endpoint, upload token, `/health` production contract, required endpoint list, record CID `/verify` plus `/proof/:cid` read-back, mode CID read-back, payload hash targets and byte length. `KICKOFF_FILECOIN_DOCTOR_SEAL_PAYLOAD` is optional and intentionally blank by default; set it only when you want the doctor to spend a real POST `/seal` upload against a locked capsule or sealed/scored mode proof JSON file.
 `bun run doctor:data` is the focused realtime-data drill-down. It checks free schedule continuity through TheSportsDB or ESPN, API-Football key and `KICKOFF_VERIFY_FIXTURE_ID`, live rows from API-Football lineups, injuries and odds endpoints, odds provider configuration, and optional The Odds API H2H read-back. Empty endpoint responses stay failed, so configured keys alone cannot satisfy live-data acceptance.
 `bun run doctor:sharing` is the focused public sharing drill-down. It renders the deployed profile, prediction proof and mode proof URLs with Playwright, then checks canonical links, required visible proof content, forbidden fallback states, Open Graph/Twitter metadata, JSON-LD and a public share-card image URL. It exits non-zero until `VITE_PUBLIC_APP_URL`, `KICKOFF_VERIFY_PROFILE_ID`, `KICKOFF_VERIFY_PROOF_ID`, `KICKOFF_VERIFY_MODE_ID` and `KICKOFF_VERIFY_SHARE_IMAGE_URL` point at real deployed artifacts.
+`bun run seed:production-targets --dry-run` builds the Supabase production acceptance target rows without writing them: one public profile, one prediction proof row, one mode proof row, record/mode share artifact manifests and a ready-to-copy `KICKOFF_VERIFY_*` block. Remove `--dry-run` only after `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` and `KICKOFF_SEED_SHARE_IMAGE_URL` point at a real project and public generated share-card image; the script then upserts those rows with the service role key and runs the Supabase doctor read-back.
 `docs/deploy-pages.workflow.yml` is a ready-to-install GitHub Actions workflow for the same evidence pipeline. It publishes once after `bun run verify:acceptance`, waits for Pages propagation, runs `KICKOFF_VERIFY_ALLOW_FAILURES=1 bun run verify:production`, then publishes again so the deployed app includes both fresh acceptance evidence and the latest production evidence packet. The file is kept under `docs/` because pushing a live `.github/workflows` file requires a GitHub token with `workflow` scope. Locally, `bun run deploy:pages` uses the same `scripts/deploy-gh-pages.mjs` sync path.
 If GitHub Pages stays in a stale `building` state after pushing `gh-pages`, run `bun run pages:rebuild` to request a fresh Pages build through the GitHub API.
 
@@ -211,6 +213,11 @@ KICKOFF_VERIFY_FRIEND_CODE=chengdu
 KICKOFF_VERIFY_SEASON_KEY=world-cup-run
 KICKOFF_VERIFY_FIXTURE_ID=...
 KICKOFF_VERIFY_SHARE_IMAGE_URL=https://...
+KICKOFF_SEED_SHARE_IMAGE_URL=https://... # public generated PNG used by seed:production-targets
+KICKOFF_SEED_USER_ID=... # optional; defaults to KICKOFF_VERIFY_USER_ID or kickoff-production-seed
+KICKOFF_SEED_EMAIL=... # optional
+KICKOFF_SEED_DISPLAY_NAME=... # optional
+KICKOFF_SEED_LOCATION=Chengdu # optional
 ```
 
 The schema also creates `kickoff_backend_health`, a public-read health view that reports schema version, required tables, required views, RLS status and policy count. Account readiness requires that view to pass before row read-back can count as production cloud sync. It also creates a public Supabase Storage bucket named `kickoff-share-cards` plus read/upload/update policies for generated proof-card PNGs; set `VITE_SUPABASE_SHARE_BUCKET` to the same bucket so share manifests can store deployed HTTPS `imageUrl` values that the app can read back before marking sharing production-ready.

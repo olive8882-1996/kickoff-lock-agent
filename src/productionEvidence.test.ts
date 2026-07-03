@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildProductionVerifyEnv,
+  mergeProductionVerifyEnv,
   parseEnvText,
   productionFriendCode,
   publicRenderExpectation,
@@ -53,6 +54,37 @@ describe("production evidence summary", () => {
     expect(env).toContain("KICKOFF_VERIFY_SEASON_KEY=world-cup-run");
     expect(env).toContain("KICKOFF_VERIFY_FIXTURE_ID=");
     expect(parseEnvText(env).KICKOFF_VERIFY_SHARE_IMAGE_URL).toBe("https://example.com/cards/cap-1.png");
+  });
+
+  it("merges production verification env blocks without letting empty values erase real targets", () => {
+    const merged = mergeProductionVerifyEnv([
+      buildProductionVerifyEnv({
+        userId: "user-1",
+        profileId: "user-1",
+        proofId: "cap-1",
+        modeId: "mode-1",
+        shareImageUrl: "https://example.com/card.png",
+      }),
+      buildProductionVerifyEnv({
+        filecoinRecordPayloadHash: "a".repeat(64),
+        filecoinModePayloadHash: "b".repeat(64),
+        fixtureId: "fixture-200",
+      }),
+      `
+      KICKOFF_VERIFY_FILECOIN_RECORD_CID=bafy-record
+      KICKOFF_VERIFY_FILECOIN_MODE_CID=bafy-mode
+      KICKOFF_VERIFY_PROOF_ID=
+      `,
+    ]);
+
+    expect(merged.values.KICKOFF_VERIFY_USER_ID).toBe("user-1");
+    expect(merged.values.KICKOFF_VERIFY_PROOF_ID).toBe("cap-1");
+    expect(merged.values.KICKOFF_VERIFY_FIXTURE_ID).toBe("fixture-200");
+    expect(merged.values.KICKOFF_VERIFY_FILECOIN_RECORD_CID).toBe("bafy-record");
+    expect(merged.values.KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH).toBe("a".repeat(64));
+    expect(merged.values.KICKOFF_VERIFY_ALLOW_FAILURES).toBe("1");
+    expect(merged.missingKeys).not.toContain("KICKOFF_VERIFY_SEASON_KEY");
+    expect(merged.text).toContain("KICKOFF_VERIFY_FILECOIN_MODE_CID=bafy-mode");
   });
 
   it("requires every required external check to pass", () => {

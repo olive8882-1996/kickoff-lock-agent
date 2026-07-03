@@ -12,6 +12,7 @@
     "verify:acceptance": "bun scripts/run-acceptance-evidence.mjs",
     "verify:production": "bun scripts/run-production-evidence.mjs",
     "doctor:production": "bun scripts/run-production-doctor.mjs",
+    "env:production": "bun scripts/run-production-env-merge.mjs",
     "doctor:supabase": "bun scripts/run-supabase-production-doctor.mjs",
     "doctor:filecoin": "bun scripts/run-filecoin-production-doctor.mjs",
     "doctor:data": "bun scripts/run-data-production-doctor.mjs",

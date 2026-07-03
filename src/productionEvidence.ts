@@ -45,6 +45,31 @@ export type ProductionVerifyTargets = {
   allowFailures?: boolean;
 };
 
+export const PRODUCTION_VERIFY_ENV_KEYS = [
+  "KICKOFF_VERIFY_USER_ID",
+  "KICKOFF_VERIFY_PROFILE_ID",
+  "KICKOFF_VERIFY_PROOF_ID",
+  "KICKOFF_VERIFY_MODE_ID",
+  "KICKOFF_VERIFY_FILECOIN_RECORD_CID",
+  "KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH",
+  "KICKOFF_VERIFY_FILECOIN_MODE_CID",
+  "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH",
+  "KICKOFF_VERIFY_FRIEND_CODE",
+  "KICKOFF_VERIFY_SEASON_KEY",
+  "KICKOFF_VERIFY_FIXTURE_ID",
+  "KICKOFF_VERIFY_SHARE_IMAGE_URL",
+  "KICKOFF_VERIFY_ALLOW_FAILURES",
+] as const;
+
+export type ProductionVerifyEnvKey = (typeof PRODUCTION_VERIFY_ENV_KEYS)[number];
+
+export type ProductionVerifyEnvMergeResult = {
+  values: Record<ProductionVerifyEnvKey, string>;
+  text: string;
+  presentKeys: ProductionVerifyEnvKey[];
+  missingKeys: ProductionVerifyEnvKey[];
+};
+
 export type PublicRenderKind = "profile" | "proof" | "mode";
 
 export type PublicRenderExpectation = {
@@ -100,7 +125,7 @@ const envValue = (value?: string | boolean) => {
 };
 
 export const buildProductionVerifyEnv = (targets: ProductionVerifyTargets) => {
-  const values: Array<[string, string | boolean | undefined]> = [
+  const values: Array<[ProductionVerifyEnvKey, string | boolean | undefined]> = [
     ["KICKOFF_VERIFY_USER_ID", targets.userId],
     ["KICKOFF_VERIFY_PROFILE_ID", targets.profileId],
     ["KICKOFF_VERIFY_PROOF_ID", targets.proofId],
@@ -136,6 +161,36 @@ export const parseEnvText = (text: string) => {
     values[key] = value;
   }
   return values;
+};
+
+export const mergeProductionVerifyEnv = (
+  envBlocks: string[],
+  baseValues: Record<string, string | undefined> = {},
+): ProductionVerifyEnvMergeResult => {
+  const values = PRODUCTION_VERIFY_ENV_KEYS.reduce(
+    (acc, key) => {
+      acc[key] = baseValues[key]?.trim() ?? "";
+      return acc;
+    },
+    {} as Record<ProductionVerifyEnvKey, string>,
+  );
+
+  for (const block of envBlocks) {
+    const parsed = parseEnvText(block);
+    for (const key of PRODUCTION_VERIFY_ENV_KEYS) {
+      const value = parsed[key]?.trim();
+      if (value) values[key] = value;
+      else if (!(key in values)) values[key] = "";
+    }
+  }
+
+  if (!values.KICKOFF_VERIFY_SEASON_KEY) values.KICKOFF_VERIFY_SEASON_KEY = "world-cup-run";
+  if (!values.KICKOFF_VERIFY_ALLOW_FAILURES) values.KICKOFF_VERIFY_ALLOW_FAILURES = "1";
+
+  const presentKeys = PRODUCTION_VERIFY_ENV_KEYS.filter((key) => values[key]);
+  const missingKeys = PRODUCTION_VERIFY_ENV_KEYS.filter((key) => !values[key]);
+  const text = `${PRODUCTION_VERIFY_ENV_KEYS.map((key) => `${key}=${envValue(values[key])}`).join("\n")}\n`;
+  return { values, text, presentKeys, missingKeys };
 };
 
 export const productionCheckPassed = (check: ProductionEvidenceCheck) => check.status === "passed";

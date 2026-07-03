@@ -3221,6 +3221,165 @@ pre {
   background: rgba(34, 185, 255, 0.045);
 }
 
+.production-account-bootstrap {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid rgba(241, 201, 77, 0.22);
+  background:
+    linear-gradient(135deg, rgba(241, 201, 77, 0.065), rgba(34, 185, 255, 0.045)),
+    rgba(3, 8, 10, 0.34);
+}
+
+.production-account-bootstrap.ready {
+  border-color: rgba(77, 217, 137, 0.28);
+  background:
+    linear-gradient(135deg, rgba(77, 217, 137, 0.07), rgba(34, 185, 255, 0.045)),
+    rgba(3, 8, 10, 0.34);
+}
+
+.production-account-bootstrap .panel-head {
+  margin-bottom: 0;
+}
+
+.production-account-bootstrap .panel-head button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(241, 201, 77, 0.32);
+  border-radius: 4px;
+  background: rgba(241, 201, 77, 0.1);
+  color: #ffe590;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.production-account-summary,
+.production-account-checks,
+.production-account-queries,
+.production-account-links {
+  display: grid;
+  gap: 8px;
+}
+
+.production-account-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.production-account-summary div,
+.production-account-checks article,
+.production-account-queries article,
+.production-account-links article {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(238, 247, 243, 0.1);
+  background: rgba(3, 8, 10, 0.34);
+}
+
+.production-account-summary div {
+  display: grid;
+  gap: 5px;
+  align-content: center;
+}
+
+.production-account-summary span,
+.production-account-summary strong {
+  display: block;
+}
+
+.production-account-bootstrap span,
+.production-account-bootstrap small,
+.production-account-bootstrap p,
+.production-account-bootstrap code {
+  color: rgba(238, 247, 243, 0.68);
+  font-size: 0.72rem;
+  font-weight: 850;
+  line-height: 1.4;
+}
+
+.production-account-bootstrap strong {
+  color: #eef7f3;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.production-account-checks,
+.production-account-queries,
+.production-account-links {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.production-account-checks article,
+.production-account-queries article,
+.production-account-links article {
+  display: grid;
+  gap: 6px;
+  border-color: rgba(255, 91, 78, 0.2);
+  background: rgba(255, 91, 78, 0.045);
+}
+
+.production-account-checks article.passed,
+.production-account-queries article.passed,
+.production-account-links article.passed {
+  border-color: rgba(77, 217, 137, 0.24);
+  background: rgba(77, 217, 137, 0.055);
+}
+
+.production-account-checks article > div,
+.production-account-queries article > div,
+.production-account-links article > div {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.production-account-checks article > div span,
+.production-account-queries article > div span,
+.production-account-links article > div span {
+  grid-column: 1 / -1;
+  color: rgba(238, 247, 243, 0.62);
+  font-size: 0.68rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.production-account-checks strong,
+.production-account-checks span,
+.production-account-checks small,
+.production-account-queries strong,
+.production-account-queries span,
+.production-account-queries code,
+.production-account-links strong,
+.production-account-links span,
+.production-account-links small {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.production-account-commands {
+  display: grid;
+  gap: 6px;
+}
+
+.production-account-commands code,
+.production-account-queries code,
+.production-account-links small {
+  overflow-wrap: anywhere;
+}
+
+.production-account-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.production-account-copy textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
 .production-doctor {
   display: grid;
   gap: 10px;
@@ -5809,6 +5968,13 @@ pre {
   .runtime-config-summary,
   .runtime-config-grid,
   .runtime-config-grid article > div,
+  .production-account-summary,
+  .production-account-checks,
+  .production-account-checks article > div,
+  .production-account-queries,
+  .production-account-queries article > div,
+  .production-account-links,
+  .production-account-links article > div,
   .account-handoff-summary,
   .account-handoff-actions,
   .account-handoff-checks,

@@ -62,6 +62,12 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Production runtime config")).toContainText(/Production environment gates/i);
   await expect(page.getByLabel("Production runtime config")).toContainText(/Supabase auth/i);
   await expect(page.getByLabel("Production runtime config")).toContainText(/Browser seal endpoint/i);
+  await expect(page.getByLabel("Production account bootstrap")).toContainText(/Supabase acceptance packet/i);
+  await expect(page.getByLabel("Production account bootstrap")).toContainText(/seed:production-targets/i);
+  await expect(page.getByLabel("Production account bootstrap")).toContainText(/Global leaderboard/i);
+  await expect(page.getByLabel("Production account bootstrap")).toContainText(/Friend leaderboard/i);
+  await expect(page.getByLabel("Production account bootstrap")).toContainText(/Season leaderboard/i);
+  await expect(page.getByRole("button", { name: /Copy packet/i })).toBeVisible();
   await expect(page.getByLabel("Cloud read-back ledger")).toContainText(/Remote proof evidence/i);
   await expect(page.getByLabel("Cloud read-back ledger")).toContainText(/Private profile row/i);
   await expect(page.getByLabel("Cloud read-back ledger")).toContainText(/Share manifest rows/i);

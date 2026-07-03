@@ -87,6 +87,10 @@ import {
   buildFilecoinAutomationEvidencePacket,
   type FilecoinAutomationEvidencePacket,
 } from "./filecoinAutomationEvidence";
+import {
+  buildProductionAccountBootstrapPacket,
+  type ProductionAccountBootstrapPacket,
+} from "./productionAccountBootstrap";
 import { buildSealEvidencePacket, type SealEvidencePacket } from "./filecoinSealEvidence";
 import { buildLeaderboardEvidencePacket, type LeaderboardEvidencePacket } from "./leaderboardEvidence";
 import {
@@ -4554,6 +4558,10 @@ function AccountDashboard({
     { ...import.meta.env, ...parseEnvText(productionVerifyEnv) },
     productionEvidence,
   );
+  const productionAccountBootstrap = buildProductionAccountBootstrapPacket({
+    envText: productionVerifyEnv,
+    publicAppUrl: import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin + import.meta.env.BASE_URL,
+  });
   const productionLaunchPacket = buildProductionLaunchPacket(productionDoctor);
   const brandAssetPacket = buildBrandAssetPacket(import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin + import.meta.env.BASE_URL);
   const filecoinAutomationEvidence = buildFilecoinAutomationEvidencePacket(records, modeRuns);
@@ -4769,6 +4777,7 @@ function AccountDashboard({
           </div>
           <RuntimeConfigPanel items={runtimeConfigReadiness} summary={runtimeConfigSummary} />
           <ProductionVerifyTargetsPanel envText={productionVerifyEnv} />
+          <ProductionAccountBootstrapPanel packet={productionAccountBootstrap} />
           <AccountHandoffPanel packet={accountHandoff} />
           <AccountRecoveryEvidencePanel packet={accountRecovery} />
           <ProfileArchiveEvidencePanel packet={profileArchiveEvidence} />
@@ -4908,6 +4917,87 @@ function ProductionVerifyTargetsPanel({ envText }: { envText: string }) {
         <span>Paste into <code>.env.production.local</code>, fill blanks, then run <code>bun run verify:production</code>.</span>
       </div>
       <pre>{envText}</pre>
+    </div>
+  );
+}
+
+function ProductionAccountBootstrapPanel({ packet }: { packet: ProductionAccountBootstrapPacket }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPacket = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <div className={`production-account-bootstrap ${packet.ready ? "ready" : ""}`} aria-label="Production account bootstrap">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Account bootstrap</p>
+          <h3>Supabase acceptance packet</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <Cloud size={16} /> {copyStatus === "copied" ? "Copied packet" : copyStatus === "manual" ? "Manual copy" : "Copy packet"}
+        </button>
+      </div>
+      <div className="production-account-summary">
+        <div><span>Targets</span><strong>{packet.checks.filter((check) => check.passed).length}/{packet.checks.length}</strong></div>
+        <div><span>Queries</span><strong>{packet.queries.filter((query) => query.ready).length}/{packet.queries.length}</strong></div>
+        <div><span>Public links</span><strong>{packet.publicLinks.filter((link) => link.ready).length}/{packet.publicLinks.length}</strong></div>
+        <div><span>Status</span><strong>{packet.ready ? "ready" : "pending"}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Next action: {packet.nextAction}</small>
+      <div className="production-account-commands">
+        {packet.commands.map((command) => (
+          <code key={command}>{command}</code>
+        ))}
+      </div>
+      {copyStatus === "manual" && (
+        <label className="production-account-copy">
+          <span>Manual account packet copy</span>
+          <textarea
+            aria-label="Manual account packet copy"
+            readOnly
+            value={packet.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="production-account-checks">
+        {packet.checks.map((check) => (
+          <article key={check.key} className={check.passed ? "passed" : ""}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{check.label}</strong>
+              <span>{check.passed ? "filled" : "missing"}</span>
+            </div>
+            <small>{check.detail}</small>
+          </article>
+        ))}
+      </div>
+      <div className="production-account-queries">
+        {packet.queries.map((query) => (
+          <article key={query.scope} className={query.ready ? "passed" : ""}>
+            <div>
+              <Database size={16} />
+              <strong>{query.label}</strong>
+              <span>{query.ready ? "ready" : "needs target"}</span>
+            </div>
+            <code>{query.path}</code>
+          </article>
+        ))}
+      </div>
+      <div className="production-account-links">
+        {packet.publicLinks.map((link) => (
+          <article key={link.label} className={link.ready ? "passed" : ""}>
+            <div>
+              <Link2 size={16} />
+              <strong>{link.label}</strong>
+              <span>{link.ready ? "ready" : "missing"}</span>
+            </div>
+            <small>{link.url || "Set VITE_PUBLIC_APP_URL and target id"}</small>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }

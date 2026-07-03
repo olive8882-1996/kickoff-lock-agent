@@ -8,6 +8,7 @@ import type {
   MemoryRecord,
   ProviderReadinessItem,
   ProviderRouteAuditItem,
+  ShareArtifactEvidence,
   UserProfile,
 } from "./types";
 
@@ -163,6 +164,17 @@ describe("production readiness", () => {
         mode: "supabase",
         status: "synced",
         message: "synced",
+        verification: {
+          checkedAt: "2026-06-01T00:05:00.000Z",
+          profile: true,
+          records: 1,
+          modeRuns: 4,
+          publicProofs: 5,
+          publicProfile: true,
+          expectedRecords: 1,
+          expectedModeRuns: 4,
+          message: "Cloud read-back verified.",
+        },
       },
       profile: { ...profile, id: "user-1", cloudMode: "supabase" },
       records: [realRecord],
@@ -180,12 +192,56 @@ describe("production readiness", () => {
       leaderboardEntries: remoteRows,
       sealEndpointConfigured: true,
       shareImageReady: true,
+      shareEvidence: [
+        {
+          id: "cap-real",
+          kind: "record",
+          proofUrl: "https://example.com/kickoff-lock-agent/?proof=cap-real",
+          imageGenerated: true,
+          generatedAt: "2026-06-01T00:02:00.000Z",
+          xIntentOpenedAt: "2026-06-01T00:03:00.000Z",
+        },
+        {
+          id: "mode-bracket",
+          kind: "mode",
+          proofUrl: "https://example.com/kickoff-lock-agent/?mode=mode-bracket",
+          imageGenerated: true,
+          generatedAt: "2026-06-01T00:02:00.000Z",
+        },
+      ] satisfies ShareArtifactEvidence[],
     });
 
     expect(items.find((item) => item.key === "filecoin")?.level).toBe("verified");
+    expect(items.find((item) => item.key === "sharing")?.level).toBe("verified");
     expect(items.find((item) => item.key === "leaderboard")?.level).toBe("verified");
     expect(items.find((item) => item.key === "modes")?.passed).toBe(6);
     expect(summarizeProductionReadiness(items).score).toBeGreaterThan(90);
+  });
+
+  it("does not verify sharing from a transient generated image without public read-back and share-channel evidence", () => {
+    const items = buildProductionReadiness({
+      cloudState: {
+        configured: true,
+        authenticated: true,
+        mode: "supabase",
+        status: "synced",
+        message: "synced",
+      },
+      profile: { ...profile, id: "user-1", cloudMode: "supabase" },
+      records: [record("cap-1")],
+      modeRuns: [modeRun("bracket")],
+      gameModes,
+      providerReadiness,
+      providerRouteAudit: routeAudit,
+      leaderboardEntries: [],
+      sealEndpointConfigured: false,
+      shareImageReady: true,
+    });
+
+    const sharing = items.find((item) => item.key === "sharing");
+    expect(sharing?.level).toBe("partial");
+    expect(sharing?.evidence).toContain("public links unverified");
+    expect(sharing?.nextAction).toContain("Generate one proof card and one mode card");
   });
 
   it("does not mark leaderboard production-ready until all three scopes have remote rows", () => {

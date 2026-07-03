@@ -274,6 +274,16 @@ export type CloudSyncAuditItem = {
   action: string;
 };
 
+export type ShareArtifactEvidence = {
+  id: string;
+  kind: "record" | "mode";
+  proofUrl: string;
+  imageGenerated: boolean;
+  generatedAt?: string;
+  xIntentOpenedAt?: string;
+  nativeShareOpenedAt?: string;
+};
+
 export type BracketPick = {
   id: string;
   matchId: string;

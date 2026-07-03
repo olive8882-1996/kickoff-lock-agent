@@ -7,6 +7,7 @@ import type {
   MemoryRecord,
   ProviderReadinessItem,
   ProviderRouteAuditItem,
+  ShareArtifactEvidence,
   UserProfile,
 } from "./types";
 
@@ -33,6 +34,7 @@ type ProductionReadinessInput = {
   leaderboardEntries: LeaderboardEntry[];
   sealEndpointConfigured: boolean;
   shareImageReady: boolean;
+  shareEvidence?: ShareArtifactEvidence[];
 };
 
 const levelFrom = (passed: number, total: number, canBeVerified = true): ProductionReadinessLevel => {
@@ -74,6 +76,7 @@ export const buildProductionReadiness = ({
   leaderboardEntries,
   sealEndpointConfigured,
   shareImageReady,
+  shareEvidence = [],
 }: ProductionReadinessInput): ProductionReadinessItem[] => {
   const cloudProfile = profile.cloudMode === "supabase" && !profile.id.startsWith("local-");
   const cloudItems = records.length + modeRuns.length;
@@ -128,12 +131,26 @@ export const buildProductionReadiness = ({
   const filecoinPassed = count(filecoinChecks);
 
   const publicProofItems = records.length + modeRuns.length;
+  const recordShareIds = new Set(
+    shareEvidence.filter((item) => item.kind === "record" && item.imageGenerated).map((item) => item.id),
+  );
+  const modeShareIds = new Set(
+    shareEvidence.filter((item) => item.kind === "mode" && item.imageGenerated).map((item) => item.id),
+  );
+  const shareChannelReady = shareEvidence.some((item) => item.xIntentOpenedAt || item.nativeShareOpenedAt);
+  const publicLinksVerified = Boolean(
+    verification &&
+      publicProofItems > 0 &&
+      verification.publicProofs >= publicProofItems &&
+      verification.publicProfile,
+  );
   const shareChecks = [
     publicProofItems > 0,
-    records.length > 0,
-    modeRuns.length > 0,
-    shareImageReady,
-    cloudState.status === "synced" && publicProofItems > 0,
+    records.length > 0 && recordShareIds.size > 0,
+    modeRuns.length > 0 && modeShareIds.size > 0,
+    shareImageReady || recordShareIds.size + modeShareIds.size > 0,
+    publicLinksVerified,
+    shareChannelReady,
   ];
   const sharingPassed = count(shareChecks);
 
@@ -205,11 +222,11 @@ export const buildProductionReadiness = ({
       level: levelFrom(sharingPassed, shareChecks.length),
       passed: sharingPassed,
       total: shareChecks.length,
-      evidence: `${records.length} proof record${records.length === 1 ? "" : "s"} · ${modeRuns.length} mode run${modeRuns.length === 1 ? "" : "s"} · image ${shareImageReady ? "generated" : "not generated this session"}`,
+      evidence: `${recordShareIds.size}/${records.length} record card${records.length === 1 ? "" : "s"} · ${modeShareIds.size}/${modeRuns.length} mode card${modeRuns.length === 1 ? "" : "s"} · public links ${publicLinksVerified ? "read back" : "unverified"} · share channel ${shareChannelReady ? "opened" : "not exercised"}`,
       nextAction:
         sharingPassed === shareChecks.length
           ? "Proof links, mode links and share images are ready for public posting."
-          : "Generate proof and mode share images after cloud sync, then publish with X intent/native share.",
+          : "Generate one proof card and one mode card, verify public links by cloud read-back, then open X intent/native share.",
     },
     {
       key: "leaderboard",

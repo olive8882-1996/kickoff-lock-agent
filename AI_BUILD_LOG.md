@@ -37,6 +37,8 @@ The generated Kickoff Lock trophy-lock logo was added as the shared brand asset 
 
 Automated-test acceptance was made explicit with a manifest-driven checklist. The Account view now lists every验收用例 with its command, spec file and covered requirement, and the production radar scores the automated-test category from that manifest instead of a vague static claim.
 
+Public sharing acceptance was tightened with persisted evidence. Generating a record or mode proof card now records the proof URL and timestamp, opening native share or X intent records channel evidence, and the Account radar requires share-card evidence plus anonymous public-link read-back before the sharing category can be verified.
+
 ## Debugging Plan
 
 The final app should be checked through:

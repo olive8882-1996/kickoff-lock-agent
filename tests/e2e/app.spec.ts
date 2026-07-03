@@ -25,6 +25,8 @@ test("expanded product workflow is usable", async ({ page }) => {
   await mainNav.getByRole("button", { name: "Account" }).click();
   await expect(page.getByRole("heading", { name: /Profile sync center/i })).toBeVisible();
   await expect(page.locator(".cloud-status-grid")).toContainText(/Auto reconcile/i);
+  await expect(page.locator(".cloud-status-grid")).toContainText(/Share cards/i);
+  await expect(page.locator(".cloud-status-grid")).toContainText(/Share channel/i);
   await expect(page.locator(".cloud-checklist")).toContainText(/Supabase env/i);
   await expect(page.locator(".cloud-checklist")).toContainText(/Refresh token/i);
   await expect(page.locator(".cloud-checklist")).toContainText(/Public profile/i);

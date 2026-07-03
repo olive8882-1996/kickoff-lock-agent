@@ -101,11 +101,13 @@ import type {
   ProviderReadinessItem,
   ProviderRouteAuditItem,
   PublicProfile,
+  ShareArtifactEvidence,
 } from "./types";
 
 const STORAGE_KEY = "kickoff-lock-agent-records-v1";
 const MODE_RUNS_KEY = "kickoff-lock-agent-mode-runs-v1";
 const BRACKET_PATH_KEY = "kickoff-lock-agent-bracket-path-v1";
+const SHARE_EVIDENCE_KEY = "kickoff-lock-agent-share-evidence-v1";
 const leaderboardScopes: LeaderboardScope[] = ["global", "friend", "season"];
 const emptyLeaderboardCache = (): Record<LeaderboardScope, LeaderboardEntry[]> => ({
   global: [],
@@ -207,6 +209,7 @@ const loadRecords = (): MemoryRecord[] => {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(MODE_RUNS_KEY);
       localStorage.removeItem(BRACKET_PATH_KEY);
+      localStorage.removeItem(SHARE_EVIDENCE_KEY);
       params.delete("reset");
       const nextQuery = params.toString();
       window.history.replaceState({}, "", `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`);
@@ -244,6 +247,18 @@ const loadBracketPath = (): BracketPath => {
 
 const saveBracketPath = (path: BracketPath) => {
   localStorage.setItem(BRACKET_PATH_KEY, JSON.stringify(path));
+};
+
+const loadShareEvidence = (): ShareArtifactEvidence[] => {
+  try {
+    return JSON.parse(localStorage.getItem(SHARE_EVIDENCE_KEY) ?? "[]") as ShareArtifactEvidence[];
+  } catch {
+    return [];
+  }
+};
+
+const saveShareEvidence = (evidence: ShareArtifactEvidence[]) => {
+  localStorage.setItem(SHARE_EVIDENCE_KEY, JSON.stringify(evidence));
 };
 
 const formatDate = (iso: string) =>
@@ -437,6 +452,7 @@ function App() {
   const [shareImageUrl, setShareImageUrl] = useState("");
   const [publicShareImageUrl, setPublicShareImageUrl] = useState("");
   const [publicModeShareImageUrl, setPublicModeShareImageUrl] = useState("");
+  const [shareEvidence, setShareEvidence] = useState<ShareArtifactEvidence[]>(loadShareEvidence);
   const [publicRecord, setPublicRecord] = useState<MemoryRecord | undefined>();
   const [publicProofStatus, setPublicProofStatus] = useState("");
   const [publicModeRun, setPublicModeRun] = useState<GameModeRun | undefined>();
@@ -465,6 +481,10 @@ function App() {
   useEffect(() => {
     saveBracketPath(bracketPath);
   }, [bracketPath]);
+
+  useEffect(() => {
+    saveShareEvidence(shareEvidence);
+  }, [shareEvidence]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -945,13 +965,29 @@ function App() {
     }
   };
 
+  const writeShareEvidence = (next: ShareArtifactEvidence) => {
+    setShareEvidence((current) => {
+      const existing = current.find((item) => item.id === next.id && item.kind === next.kind);
+      const merged = existing ? { ...existing, ...next } : next;
+      return [merged, ...current.filter((item) => item.id !== next.id || item.kind !== next.kind)];
+    });
+  };
+
   const generateShareImageForRecord = async (
     record: MemoryRecord,
     options: { download?: boolean; publicPreview?: boolean } = {},
   ) => {
-    const dataUrl = await generateShareCard(record, { proofUrl: proofUrl(record.capsule.id) });
+    const publicUrl = proofUrl(record.capsule.id);
+    const dataUrl = await generateShareCard(record, { proofUrl: publicUrl });
     if (options.publicPreview) setPublicShareImageUrl(dataUrl);
     else setShareImageUrl(dataUrl);
+    writeShareEvidence({
+      id: record.capsule.id,
+      kind: "record",
+      proofUrl: publicUrl,
+      imageGenerated: true,
+      generatedAt: new Date().toISOString(),
+    });
     if (options.download) downloadDataUrl(dataUrl, `${record.capsule.id}-share-card.png`);
     setNotice("Share image generated.");
   };
@@ -965,8 +1001,16 @@ function App() {
     run: GameModeRun,
     options: { download?: boolean; publicPreview?: boolean } = {},
   ) => {
-    const dataUrl = await generateModeShareCard(run, { proofUrl: modeRunUrl(run.id) });
+    const publicUrl = modeRunUrl(run.id);
+    const dataUrl = await generateModeShareCard(run, { proofUrl: publicUrl });
     if (options.publicPreview) setPublicModeShareImageUrl(dataUrl);
+    writeShareEvidence({
+      id: run.id,
+      kind: "mode",
+      proofUrl: publicUrl,
+      imageGenerated: true,
+      generatedAt: new Date().toISOString(),
+    });
     if (options.download) downloadDataUrl(dataUrl, `${run.id}-mode-share-card.png`);
     setNotice("Mode proof share image generated.");
   };
@@ -985,6 +1029,14 @@ function App() {
             url: publicUrl,
             files: [file],
           });
+          writeShareEvidence({
+            id: record.capsule.id,
+            kind: "record",
+            proofUrl: publicUrl,
+            imageGenerated: true,
+            generatedAt: new Date().toISOString(),
+            nativeShareOpenedAt: new Date().toISOString(),
+          });
           setNotice("Share sheet opened with proof image.");
           return;
         }
@@ -996,6 +1048,14 @@ function App() {
       }
     }
     window.open(buildXIntentUrl(record, publicUrl), "_blank", "noopener,noreferrer");
+    writeShareEvidence({
+      id: record.capsule.id,
+      kind: "record",
+      proofUrl: publicUrl,
+      imageGenerated: true,
+      generatedAt: new Date().toISOString(),
+      xIntentOpenedAt: new Date().toISOString(),
+    });
     setNotice("X share window opened with the public proof URL.");
   };
 
@@ -1013,6 +1073,14 @@ function App() {
             url: publicUrl,
             files: [file],
           });
+          writeShareEvidence({
+            id: run.id,
+            kind: "mode",
+            proofUrl: publicUrl,
+            imageGenerated: true,
+            generatedAt: new Date().toISOString(),
+            nativeShareOpenedAt: new Date().toISOString(),
+          });
           setNotice("Share sheet opened with mode proof image.");
           return;
         }
@@ -1024,6 +1092,14 @@ function App() {
       }
     }
     window.open(buildModeXIntentUrl(run, publicUrl), "_blank", "noopener,noreferrer");
+    writeShareEvidence({
+      id: run.id,
+      kind: "mode",
+      proofUrl: publicUrl,
+      imageGenerated: true,
+      generatedAt: new Date().toISOString(),
+      xIntentOpenedAt: new Date().toISOString(),
+    });
     setNotice("X share window opened with the public mode proof URL.");
   };
 
@@ -1553,6 +1629,7 @@ function App() {
           leaderboardEntries={allRemoteLeaderboard}
           sealEndpointConfigured={filecoinSealConfigured}
           shareImageReady={Boolean(shareImageUrl || publicShareImageUrl || publicModeShareImageUrl)}
+          shareEvidence={shareEvidence}
           onEmail={setAccountEmail}
           onProfile={updateProfile}
           onMagicLink={requestMagicLink}
@@ -2840,6 +2917,7 @@ function AccountDashboard({
   leaderboardEntries,
   sealEndpointConfigured,
   shareImageReady,
+  shareEvidence,
   onEmail,
   onProfile,
   onMagicLink,
@@ -2862,6 +2940,7 @@ function AccountDashboard({
   leaderboardEntries: LeaderboardEntry[];
   sealEndpointConfigured: boolean;
   shareImageReady: boolean;
+  shareEvidence: ShareArtifactEvidence[];
   onEmail: (value: string) => void;
   onProfile: (patch: Partial<ReturnType<typeof loadProfile>>) => void;
   onMagicLink: () => void;
@@ -2888,8 +2967,11 @@ function AccountDashboard({
     leaderboardEntries,
     sealEndpointConfigured,
     shareImageReady,
+    shareEvidence,
   });
   const productionSummary = summarizeProductionReadiness(productionReadiness);
+  const shareImageEvidence = shareEvidence.filter((item) => item.imageGenerated).length;
+  const shareChannelEvidence = shareEvidence.filter((item) => item.xIntentOpenedAt || item.nativeShareOpenedAt).length;
   const cloudChecks = [
     {
       label: "Supabase env",
@@ -2988,6 +3070,14 @@ function AccountDashboard({
             <div>
               <span>Read-back</span>
               <strong>{verification ? `${verification.records + verification.modeRuns}/${records.length + modeRuns.length}` : "not checked"}</strong>
+            </div>
+            <div>
+              <span>Share cards</span>
+              <strong>{shareImageEvidence}/{records.length + modeRuns.length}</strong>
+            </div>
+            <div>
+              <span>Share channel</span>
+              <strong>{shareChannelEvidence > 0 ? `${shareChannelEvidence} opened` : "not exercised"}</strong>
             </div>
             <div>
               <span>Last synced</span>

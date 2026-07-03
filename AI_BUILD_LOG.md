@@ -77,6 +77,8 @@ Public proof-link verification is now browser-rendered. When target profile, pro
 
 Pages build recovery is scripted. `bun run pages:rebuild` requests a fresh GitHub Pages build through the GitHub API, which unblocks cases where the `gh-pages` branch has the latest evidence but the public URL remains on an older build.
 
+Filecoin production evidence now requires artifact-level proof read-back. In addition to `/health`, `bun run verify:production` can verify one prediction CID and one mode-proof CID through both `/verify?cid=` and `/proof/:cid`, requiring registered payload hash and byte length evidence from the seal API proof store.
+
 The Account view now generates a copyable production verification env block from the current synced profile, first locked proof, first mode proof, friend/season filters and public share image URL, reducing the manual handoff needed before running `bun run verify:production`.
 
 The production evidence script now also checks explicit Supabase target rows for the copied profile, prediction, mode proof and share artifact IDs. A public app URL returning 200 is no longer enough; the backing public tables must contain the synced artifacts and the record share artifact must include a public image URL plus image hash.

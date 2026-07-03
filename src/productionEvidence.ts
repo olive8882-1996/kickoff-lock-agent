@@ -34,6 +34,10 @@ export type ProductionVerifyTargets = {
   profileId?: string;
   proofId?: string;
   modeId?: string;
+  filecoinRecordCid?: string;
+  filecoinRecordPayloadHash?: string;
+  filecoinModeCid?: string;
+  filecoinModePayloadHash?: string;
   friendCode?: string;
   seasonKey?: string;
   fixtureId?: string;
@@ -101,6 +105,10 @@ export const buildProductionVerifyEnv = (targets: ProductionVerifyTargets) => {
     ["KICKOFF_VERIFY_PROFILE_ID", targets.profileId],
     ["KICKOFF_VERIFY_PROOF_ID", targets.proofId],
     ["KICKOFF_VERIFY_MODE_ID", targets.modeId],
+    ["KICKOFF_VERIFY_FILECOIN_RECORD_CID", targets.filecoinRecordCid],
+    ["KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH", targets.filecoinRecordPayloadHash],
+    ["KICKOFF_VERIFY_FILECOIN_MODE_CID", targets.filecoinModeCid],
+    ["KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH", targets.filecoinModePayloadHash],
     ["KICKOFF_VERIFY_FRIEND_CODE", targets.friendCode],
     ["KICKOFF_VERIFY_SEASON_KEY", targets.seasonKey ?? "world-cup-run"],
     ["KICKOFF_VERIFY_FIXTURE_ID", targets.fixtureId],

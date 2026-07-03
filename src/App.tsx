@@ -3708,11 +3708,31 @@ function AccountDashboard({
   const productionTargetRecord = records.find((record) => record.capsule.locked) ?? records[0];
   const productionTargetMode = modeRuns[0];
   const productionTargetImage = shareEvidence.find((item) => item.imageUrl?.startsWith("https://"))?.imageUrl;
+  const productionRecordProof =
+    productionTargetRecord?.sealJob?.proof?.mode === "real"
+      ? productionTargetRecord.sealJob.proof
+      : productionTargetRecord?.capsule.filecoinProof.mode === "real"
+        ? productionTargetRecord.capsule.filecoinProof
+        : undefined;
+  const productionModeProof =
+    productionTargetMode?.sealJob?.proof?.mode === "real"
+      ? productionTargetMode.sealJob.proof
+      : productionTargetMode?.filecoinProof.mode === "real"
+        ? productionTargetMode.filecoinProof
+        : undefined;
   const productionVerifyEnv = buildProductionVerifyEnv({
     userId: profile.cloudMode === "supabase" ? profile.id : "",
     profileId: profile.cloudMode === "supabase" ? profile.id : "",
     proofId: productionTargetRecord?.capsule.id,
     modeId: productionTargetMode?.id,
+    filecoinRecordCid: productionRecordProof?.cid,
+    filecoinRecordPayloadHash:
+      productionTargetRecord?.sealJob?.uploadPayloadHash ??
+      productionTargetRecord?.sealJob?.proof?.payloadHash,
+    filecoinModeCid: productionModeProof?.cid,
+    filecoinModePayloadHash:
+      productionTargetMode?.sealJob?.uploadPayloadHash ??
+      productionTargetMode?.sealJob?.proof?.payloadHash,
     friendCode: productionFriendCode(profile.location, profile.email),
     shareImageUrl: productionTargetImage,
     allowFailures: true,

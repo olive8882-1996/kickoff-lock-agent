@@ -220,6 +220,27 @@ const sealHealthUrl = () => {
   return url.toString();
 };
 
+const sealApiUrl = (path, cid) => {
+  const endpoint = env("VITE_FILECOIN_SEAL_API");
+  if (!endpoint) return "";
+  const url = new URL(endpoint, env("VITE_PUBLIC_APP_URL") || "http://127.0.0.1/");
+  if (path === "verify") {
+    url.pathname = url.pathname
+      .replace(/\/seal\/?$/, "/verify")
+      .replace(/\/proof\/?.*$/, "/verify")
+      .replace(/\/health\/?$/, "/verify");
+    url.search = "";
+    url.searchParams.set("cid", cid ?? "");
+    return url.toString();
+  }
+  url.pathname = url.pathname
+    .replace(/\/seal\/?$/, `/proof/${encodeURIComponent(cid ?? "")}`)
+    .replace(/\/verify\/?$/, `/proof/${encodeURIComponent(cid ?? "")}`)
+    .replace(/\/health\/?$/, `/proof/${encodeURIComponent(cid ?? "")}`);
+  url.search = "";
+  return url.toString();
+};
+
 const addRuntimeChecks = () => {
   const items = buildRuntimeConfigReadiness(process.env);
   for (const item of items) {
@@ -514,6 +535,20 @@ const checkSealApi = async () => {
       detail: "Missing VITE_FILECOIN_SEAL_API",
       action: "Deploy the seal API and configure VITE_FILECOIN_SEAL_API.",
     });
+    await checkFilecoinProofReadback({
+      id: "filecoin-record-proof-readback",
+      label: "Record CID proof read-back",
+      cid: env("KICKOFF_VERIFY_FILECOIN_RECORD_CID"),
+      expectedPayloadHash: env("KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH"),
+      action: "Run a production one-click seal for one prediction capsule and set KICKOFF_VERIFY_FILECOIN_RECORD_CID plus KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH.",
+    });
+    await checkFilecoinProofReadback({
+      id: "filecoin-mode-proof-readback",
+      label: "Mode CID proof read-back",
+      cid: env("KICKOFF_VERIFY_FILECOIN_MODE_CID"),
+      expectedPayloadHash: env("KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH"),
+      action: "Run a production one-click seal for one tournament mode proof and set KICKOFF_VERIFY_FILECOIN_MODE_CID plus KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH.",
+    });
     return;
   }
   try {
@@ -543,6 +578,90 @@ const checkSealApi = async () => {
     });
   } catch (error) {
     push({ id: "filecoin-seal-health", category: "filecoin", label: "Seal API production health", required: true, status: "failed", url, detail: String(error) });
+  }
+  await checkFilecoinProofReadback({
+    id: "filecoin-record-proof-readback",
+    label: "Record CID proof read-back",
+    cid: env("KICKOFF_VERIFY_FILECOIN_RECORD_CID"),
+    expectedPayloadHash: env("KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH"),
+    action: "Run a production one-click seal for one prediction capsule and set KICKOFF_VERIFY_FILECOIN_RECORD_CID plus KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH.",
+  });
+  await checkFilecoinProofReadback({
+    id: "filecoin-mode-proof-readback",
+    label: "Mode CID proof read-back",
+    cid: env("KICKOFF_VERIFY_FILECOIN_MODE_CID"),
+    expectedPayloadHash: env("KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH"),
+    action: "Run a production one-click seal for one tournament mode proof and set KICKOFF_VERIFY_FILECOIN_MODE_CID plus KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH.",
+  });
+};
+
+const checkFilecoinProofReadback = async ({ id, label, cid, expectedPayloadHash, action }) => {
+  if (!has("VITE_FILECOIN_SEAL_API")) {
+    push({
+      id,
+      category: "filecoin",
+      label,
+      required: true,
+      status: "failed",
+      detail: "Missing VITE_FILECOIN_SEAL_API",
+      action,
+    });
+    return;
+  }
+  if (!cid) {
+    push({
+      id,
+      category: "filecoin",
+      label,
+      required: true,
+      status: "failed",
+      detail: "CID target missing",
+      action,
+    });
+    return;
+  }
+  const verifyUrl = sealApiUrl("verify", cid);
+  const proofUrl = sealApiUrl("proof", cid);
+  try {
+    const verify = await readJson(verifyUrl);
+    const proof = await readJson(proofUrl);
+    const verifyOk = verify.response.ok && ["verified", "retrievable"].includes(String(verify.body?.proofStatus ?? ""));
+    const proofOk = proof.response.ok && proof.body?.cid === cid;
+    const payloadHash = String(proof.body?.payloadHash ?? verify.body?.payloadHash ?? "");
+    const byteLength = Number(proof.body?.byteLength ?? verify.body?.byteLength ?? 0);
+    const expectedOk = expectedPayloadHash ? payloadHash === expectedPayloadHash : Boolean(payloadHash);
+    const passed = verifyOk && proofOk && expectedOk && byteLength > 0;
+    push({
+      id,
+      category: "filecoin",
+      label,
+      required: true,
+      status: passed ? "passed" : "failed",
+      url: proofUrl,
+      detail: passed
+        ? `${cid} verified with payload ${payloadHash.slice(0, 12)}... and ${byteLength} bytes`
+        : [
+            verifyOk ? "" : `verify ${verify.response.status}/${verify.body?.proofStatus ?? "missing"}`,
+            proofOk ? "" : `proof ${proof.response.status}/${proof.body?.cid ?? "missing"}`,
+            expectedOk ? "" : "payload hash mismatch or missing",
+            byteLength > 0 ? "" : "byte length missing",
+          ]
+            .filter(Boolean)
+            .join("; "),
+      action,
+      sampleIds: [cid],
+    });
+  } catch (error) {
+    push({
+      id,
+      category: "filecoin",
+      label,
+      required: true,
+      status: "failed",
+      url: proofUrl,
+      detail: String(error),
+      action,
+    });
   }
 };
 

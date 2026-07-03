@@ -38,12 +38,18 @@ describe("production evidence summary", () => {
       profileId: "user-1",
       proofId: "cap-1",
       modeId: "mode-1",
+      filecoinRecordCid: "bafy-record",
+      filecoinRecordPayloadHash: "a".repeat(64),
+      filecoinModeCid: "bafy-mode",
+      filecoinModePayloadHash: "b".repeat(64),
       friendCode: productionFriendCode("Chengdu, Sichuan", "fan@example.com"),
       shareImageUrl: "https://example.com/cards/cap-1.png",
     });
 
     expect(env).toContain("KICKOFF_VERIFY_USER_ID=user-1");
     expect(env).toContain("KICKOFF_VERIFY_FRIEND_CODE=chengdu-sichuan");
+    expect(env).toContain("KICKOFF_VERIFY_FILECOIN_RECORD_CID=bafy-record");
+    expect(env).toContain(`KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH=${"b".repeat(64)}`);
     expect(env).toContain("KICKOFF_VERIFY_SEASON_KEY=world-cup-run");
     expect(env).toContain("KICKOFF_VERIFY_FIXTURE_ID=");
     expect(parseEnvText(env).KICKOFF_VERIFY_SHARE_IMAGE_URL).toBe("https://example.com/cards/cap-1.png");

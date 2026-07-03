@@ -1,0 +1,88 @@
+{
+  "generatedAt": "2026-07-03T05:55:52.977Z",
+  "source": "local-script",
+  "appVersion": "0.1.0",
+  "suiteManifestHash": "acceptance-v1-d34a988094b0945c",
+  "suites": [
+    {
+      "suiteId": "scoring-proof",
+      "command": "bun run test",
+      "status": "passed",
+      "startedAt": "2026-07-03T05:55:39.972Z",
+      "completedAt": "2026-07-03T05:55:41.244Z",
+      "durationMs": 1272,
+      "exitCode": 0,
+      "summary": "Prediction scoring and proof hash passed via bun run test."
+    },
+    {
+      "suiteId": "cloud-account",
+      "command": "bun run test",
+      "status": "passed",
+      "startedAt": "2026-07-03T05:55:39.972Z",
+      "completedAt": "2026-07-03T05:55:41.244Z",
+      "durationMs": 1272,
+      "exitCode": 0,
+      "summary": "Cloud account and read-back passed via bun run test."
+    },
+    {
+      "suiteId": "live-data",
+      "command": "bun run test",
+      "status": "passed",
+      "startedAt": "2026-07-03T05:55:39.972Z",
+      "completedAt": "2026-07-03T05:55:41.244Z",
+      "durationMs": 1272,
+      "exitCode": 0,
+      "summary": "Live data providers passed via bun run test."
+    },
+    {
+      "suiteId": "share-cards",
+      "command": "bun run test",
+      "status": "passed",
+      "startedAt": "2026-07-03T05:55:39.972Z",
+      "completedAt": "2026-07-03T05:55:41.244Z",
+      "durationMs": 1272,
+      "exitCode": 0,
+      "summary": "Public share cards passed via bun run test."
+    },
+    {
+      "suiteId": "filecoin-api",
+      "command": "bun run test",
+      "status": "passed",
+      "startedAt": "2026-07-03T05:55:39.972Z",
+      "completedAt": "2026-07-03T05:55:41.244Z",
+      "durationMs": 1272,
+      "exitCode": 0,
+      "summary": "Filecoin API contract passed via bun run test."
+    },
+    {
+      "suiteId": "game-modes",
+      "command": "bun run test",
+      "status": "passed",
+      "startedAt": "2026-07-03T05:55:39.972Z",
+      "completedAt": "2026-07-03T05:55:41.244Z",
+      "durationMs": 1272,
+      "exitCode": 0,
+      "summary": "Tournament game modes passed via bun run test."
+    },
+    {
+      "suiteId": "browser-flow",
+      "command": "bun run test:e2e",
+      "status": "passed",
+      "startedAt": "2026-07-03T05:55:41.244Z",
+      "completedAt": "2026-07-03T05:55:47.278Z",
+      "durationMs": 6034,
+      "exitCode": 0,
+      "summary": "Full browser workflow passed via bun run test:e2e."
+    },
+    {
+      "suiteId": "seal-flow",
+      "command": "bun run test:e2e:seal",
+      "status": "passed",
+      "startedAt": "2026-07-03T05:55:47.278Z",
+      "completedAt": "2026-07-03T05:55:52.977Z",
+      "durationMs": 5699,
+      "exitCode": 0,
+      "summary": "One-click seal workflow passed via bun run test:e2e:seal."
+    }
+  ]
+}

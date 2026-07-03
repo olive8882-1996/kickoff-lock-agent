@@ -67,9 +67,9 @@ export const ACCEPTANCE_TEST_SUITES: AcceptanceTestSuite[] = [
     id: "share-cards",
     label: "Public share cards",
     command: "bun run test",
-    file: "src/shareCard.test.ts, src/shareImageTarget.test.ts, src/sharingProductionDoctor.test.ts",
+    file: "src/shareCard.test.ts, src/shareImageTarget.test.ts, src/shareImageUpload.test.ts, src/sharingProductionDoctor.test.ts",
     coverage: ["share-cards"],
-    proves: "proof text, X intent URLs, generated social card payloads, branded production share-image generation, publishable PNG manifests, public image URL read-back, image hashes, native-share capability detection, deployed public profile/proof/mode render gates, canonical URLs, Open Graph/Twitter metadata, JSON-LD and public share image read-back checks",
+    proves: "proof text, X intent URLs, generated social card payloads, branded production share-image generation, Supabase Storage image upload/read-back, publishable PNG manifests, public image URL read-back, image hashes, native-share capability detection, deployed public profile/proof/mode render gates, canonical URLs, Open Graph/Twitter metadata, JSON-LD and public share image read-back checks",
   },
   {
     id: "filecoin-api",

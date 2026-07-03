@@ -16,7 +16,7 @@ const pageFor = (url: string): RenderedPublicPage => {
   const mode = parsed.searchParams.get("mode");
   if (profile) {
     return {
-      text: `Latest proof capsules Tournament mode runs Social metadata share cards ${profile}`,
+      text: `Latest proof capsules Tournament mode runs Verifier packet Social metadata share cards ${profile}`,
       canonical: url,
       ogTitle: "Profile",
       ogImage: "https://cdn.example.com/profile.png",
@@ -26,7 +26,7 @@ const pageFor = (url: string): RenderedPublicPage => {
   }
   if (mode) {
     return {
-      text: `Mode proof verification Mode proof facts Proof timeline Social metadata ${mode}`,
+      text: `Mode proof verification Mode proof facts Proof timeline Verifier packet Social metadata ${mode}`,
       canonical: url,
       ogTitle: "Mode",
       ogImage: "https://cdn.example.com/mode.png",
@@ -35,7 +35,7 @@ const pageFor = (url: string): RenderedPublicPage => {
     };
   }
   return {
-    text: `Proof verification Proof facts Proof timeline Social metadata Prediction ${proof}`,
+    text: `Proof verification Proof facts Proof timeline Verifier packet Social metadata Prediction ${proof}`,
     canonical: url,
     ogTitle: "Proof",
     ogImage: "https://cdn.example.com/proof.png",

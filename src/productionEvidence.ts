@@ -89,7 +89,7 @@ export const publicRenderExpectation = (
       kind,
       queryKey: "profile",
       targetId,
-      requiredText: ["Latest proof capsules", "Tournament mode runs", "Social metadata", "share cards"],
+      requiredText: ["Latest proof capsules", "Tournament mode runs", "Verifier packet", "Social metadata", "share cards"],
       forbiddenText: ["Profile unavailable", "needs share card"],
     };
   }
@@ -98,7 +98,7 @@ export const publicRenderExpectation = (
       kind,
       queryKey: "mode",
       targetId,
-      requiredText: ["Mode proof verification", "Mode proof facts", "Proof timeline", "Social metadata", targetId],
+      requiredText: ["Mode proof verification", "Mode proof facts", "Proof timeline", "Verifier packet", "Social metadata", targetId],
       forbiddenText: ["No share manifest yet", "Cloud mode proof loaded. No share manifest"],
     };
   }
@@ -106,7 +106,7 @@ export const publicRenderExpectation = (
     kind,
     queryKey: "proof",
     targetId,
-    requiredText: ["Proof verification", "Proof facts", "Proof timeline", "Social metadata", "Prediction", targetId],
+    requiredText: ["Proof verification", "Proof facts", "Proof timeline", "Verifier packet", "Social metadata", "Prediction", targetId],
     forbiddenText: ["No share manifest yet", "Cloud proof loaded. No share manifest"],
   };
 };

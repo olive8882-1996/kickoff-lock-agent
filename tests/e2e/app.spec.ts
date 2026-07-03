@@ -123,6 +123,8 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(publicPredictionRows.locator("article")).toHaveCount(1);
   await expect(publicPredictionRows).toContainText(/Prediction \d+-\d+/i);
   await expect(page.getByLabel("Social metadata")).toContainText(/Public profile/i);
+  await expect(page.getByLabel("Verifier packet")).toContainText(/Profile: Kickoff Analyst/i);
+  await expect(page.getByRole("button", { name: /Copy packet/i })).toBeVisible();
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /[?&]profile=/);
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Kickoff Analyst/i);
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", "summary_large_image");
@@ -132,6 +134,7 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".proof-facts")).toContainText(/Mode proof facts/i);
   await expect(page.getByLabel("Proof timeline")).toContainText(/Mode proof created/i);
   await expect(page.getByLabel("Proof timeline")).toContainText(/Mode share image manifest/i);
+  await expect(page.getByLabel("Verifier packet")).toContainText(/Mode proof: Bracket path/i);
   await expect(page.locator(".locked-payload")).toContainText(/modeRun/i);
   await expect(page.getByLabel("Social metadata")).toContainText(/Mode proof/i);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /[?&]mode=/);
@@ -158,6 +161,8 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".proof-facts")).toContainText(/Proof facts/i);
   await expect(page.getByLabel("Proof timeline")).toContainText(/Prediction locked/i);
   await expect(page.getByLabel("Proof timeline")).toContainText(/Filecoin proof attached/i);
+  await expect(page.getByLabel("Verifier packet")).toContainText(/Kickoff Lock Agent verifier packet/i);
+  await expect(page.getByLabel("Verifier packet")).toContainText(/Verify:/i);
   await expect(page.getByLabel("Social metadata")).toContainText(/Prediction/i);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /[?&]proof=/);
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Prediction/i);

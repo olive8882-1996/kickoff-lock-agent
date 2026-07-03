@@ -3598,8 +3598,32 @@ pre {
   grid-column: 1 / -1;
 }
 
-.proof-timeline {
+.proof-timeline,
+.verifier-packet {
   grid-column: 1 / -1;
+}
+
+.verifier-packet .panel-head button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(241, 201, 77, 0.26);
+  border-radius: 4px;
+  background: rgba(241, 201, 77, 0.1);
+  color: #f1c94d;
+  font-size: 0.74rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.verifier-packet pre {
+  max-height: 230px;
+  margin: 10px 0 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid rgba(238, 247, 243, 0.1);
+  background: rgba(3, 8, 10, 0.46);
+  color: rgba(238, 247, 243, 0.76);
+  white-space: pre-wrap;
 }
 
 .proof-timeline ol {

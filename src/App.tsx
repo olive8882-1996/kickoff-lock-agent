@@ -82,6 +82,12 @@ import {
   buildRecordProofMeta,
   type PublicProofMeta,
 } from "./publicProofMeta";
+import {
+  buildModeVerifierPacket,
+  buildProfileVerifierPacket,
+  buildRecordVerifierPacket,
+  type VerifierPacket,
+} from "./publicProofPacket";
 import { buildModeProofTimeline, buildRecordProofTimeline, type ProofTimelineItem } from "./proofTimeline";
 import { buildPublicUrl } from "./publicUrls";
 import {
@@ -3018,6 +3024,7 @@ function VerifyDashboard({
             ))}
           </div>
           <ProofTimelineCard items={buildModeProofTimeline(modeRun, modeShareArtifact)} />
+          <VerifierPacketCard packet={buildModeVerifierPacket(modeRun, modeRunUrl(modeRun.id), modeShareArtifact)} />
           <div className="verify-card locked-payload">
             <h3>Mode payload</h3>
             <pre>{stableJson({ modeRun })}</pre>
@@ -3179,6 +3186,7 @@ function VerifyDashboard({
             ))}
           </div>
           <ProofTimelineCard items={buildRecordProofTimeline(record, recordShareArtifact)} />
+          <VerifierPacketCard packet={buildRecordVerifierPacket(record, publicUrl, recordShareArtifact)} />
           <div className="verify-card locked-payload">
             <h3>Locked payload</h3>
             <pre>{stableJson({ capsule: record.capsule, result: record.result, match })}</pre>
@@ -3273,6 +3281,33 @@ function ProofTimelineCard({ items }: { items: ProofTimelineItem[] }) {
           </li>
         ))}
       </ol>
+    </div>
+  );
+}
+
+function VerifierPacketCard({ packet }: { packet: VerifierPacket }) {
+  const copyPacket = async () => {
+    await copyToClipboard(packet.text);
+  };
+  return (
+    <div className="verify-card verifier-packet" aria-label="Verifier packet">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Copyable proof</p>
+          <h3>Verifier packet</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <Link2 size={16} /> Copy packet
+        </button>
+      </div>
+      <div className="manifest-grid">
+        <p><b>Kind</b><span>{packet.kind}</span></p>
+        <p><b>Status</b><span>{packet.status}</span></p>
+        <p><b>URL</b><code>{packet.publicUrl}</code></p>
+        {packet.cid && <p><b>CID</b><code>{packet.cid}</code></p>}
+        {packet.payloadHash && <p><b>Hash</b><code>{packet.payloadHash}</code></p>}
+      </div>
+      <pre>{packet.text}</pre>
     </div>
   );
 }
@@ -3585,6 +3620,7 @@ function PublicProfileDashboard({
         <code>{profileUrl(profile.id)}</code>
       </div>
       <SocialMetadataCard meta={profileMeta} />
+      <VerifierPacketCard packet={buildProfileVerifierPacket(profile, profileUrl(profile.id))} />
       <div className="profile-records">
         <div className="panel-head">
           <div>

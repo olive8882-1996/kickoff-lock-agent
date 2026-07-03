@@ -76,6 +76,7 @@ import {
 import { filecoinSealConfigured, lookupFilecoinProof, runModeSealJob, runSealJob, sealBackendProductionReady } from "./filecoinSeal";
 import { buildSealEvidencePacket, type SealEvidencePacket } from "./filecoinSealEvidence";
 import { buildLeaderboardEvidencePacket, type LeaderboardEvidencePacket } from "./leaderboardEvidence";
+import { buildModeEvidencePacket, type ModeEvidencePacket } from "./modeEvidence";
 import { createGameModeRun, getModeReadiness } from "./modes";
 import { buildMatchDataEvidencePacket, type MatchDataEvidencePacket } from "./matchDataEvidence";
 import { applyRealProof, applyVerifiedProof, createCapsule, stableJson } from "./proof";
@@ -1946,6 +1947,8 @@ function App() {
           records={records}
           bracketPath={bracketPath}
           modeRuns={modeRuns}
+          shareEvidence={shareEvidence}
+          cloudState={cloudState}
           onBracketPick={updateBracketPick}
           onSealBracket={sealBracketPath}
           onCreateModeRun={createModeRun}
@@ -3520,6 +3523,8 @@ function ModesDashboard({
   records,
   bracketPath,
   modeRuns,
+  shareEvidence,
+  cloudState,
   onBracketPick,
   onSealBracket,
   onCreateModeRun,
@@ -3529,6 +3534,8 @@ function ModesDashboard({
   records: MemoryRecord[];
   bracketPath: BracketPath;
   modeRuns: GameModeRun[];
+  shareEvidence: ShareArtifactEvidence[];
+  cloudState: CloudSyncState;
   onBracketPick: (pickId: string, patch: Partial<BracketPath["picks"][number]>) => void;
   onSealBracket: () => void;
   onCreateModeRun: (mode: GameMode) => void;
@@ -3537,6 +3544,7 @@ function ModesDashboard({
   const lockedCount = records.length;
   const bracketReady = isBracketPathReady(bracketPath);
   const bracketRuns = modeRuns.filter((run) => run.modeId === "bracket" && run.artifact?.kind === "bracket-path");
+  const modeEvidence = buildModeEvidencePacket(modes, modeRuns, shareEvidence, cloudState.verification);
   return (
     <section className="modes panel">
       <div className="panel-head">
@@ -3546,6 +3554,7 @@ function ModesDashboard({
         </div>
         <span className="pill">{lockedCount} active locks</span>
       </div>
+      <ModeEvidencePacketCard packet={modeEvidence} />
       <div className="bracket-builder">
         <div className="panel-head">
           <div>
@@ -3675,6 +3684,46 @@ function ModesDashboard({
         <p>Each mode creates a proof run with hash, CID and linked capsules; production acceptance also requires cloud content read-back, anonymous mode proof links and generated public share cards for all four mode types.</p>
       </div>
     </section>
+  );
+}
+
+function ModeEvidencePacketCard({ packet }: { packet: ModeEvidencePacket }) {
+  const copyPacket = async () => {
+    await copyToClipboard(packet.copyText);
+  };
+  return (
+    <div className={`mode-evidence-packet ${packet.complete ? "passed" : ""}`} aria-label="Mode evidence packet">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Tournament acceptance</p>
+          <h3>Mode evidence packet</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <Link2 size={16} /> Copy mode packet
+        </button>
+      </div>
+      <div className="mode-evidence-summary">
+        <div><span>Modes</span><strong>{packet.passedModes}/{packet.totalModes}</strong></div>
+        <div><span>Filecoin</span><strong>{packet.realFilecoinModes}/{packet.totalModes}</strong></div>
+        <div><span>Cloud</span><strong>{packet.cloudModes}/{packet.totalModes}</strong></div>
+        <div><span>Share cards</span><strong>{packet.shareCardModes}/{packet.totalModes}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Next action: {packet.nextAction}</small>
+      <div className="mode-evidence-list">
+        {packet.items.map((item) => (
+          <article key={item.modeId} className={item.status === "ready" ? "passed" : ""}>
+            <div>
+              <Trophy size={16} />
+              <strong>{item.title}</strong>
+              <span>{item.status}</span>
+            </div>
+            <small>Run: {item.runId ?? "missing"}</small>
+            <small>Missing: {item.missing.join(", ") || "none"}</small>
+          </article>
+        ))}
+      </div>
+    </div>
   );
 }
 

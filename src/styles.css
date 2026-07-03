@@ -2152,6 +2152,109 @@ pre {
   color: #eef7f3;
 }
 
+.mode-evidence-packet {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 13px;
+  border: 1px solid rgba(241, 201, 77, 0.22);
+  background:
+    linear-gradient(135deg, rgba(210, 55, 46, 0.12), rgba(26, 166, 255, 0.06)),
+    rgba(3, 8, 10, 0.42);
+}
+
+.mode-evidence-packet.passed {
+  border-color: rgba(77, 217, 137, 0.28);
+  background:
+    linear-gradient(135deg, rgba(77, 217, 137, 0.08), rgba(26, 166, 255, 0.06)),
+    rgba(3, 8, 10, 0.42);
+}
+
+.mode-evidence-packet .panel-head {
+  margin-bottom: 0;
+}
+
+.mode-evidence-packet .panel-head button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(241, 201, 77, 0.26);
+  border-radius: 4px;
+  background: rgba(241, 201, 77, 0.1);
+  color: #f1c94d;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mode-evidence-summary,
+.mode-evidence-list {
+  display: grid;
+  gap: 8px;
+}
+
+.mode-evidence-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.mode-evidence-summary div,
+.mode-evidence-list article {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(238, 247, 243, 0.1);
+  background: rgba(3, 8, 10, 0.38);
+}
+
+.mode-evidence-list {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.mode-evidence-list article {
+  display: grid;
+  gap: 7px;
+  border-color: rgba(255, 91, 78, 0.22);
+  background: rgba(255, 91, 78, 0.055);
+}
+
+.mode-evidence-list article.passed {
+  border-color: rgba(77, 217, 137, 0.26);
+  background: rgba(77, 217, 137, 0.07);
+}
+
+.mode-evidence-list article > div {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 7px;
+  align-items: center;
+}
+
+.mode-evidence-list article > div span {
+  grid-column: 1 / -1;
+  color: rgba(238, 247, 243, 0.62);
+  font-size: 0.68rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mode-evidence-packet span,
+.mode-evidence-packet p,
+.mode-evidence-packet small {
+  min-width: 0;
+  margin: 0;
+  color: rgba(238, 247, 243, 0.68);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+.mode-evidence-packet span {
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mode-evidence-packet strong {
+  color: #eef7f3;
+  overflow-wrap: anywhere;
+}
+
 .leaderboard-evidence .panel-head {
   margin-bottom: 0;
 }
@@ -4516,6 +4619,9 @@ pre {
   .public-proof-hero,
   .public-scoreline,
   .public-proof-rail,
+  .mode-evidence-summary,
+  .mode-evidence-list,
+  .mode-evidence-list article > div,
   .mode-grid,
   .bracket-grid,
   .production-summary,

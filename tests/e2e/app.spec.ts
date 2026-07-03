@@ -81,11 +81,14 @@ test("expanded product workflow is usable", async ({ page }) => {
 
   await mainNav.getByRole("button", { name: "Modes" }).click();
   await expect(page.getByRole("heading", { name: /Beyond single-match locks/i })).toBeVisible();
+  await expect(page.getByLabel("Mode evidence packet")).toContainText(/Mode evidence packet/i);
+  await expect(page.getByLabel("Mode evidence packet")).toContainText(/Next action/i);
+  await expect(page.getByRole("button", { name: /Copy mode packet/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Seal a bracket path/i })).toBeVisible();
   await expect(page.locator(".bracket-grid article")).toHaveCount(4);
   await page.getByRole("button", { name: /Seal bracket proof/i }).click();
   await expect(page.locator(".bracket-runs")).toContainText(/Bracket path sealed/i);
-  await expect(page.getByText(/Agent vs Human/i)).toBeVisible();
+  await expect(page.locator(".mode-grid article").filter({ hasText: "Agent vs Human" })).toBeVisible();
   await expect(page.locator(".mode-grid article").filter({ hasText: "Upset challenge" })).toContainText(/playable/i);
 
   await mainNav.getByRole("button", { name: "Match board" }).click();

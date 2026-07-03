@@ -22,6 +22,7 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 - Inspect a match-level data evidence packet for the selected fixture: source, status, kickoff, intelligence score, production signal count, missing/fallback gaps, and the next action before trusting the lock.
 - Build a 4-pick knockout path in the bracket builder, then seal it as its own proof run.
 - Create additional mode proof runs for parlays, Agent vs Human calibration, and upset challenges, each with a public verifier and mode share image.
+- Copy a mode evidence packet that checks bracket, parlay, Agent vs Human and upset readiness across real Filecoin proof, cloud content read-back, anonymous mode proof URL and production share card.
 - Use the Account production acceptance radar to see which competition-grade areas are verified, ready, partial, or blocked in the current environment.
 
 ## Links
@@ -140,6 +141,7 @@ Key files:
 - `src/cloud.ts`: Supabase auth, profile sync, prediction history sync, mode proof run sync, authenticated and anonymous read-back verification, public proof/profile lookup, and leaderboard queries.
 - `src/bracket.ts`: knockout path builder, bracket readiness rules, and bracket proof run sealing.
 - `src/modes.ts`: bracket/parlay/agent/upset mode proof runs, including parlay tickets, agent calibration reports and upset bonus tickets.
+- `src/modeEvidence.ts`: four-mode production evidence packets for Filecoin, cloud read-back, public mode links and share cards.
 - `src/readiness.ts`: production acceptance radar for real account sync, live data, Filecoin sealing, sharing, leaderboards, modes, and automated tests.
 - `src/acceptance.ts`: explicit acceptance test manifest and run-evidence summary covering scoring, proof hashes, cloud read-back, providers, share cards, Filecoin API, modes, browser E2E and seal E2E.
 - `scripts/seal-with-synapse.mjs`: real Synapse/Filecoin adapter.

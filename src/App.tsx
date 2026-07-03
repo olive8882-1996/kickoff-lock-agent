@@ -75,6 +75,7 @@ import {
 } from "./cloud";
 import { filecoinSealConfigured, lookupFilecoinProof, runModeSealJob, runSealJob, sealBackendProductionReady } from "./filecoinSeal";
 import { buildSealEvidencePacket, type SealEvidencePacket } from "./filecoinSealEvidence";
+import { buildLeaderboardEvidencePacket, type LeaderboardEvidencePacket } from "./leaderboardEvidence";
 import { createGameModeRun, getModeReadiness } from "./modes";
 import { buildMatchDataEvidencePacket, type MatchDataEvidencePacket } from "./matchDataEvidence";
 import { applyRealProof, applyVerifiedProof, createCapsule, stableJson } from "./proof";
@@ -1897,6 +1898,7 @@ function App() {
 
       {view === "memory" && (
         <MemoryDashboard
+          profile={profile}
           records={records}
           averageScore={averageScore}
           bestRecord={bestRecord}
@@ -2744,6 +2746,7 @@ function ProofPanel({
 }
 
 function MemoryDashboard({
+  profile,
   records,
   averageScore,
   bestRecord,
@@ -2757,6 +2760,7 @@ function MemoryDashboard({
   cloudState,
   onLeaderboardScope,
 }: {
+  profile: ReturnType<typeof loadProfile>;
   records: MemoryRecord[];
   averageScore: number;
   bestRecord?: MemoryRecord;
@@ -2772,6 +2776,7 @@ function MemoryDashboard({
 }) {
   const revealed = records.filter((record) => record.result);
   const leaderboard = leaderboardEntries.slice(0, 8);
+  const leaderboardPacket = buildLeaderboardEvidencePacket(profile, leaderboardScopeEvidence);
   return (
     <section className="memory panel">
       <div
@@ -2845,6 +2850,7 @@ function MemoryDashboard({
             </div>
           ))}
         </div>
+        <LeaderboardEvidencePacketCard packet={leaderboardPacket} />
         <LeaderboardEvidencePanel evidence={leaderboardScopeEvidence} />
         {leaderboard.length === 0 && <p>No leaderboard rows yet. Sync a revealed proof to populate this scope.</p>}
         {leaderboard.map((entry, index) => (
@@ -3449,6 +3455,34 @@ function SocialMetadataCard({ meta }: { meta: PublicProofMeta }) {
         </p>
         {meta.imageManifest?.imageUrl && <p><b>Share image URL</b><code>{meta.imageManifest.imageUrl}</code></p>}
       </div>
+    </div>
+  );
+}
+
+function LeaderboardEvidencePacketCard({ packet }: { packet: LeaderboardEvidencePacket }) {
+  const copyPacket = async () => {
+    await copyToClipboard(packet.copyText);
+  };
+  return (
+    <div className={`leaderboard-packet ${packet.complete ? "passed" : ""}`} aria-label="Leaderboard evidence packet">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Rank proof</p>
+          <h3>Leaderboard evidence packet</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <Link2 size={16} /> Copy leaderboard packet
+        </button>
+      </div>
+      <div className="leaderboard-packet-summary">
+        <div><span>Scopes</span><strong>{packet.passedScopes}/{packet.totalScopes}</strong></div>
+        <div><span>Remote rows</span><strong>{packet.remoteRows}</strong></div>
+        <div><span>Current user</span><strong>{packet.currentUserScopes.join(", ") || "missing"}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Next action: {packet.nextAction}</small>
+      <small>Missing scopes: {packet.missingScopes.join(", ") || "none"}</small>
+      <code>{packet.sampleIds.join(", ") || "no remote samples"}</code>
     </div>
   );
 }

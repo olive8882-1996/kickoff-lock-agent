@@ -2083,6 +2083,75 @@ pre {
   background: rgba(34, 185, 255, 0.052);
 }
 
+.leaderboard-packet {
+  display: grid;
+  gap: 9px;
+  margin: 8px 0;
+  padding: 12px;
+  border: 1px solid rgba(241, 201, 77, 0.2);
+  background:
+    linear-gradient(135deg, rgba(241, 201, 77, 0.07), rgba(34, 185, 255, 0.045)),
+    rgba(3, 8, 10, 0.34);
+}
+
+.leaderboard-packet.passed {
+  border-color: rgba(77, 217, 137, 0.26);
+  background:
+    linear-gradient(135deg, rgba(77, 217, 137, 0.08), rgba(34, 185, 255, 0.045)),
+    rgba(3, 8, 10, 0.34);
+}
+
+.leaderboard-packet .panel-head {
+  margin-bottom: 0;
+}
+
+.leaderboard-packet .panel-head button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(241, 201, 77, 0.26);
+  border-radius: 4px;
+  background: rgba(241, 201, 77, 0.1);
+  color: #f1c94d;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.leaderboard-packet-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.leaderboard-packet-summary div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid rgba(238, 247, 243, 0.1);
+  background: rgba(3, 8, 10, 0.34);
+}
+
+.leaderboard-packet span,
+.leaderboard-packet p,
+.leaderboard-packet small,
+.leaderboard-packet code {
+  min-width: 0;
+  margin: 0;
+  color: rgba(238, 247, 243, 0.68);
+  font-size: 0.72rem;
+  overflow-wrap: anywhere;
+}
+
+.leaderboard-packet span {
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.leaderboard-packet strong {
+  color: #eef7f3;
+}
+
 .leaderboard-evidence .panel-head {
   margin-bottom: 0;
 }
@@ -4407,6 +4476,7 @@ pre {
   .match-list,
   .memory-stats,
   .leaderboard-summary,
+  .leaderboard-packet-summary,
   .leaderboard > article,
   .leaderboard-readiness div,
   .leaderboard-evidence article > div,

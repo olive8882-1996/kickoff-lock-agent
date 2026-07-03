@@ -12,6 +12,7 @@
     "verify:acceptance": "bun scripts/run-acceptance-evidence.mjs",
     "verify:production": "bun scripts/run-production-evidence.mjs",
     "deploy:pages": "bun scripts/deploy-gh-pages.mjs",
+    "pages:rebuild": "bun scripts/request-pages-build.mjs",
     "test:watch": "vitest",
     "preview": "vite preview --host 127.0.0.1",
     "seal:synapse": "bun scripts/seal-with-synapse.mjs",

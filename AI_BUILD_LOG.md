@@ -75,6 +75,8 @@ GitHub Pages publishing is now evidence-aware. The reusable deploy script syncs 
 
 Public proof-link verification is now browser-rendered. When target profile, proof or mode IDs are configured, `bun run verify:production` opens the deployed app with Playwright and requires the public page to render the expected proof/profile text, social metadata, canonical query target and non-empty share-card state, instead of accepting the static React app shell as proof.
 
+Pages build recovery is scripted. `bun run pages:rebuild` requests a fresh GitHub Pages build through the GitHub API, which unblocks cases where the `gh-pages` branch has the latest evidence but the public URL remains on an older build.
+
 The Account view now generates a copyable production verification env block from the current synced profile, first locked proof, first mode proof, friend/season filters and public share image URL, reducing the manual handoff needed before running `bun run verify:production`.
 
 The production evidence script now also checks explicit Supabase target rows for the copied profile, prediction, mode proof and share artifact IDs. A public app URL returning 200 is no longer enough; the backing public tables must contain the synced artifacts and the record share artifact must include a public image URL plus image hash.

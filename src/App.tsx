@@ -33,6 +33,7 @@ import {
   createEmptyBracketPath,
   isBracketPathReady,
 } from "./bracket";
+import { buildBrandAssetPacket, type BrandAssetPacket } from "./brandAssets";
 import {
   ACCEPTANCE_TEST_SUITES,
   summarizeAcceptanceRunEvidence,
@@ -4468,6 +4469,7 @@ function AccountDashboard({
     productionEvidence,
   );
   const productionLaunchPacket = buildProductionLaunchPacket(productionDoctor);
+  const brandAssetPacket = buildBrandAssetPacket(import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin + import.meta.env.BASE_URL);
   const accountHandoff = buildAccountHandoffPacket({
     profile,
     cloudState,
@@ -4683,6 +4685,7 @@ function AccountDashboard({
           <AccountHandoffPanel packet={accountHandoff} />
           <AccountRecoveryEvidencePanel packet={accountRecovery} />
           <ProfileArchiveEvidencePanel packet={profileArchiveEvidence} />
+          <BrandAssetPacketPanel packet={brandAssetPacket} />
           <ProductionDoctorPanel report={productionDoctor} />
           <RealtimeDataEvidencePacketPanel packet={realtimeDataEvidence} />
           <DataContinuityEvidencePanel packet={dataContinuityEvidence} />
@@ -4817,6 +4820,73 @@ function ProductionVerifyTargetsPanel({ envText }: { envText: string }) {
         <span>Paste into <code>.env.production.local</code>, fill blanks, then run <code>bun run verify:production</code>.</span>
       </div>
       <pre>{envText}</pre>
+    </div>
+  );
+}
+
+function BrandAssetPacketPanel({ packet }: { packet: BrandAssetPacket }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPacket = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <div className={`brand-asset-packet ${packet.ready ? "ready" : ""}`} aria-label="Brand asset packet">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Brand assets</p>
+          <h3>Logo deployment packet</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <ImageDown size={16} /> {copyStatus === "copied" ? "Copied logo packet" : "Copy logo packet"}
+        </button>
+      </div>
+      <div className="brand-asset-summary">
+        <div>
+          <img src={assetUrl("kickoff-lock-icon.png")} alt="Kickoff Lock Agent logo" />
+          <span>Primary logo</span>
+        </div>
+        <div><span>Assets</span><strong>{packet.requiredAssets}/{packet.totalAssets}</strong></div>
+        <div><span>Surfaces</span><strong>{packet.usages.length}</strong></div>
+        <div><span>Status</span><strong>{packet.ready ? "ready" : "pending"}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Public logo: {packet.publicLogoUrl}</small>
+      <small>Next action: {packet.nextAction}</small>
+      {copyStatus === "manual" && (
+        <label className="brand-asset-copy">
+          <span>Manual logo packet copy</span>
+          <textarea
+            aria-label="Manual logo packet copy"
+            readOnly
+            value={packet.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="brand-asset-grid">
+        {packet.assets.map((asset) => (
+          <article key={asset.id}>
+            <div>
+              <img src={assetUrl(asset.fileName)} alt="" />
+              <strong>{asset.size}</strong>
+              <span>{asset.role}</span>
+            </div>
+            <small>{asset.fileName}</small>
+          </article>
+        ))}
+      </div>
+      <div className="brand-usage-grid">
+        {packet.usages.map((usage) => (
+          <article key={usage.id}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{usage.surface}</strong>
+            </div>
+            <small>{usage.evidence}</small>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }

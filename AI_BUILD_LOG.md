@@ -73,6 +73,8 @@ Free public data verification now checks continuity across TheSportsDB and ESPN 
 
 GitHub Pages publishing is now evidence-aware. The reusable deploy script syncs `dist` to `gh-pages`, and `docs/deploy-pages.workflow.yml` provides the two-phase workflow: generate acceptance evidence, build and publish it, wait for the public URL to refresh, generate production evidence against that public deployment, then build and publish again so `production-evidence.json` reflects the deployed `acceptance-evidence.json` instead of a stale manifest.
 
+Public proof-link verification is now browser-rendered. When target profile, proof or mode IDs are configured, `bun run verify:production` opens the deployed app with Playwright and requires the public page to render the expected proof/profile text, social metadata, canonical query target and non-empty share-card state, instead of accepting the static React app shell as proof.
+
 The Account view now generates a copyable production verification env block from the current synced profile, first locked proof, first mode proof, friend/season filters and public share image URL, reducing the manual handoff needed before running `bun run verify:production`.
 
 The production evidence script now also checks explicit Supabase target rows for the copied profile, prediction, mode proof and share artifact IDs. A public app URL returning 200 is no longer enough; the backing public tables must contain the synced artifacts and the record share artifact must include a public image URL plus image hash.

@@ -41,6 +41,47 @@ export type ProductionVerifyTargets = {
   allowFailures?: boolean;
 };
 
+export type PublicRenderKind = "profile" | "proof" | "mode";
+
+export type PublicRenderExpectation = {
+  kind: PublicRenderKind;
+  queryKey: PublicRenderKind;
+  targetId: string;
+  requiredText: string[];
+  forbiddenText: string[];
+};
+
+export const publicRenderExpectation = (
+  kind: PublicRenderKind,
+  targetId: string,
+): PublicRenderExpectation => {
+  if (kind === "profile") {
+    return {
+      kind,
+      queryKey: "profile",
+      targetId,
+      requiredText: ["Latest proof capsules", "Tournament mode runs", "Social metadata", "share cards"],
+      forbiddenText: ["Profile unavailable", "needs share card"],
+    };
+  }
+  if (kind === "mode") {
+    return {
+      kind,
+      queryKey: "mode",
+      targetId,
+      requiredText: ["Mode proof verification", "Mode proof facts", "Social metadata", targetId],
+      forbiddenText: ["No share manifest yet", "Cloud mode proof loaded. No share manifest"],
+    };
+  }
+  return {
+    kind,
+    queryKey: "proof",
+    targetId,
+    requiredText: ["Proof verification", "Proof facts", "Social metadata", "Prediction", targetId],
+    forbiddenText: ["No share manifest yet", "Cloud proof loaded. No share manifest"],
+  };
+};
+
 export const productionFriendCode = (location?: string, email?: string) =>
   (location || email?.split("@")[1] || "global")
     .trim()

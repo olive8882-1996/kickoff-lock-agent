@@ -3,6 +3,7 @@ import {
   buildProductionVerifyEnv,
   parseEnvText,
   productionFriendCode,
+  publicRenderExpectation,
   summarizeProductionEvidence,
   type ProductionEvidencePacket,
 } from "./productionEvidence";
@@ -106,5 +107,23 @@ describe("production evidence summary", () => {
     expect(summary.loaded).toBe(true);
     expect(summary.complete).toBe(true);
     expect(summary.openRequired).toEqual([]);
+  });
+
+  it("defines strict public render expectations for production proof surfaces", () => {
+    expect(publicRenderExpectation("profile", "user-1")).toMatchObject({
+      queryKey: "profile",
+      requiredText: expect.arrayContaining(["Latest proof capsules", "Tournament mode runs"]),
+      forbiddenText: expect.arrayContaining(["Profile unavailable", "needs share card"]),
+    });
+    expect(publicRenderExpectation("proof", "cap-1")).toMatchObject({
+      queryKey: "proof",
+      requiredText: expect.arrayContaining(["Proof verification", "cap-1"]),
+      forbiddenText: expect.arrayContaining(["No share manifest yet"]),
+    });
+    expect(publicRenderExpectation("mode", "mode-1")).toMatchObject({
+      queryKey: "mode",
+      requiredText: expect.arrayContaining(["Mode proof verification", "mode-1"]),
+      forbiddenText: expect.arrayContaining(["Cloud mode proof loaded. No share manifest"]),
+    });
   });
 });

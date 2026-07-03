@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { summarizeAcceptanceRunEvidence } from "../src/acceptance.ts";
-import { parseEnvText } from "../src/productionEvidence.ts";
+import { parseEnvText, publicRenderExpectation } from "../src/productionEvidence.ts";
 import { buildRuntimeConfigReadiness } from "../src/runtimeConfig.ts";
 import { normalizePublicAppUrl } from "../src/publicUrls.ts";
 
@@ -28,6 +28,7 @@ const outputPath = resolve(process.env.PRODUCTION_EVIDENCE_PATH ?? "public/produ
 const strict = process.env.KICKOFF_VERIFY_ALLOW_FAILURES !== "1";
 const checkedAt = () => new Date().toISOString();
 const checks = [];
+let renderBrowser;
 
 const env = (key) => process.env[key]?.trim() || "";
 const has = (key) => env(key).length > 0;
@@ -61,6 +62,13 @@ const readJson = async (url, options = {}) => {
     body = undefined;
   }
   return { response, body, text };
+};
+
+const getRenderBrowser = async () => {
+  if (renderBrowser) return renderBrowser;
+  const { chromium } = await import("playwright");
+  renderBrowser = await chromium.launch({ headless: true });
+  return renderBrowser;
 };
 
 const checkUrl = async ({ id, category, label, required, url, action, expectText }) => {
@@ -381,36 +389,36 @@ const checkSupabase = async () => {
 
 const checkPublicProofLinks = async () => {
   const publicAppUrl = normalizePublicAppUrl(env("VITE_PUBLIC_APP_URL"));
-  await checkUrl({
-    id: "public-profile-link",
-    category: "sharing",
-    label: "Public profile link",
-    required: true,
-    url: publicAppUrl && has("KICKOFF_VERIFY_PROFILE_ID")
-      ? `${publicAppUrl}?profile=${encodeURIComponent(env("KICKOFF_VERIFY_PROFILE_ID"))}`
-      : "",
-    action: "Set KICKOFF_VERIFY_PROFILE_ID to a synced Supabase profile id.",
-  });
-  await checkUrl({
-    id: "public-proof-link",
-    category: "sharing",
-    label: "Public prediction proof link",
-    required: true,
-    url: publicAppUrl && has("KICKOFF_VERIFY_PROOF_ID")
-      ? `${publicAppUrl}?proof=${encodeURIComponent(env("KICKOFF_VERIFY_PROOF_ID"))}`
-      : "",
-    action: "Set KICKOFF_VERIFY_PROOF_ID to a synced capsule id.",
-  });
-  await checkUrl({
-    id: "public-mode-link",
-    category: "sharing",
-    label: "Public mode proof link",
-    required: true,
-    url: publicAppUrl && has("KICKOFF_VERIFY_MODE_ID")
-      ? `${publicAppUrl}?mode=${encodeURIComponent(env("KICKOFF_VERIFY_MODE_ID"))}`
-      : "",
-    action: "Set KICKOFF_VERIFY_MODE_ID to a synced mode proof run id.",
-  });
+  const renderedChecks = [
+    {
+      id: "public-profile-link",
+      label: "Public profile link",
+      kind: "profile",
+      targetId: env("KICKOFF_VERIFY_PROFILE_ID"),
+      action: "Set KICKOFF_VERIFY_PROFILE_ID to a synced Supabase profile id.",
+    },
+    {
+      id: "public-proof-link",
+      label: "Public prediction proof link",
+      kind: "proof",
+      targetId: env("KICKOFF_VERIFY_PROOF_ID"),
+      action: "Set KICKOFF_VERIFY_PROOF_ID to a synced capsule id.",
+    },
+    {
+      id: "public-mode-link",
+      label: "Public mode proof link",
+      kind: "mode",
+      targetId: env("KICKOFF_VERIFY_MODE_ID"),
+      action: "Set KICKOFF_VERIFY_MODE_ID to a synced mode proof run id.",
+    },
+  ];
+  for (const check of renderedChecks) {
+    const url =
+      publicAppUrl && check.targetId
+        ? `${publicAppUrl}?${check.kind}=${encodeURIComponent(check.targetId)}`
+        : "";
+    await checkRenderedPublicLink({ ...check, url });
+  }
   await checkUrl({
     id: "public-share-image",
     category: "sharing",
@@ -419,6 +427,79 @@ const checkPublicProofLinks = async () => {
     url: env("KICKOFF_VERIFY_SHARE_IMAGE_URL"),
     action: "Set KICKOFF_VERIFY_SHARE_IMAGE_URL to a Supabase Storage public PNG URL.",
   });
+};
+
+const checkRenderedPublicLink = async ({ id, label, kind, targetId, url, action }) => {
+  if (!url) {
+    push({
+      id,
+      category: "sharing",
+      label,
+      required: true,
+      status: "failed",
+      detail: "URL not configured",
+      action,
+    });
+    return;
+  }
+  const expectation = publicRenderExpectation(kind, targetId);
+  let browser;
+  try {
+    browser = await getRenderBrowser();
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => undefined);
+    const snapshot = await page.evaluate(() => {
+      const canonical = document.querySelector('link[rel="canonical"]')?.getAttribute("href") ?? "";
+      const ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute("content") ?? "";
+      const jsonLd = document.querySelector('script[data-kickoff-public-proof="jsonld"]')?.textContent ?? "";
+      return {
+        text: document.body?.innerText ?? "",
+        canonical,
+        ogTitle,
+        jsonLd,
+      };
+    });
+    await page.close();
+
+    const pageText = [snapshot.text, snapshot.canonical, snapshot.ogTitle, snapshot.jsonLd].join("\n");
+    const missing = expectation.requiredText.filter((text) => !pageText.includes(text));
+    const forbidden = expectation.forbiddenText.filter((text) => pageText.includes(text));
+    const canonical = new URL(snapshot.canonical || url);
+    const canonicalTarget = canonical.searchParams.get(expectation.queryKey);
+    const canonicalOk = canonicalTarget === expectation.targetId;
+    const passed = missing.length === 0 && forbidden.length === 0 && canonicalOk;
+    push({
+      id,
+      category: "sharing",
+      label,
+      required: true,
+      status: passed ? "passed" : "failed",
+      url,
+      detail: passed
+        ? `rendered ${kind} proof page for ${targetId}`
+        : [
+            missing.length > 0 ? `missing ${missing.join(", ")}` : "",
+            forbidden.length > 0 ? `forbidden ${forbidden.join(", ")}` : "",
+            canonicalOk ? "" : `canonical ${expectation.queryKey} mismatch`,
+          ]
+            .filter(Boolean)
+            .join("; "),
+      action,
+      sampleIds: [targetId],
+    });
+  } catch (error) {
+    push({
+      id,
+      category: "sharing",
+      label,
+      required: true,
+      status: "failed",
+      url,
+      detail: `Rendered public page check failed: ${String(error)}`,
+      action: `${action} Install Playwright Chromium in CI before running production verification.`,
+    });
+  }
 };
 
 const checkSealApi = async () => {
@@ -593,6 +674,7 @@ const packet = {
 
 await mkdir(dirname(outputPath), { recursive: true });
 await writeFile(outputPath, `${JSON.stringify(packet, null, 2)}\n`);
+if (renderBrowser) await renderBrowser.close();
 
 const required = checks.filter((check) => check.required);
 const requiredPassed = required.filter((check) => check.status === "passed").length;

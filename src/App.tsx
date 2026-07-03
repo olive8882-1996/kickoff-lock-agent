@@ -74,6 +74,7 @@ import {
 } from "./cloud";
 import { filecoinSealConfigured, lookupFilecoinProof, runModeSealJob, runSealJob, sealBackendProductionReady } from "./filecoinSeal";
 import { createGameModeRun, getModeReadiness } from "./modes";
+import { buildMatchDataEvidencePacket, type MatchDataEvidencePacket } from "./matchDataEvidence";
 import { applyRealProof, applyVerifiedProof, createCapsule, stableJson } from "./proof";
 import {
   applyPublicProofMeta,
@@ -2191,6 +2192,7 @@ function MatchIntelligence({ match, onEnrich }: { match: Match; onEnrich: () => 
   const insights = match.insights;
   const dataCoverage = insights?.dataCoverage ?? buildDataCoverage(match);
   const intelScore = buildMatchIntelligenceScore(match);
+  const evidencePacket = buildMatchDataEvidencePacket(match);
   return (
     <div className="intel-panel">
       <div className="intel-head">
@@ -2227,6 +2229,7 @@ function MatchIntelligence({ match, onEnrich }: { match: Match; onEnrich: () => 
           </article>
         ))}
       </div>
+      <MatchDataEvidenceCard packet={evidencePacket} />
       {insights ? (
         <>
           <div className="intel-grid">
@@ -2264,6 +2267,42 @@ function MatchIntelligence({ match, onEnrich }: { match: Match; onEnrich: () => 
         <p className="coverage-note">This provider gives enough metadata to lock a capsule, but lineup, injury and odds feeds need configured enrichment.</p>
       )}
     </div>
+  );
+}
+
+function MatchDataEvidenceCard({ packet }: { packet: MatchDataEvidencePacket }) {
+  const missingText = packet.missingSignals.length > 0 ? packet.missingSignals.join(", ") : "none";
+  const fallbackText = packet.fallbackSignals.length > 0 ? packet.fallbackSignals.join(", ") : "none";
+
+  return (
+    <section className="match-data-evidence" aria-label="Match data evidence">
+      <div className="match-data-evidence-head">
+        <div>
+          <strong>Match data evidence</strong>
+          <span>{packet.readySignals}/{packet.totalSignals} production signals</span>
+        </div>
+        <b>{packet.score}/100</b>
+      </div>
+      <p>{packet.summary}</p>
+      <div className="match-data-evidence-facts">
+        <span>{packet.source}</span>
+        <span>{packet.status}</span>
+        <span>{packet.level}</span>
+        <span>{formatDate(packet.kickoffAt)}</span>
+      </div>
+      <div className="match-data-evidence-gaps">
+        <small>Missing: {missingText}</small>
+        <small>Fallback: {fallbackText}</small>
+        <small>Next action: {packet.nextAction}</small>
+      </div>
+      <div className="match-data-evidence-signals" aria-label="Fixture signal states">
+        {packet.signals.map((signal) => (
+          <span key={signal.key} className={`coverage-${signal.status}`}>
+            {signal.label}: {signal.status}
+          </span>
+        ))}
+      </div>
+    </section>
   );
 }
 

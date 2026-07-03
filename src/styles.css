@@ -1208,6 +1208,98 @@ h3 {
   margin: 0;
 }
 
+.match-data-evidence {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid rgba(26, 166, 255, 0.24);
+  background:
+    linear-gradient(135deg, rgba(26, 166, 255, 0.12), rgba(79, 211, 109, 0.055)),
+    rgba(238, 247, 243, 0.045);
+}
+
+.match-data-evidence-head,
+.match-data-evidence-facts,
+.match-data-evidence-gaps {
+  display: grid;
+  gap: 8px;
+}
+
+.match-data-evidence-head {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.match-data-evidence-head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.match-data-evidence strong,
+.match-data-evidence b {
+  color: #eef7f3;
+}
+
+.match-data-evidence strong {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+}
+
+.match-data-evidence b {
+  padding: 6px 8px;
+  border: 1px solid rgba(241, 201, 77, 0.28);
+  border-radius: 4px;
+  color: #f1c94d;
+  line-height: 1;
+}
+
+.match-data-evidence p,
+.match-data-evidence small,
+.match-data-evidence span {
+  margin: 0;
+  color: rgba(238, 247, 243, 0.7);
+  font-size: 0.72rem;
+}
+
+.match-data-evidence-head span,
+.match-data-evidence-facts span,
+.match-data-evidence-signals span {
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.match-data-evidence-facts {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.match-data-evidence-facts span {
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid rgba(238, 247, 243, 0.11);
+  background: rgba(4, 14, 15, 0.42);
+  overflow-wrap: anywhere;
+}
+
+.match-data-evidence-gaps small {
+  padding-left: 8px;
+  border-left: 2px solid rgba(241, 201, 77, 0.42);
+}
+
+.match-data-evidence-signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.match-data-evidence-signals span {
+  padding: 5px 7px;
+  border: 1px solid rgba(238, 247, 243, 0.12);
+  border-radius: 4px;
+  background: rgba(238, 247, 243, 0.08);
+  font-size: 0.62rem;
+}
+
 .intel-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4071,6 +4163,8 @@ pre {
   .lock-window,
   .intel-score,
   .coverage-grid,
+  .match-data-evidence-head,
+  .match-data-evidence-facts,
   .intel-grid,
   .market-grid,
   .verify-grid,

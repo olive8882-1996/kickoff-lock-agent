@@ -91,6 +91,9 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".coverage-grid")).toContainText(/Schedule/i);
   await expect(page.locator(".coverage-grid")).toContainText(/Rank signal/i);
   await expect(page.getByLabel("Match intelligence score")).toContainText(/Intelligence score/i);
+  await expect(page.getByLabel("Match data evidence")).toContainText(/Match data evidence/i);
+  await expect(page.getByLabel("Match data evidence")).toContainText(/production signals/i);
+  await expect(page.getByLabel("Match data evidence")).toContainText(/Next action/i);
   await expect(page.getByLabel("Intelligence action plan")).toContainText(/Action plan/i);
   await expect(page.locator(".intel-notes")).toContainText(/Ranking/i);
   await expect(page.locator(".intel-notes")).toContainText(/2026-06-11/i);

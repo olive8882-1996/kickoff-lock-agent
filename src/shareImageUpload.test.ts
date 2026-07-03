@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   missingShareImageUploadEnv,
+  productionShareImageUploadTarget,
   supabasePublicShareImageUrl,
   supabaseShareImageStoragePath,
   supabaseStorageUploadUrl,
@@ -41,6 +42,40 @@ describe("Supabase share image upload", () => {
       "VITE_SUPABASE_URL",
       "SUPABASE_SERVICE_ROLE_KEY",
     ]);
+  });
+
+  it("derives production upload targets from seed and verify env", () => {
+    expect(
+      productionShareImageUploadTarget(
+        {
+          KICKOFF_VERIFY_USER_ID: "user-verify",
+          KICKOFF_SEED_USER_ID: "user-seed",
+          KICKOFF_VERIFY_PROOF_ID: "cap-verify",
+          KICKOFF_SEED_PROOF_ID: "cap-seed",
+        },
+        { fileName: "card.png" },
+      ),
+    ).toMatchObject({
+      profileId: "user-seed",
+      artifactId: "cap-seed",
+      kind: "record",
+      fileName: "card.png",
+      imageMime: "image/png",
+    });
+
+    expect(
+      productionShareImageUploadTarget(
+        {
+          KICKOFF_VERIFY_USER_ID: "user-verify",
+          KICKOFF_VERIFY_MODE_ID: "mode-verify",
+        },
+        { fileName: "mode.png", kind: "mode" },
+      ),
+    ).toMatchObject({
+      profileId: "user-verify",
+      artifactId: "mode-verify",
+      kind: "mode",
+    });
   });
 
   it("uploads a PNG with service-role auth and verifies public read-back", async () => {

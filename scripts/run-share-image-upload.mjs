@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import { parseEnvText } from "../src/productionEvidence.ts";
-import { uploadSupabaseShareImage } from "../src/shareImageUpload.ts";
+import { productionShareImageUploadTarget, uploadSupabaseShareImage } from "../src/shareImageUpload.ts";
 
 const envFiles = [".env.example", ".env", ".env.local", ".env.production", ".env.production.local"];
 const defaultFile = "public/generated/kickoff-production-share.png";
@@ -29,21 +29,12 @@ const json = process.argv.includes("--json");
 const filePath = resolve(argValue("file") || defaultFile);
 const bytes = await readFile(filePath);
 const { env, loaded } = await loadEnv();
-const target = {
-  profileId:
-    argValue("profile-id") ||
-    env.KICKOFF_SEED_USER_ID ||
-    env.KICKOFF_VERIFY_USER_ID ||
-    "kickoff-production-seed",
+const target = productionShareImageUploadTarget(env, {
+  profileId: argValue("profile-id"),
+  artifactId: argValue("artifact-id"),
   kind: argValue("kind") === "mode" ? "mode" : "record",
-  artifactId:
-    argValue("artifact-id") ||
-    env.KICKOFF_SEED_PROOF_ID ||
-    env.KICKOFF_VERIFY_PROOF_ID ||
-    "production-target",
   fileName: argValue("name") || basename(filePath),
-  imageMime: "image/png",
-};
+});
 const report = await uploadSupabaseShareImage(env, target, new Uint8Array(bytes));
 
 if (json) {

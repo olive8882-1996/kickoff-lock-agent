@@ -20,6 +20,13 @@ export type ShareImageUploadResult = {
   publicReadBack: boolean;
 };
 
+export type ProductionShareImageUploadTargetOptions = {
+  fileName: string;
+  kind?: ShareImageUploadTarget["kind"];
+  profileId?: string;
+  artifactId?: string;
+};
+
 export type ShareImageUploadReport = {
   ready: boolean;
   missing: string[];
@@ -55,6 +62,31 @@ export const supabaseShareImageStoragePath = (target: ShareImageUploadTarget) =>
     storagePathPart(target.artifactId),
     storagePathPart(target.fileName),
   ].join("/");
+
+export const productionShareImageUploadTarget = (
+  values: ShareImageUploadEnv,
+  {
+    fileName,
+    kind = "record",
+    profileId,
+    artifactId,
+  }: ProductionShareImageUploadTargetOptions,
+): ShareImageUploadTarget => ({
+  profileId:
+    profileId ||
+    env(values, "KICKOFF_SEED_USER_ID") ||
+    env(values, "KICKOFF_VERIFY_USER_ID") ||
+    "kickoff-production-seed",
+  kind,
+  artifactId:
+    artifactId ||
+    (kind === "mode"
+      ? env(values, "KICKOFF_SEED_MODE_ID") || env(values, "KICKOFF_VERIFY_MODE_ID")
+      : env(values, "KICKOFF_SEED_PROOF_ID") || env(values, "KICKOFF_VERIFY_PROOF_ID")) ||
+    "production-target",
+  fileName,
+  imageMime: "image/png",
+});
 
 export const supabaseStorageUploadUrl = (values: ShareImageUploadEnv, path: string) =>
   `${baseUrl(values)}/storage/v1/object/${encodeURIComponent(shareBucket(values))}/${path

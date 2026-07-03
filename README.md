@@ -11,6 +11,7 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 - Inspect a Filecoin seal evidence packet for every one-click seal run: CID, upload hash, byte length, polling attempts, registry hash match, backend production blockers and copyable verification text.
 - Get an explainable score and a generated 1200x675 social proof image with stadium artwork, CID, hash, proof status, and public verifier URL.
 - Keep share-card acceptance evidence for generated proof cards, generated mode cards, public proof URLs, public image URLs that read back, PNG manifest hashes, byte sizes, and opened X/native share channels.
+- Publish all missing prediction and mode proof cards from Account in one pass; each card is generated, uploaded when Supabase is signed in, and written back as share-card manifest evidence.
 - Use public proof scorecards on prediction and mode proof pages to show lock timing, payload hash, Filecoin proof state, result/mode state, deployed URL readiness and share-card manifest readiness in one judging view.
 - Keep every revealed call in a tournament memory dashboard.
 - Sign in with Supabase Google OAuth or magic links to sync profile, prediction history, public proof links, and global/friend/season leaderboards.
@@ -143,6 +144,7 @@ Key files:
 - `src/bracket.ts`: knockout path builder, bracket readiness rules, and bracket proof run sealing.
 - `src/modes.ts`: bracket/parlay/agent/upset mode proof runs, including parlay tickets, agent calibration reports and upset bonus tickets.
 - `src/modeEvidence.ts`: four-mode production evidence packets for Filecoin, cloud read-back, public mode links and share cards.
+- `src/sharePublishing.ts`: batch share-card publish queue for records and mode proofs that still need production public image URLs.
 - `src/productionLaunchPacket.ts`: copyable production launch workstreams derived from the operator doctor.
 - `src/readiness.ts`: production acceptance radar for real account sync, live data, Filecoin sealing, sharing, leaderboards, modes, and automated tests.
 - `src/acceptance.ts`: explicit acceptance test manifest and run-evidence summary covering scoring, proof hashes, cloud read-back, providers, share cards, Filecoin API, modes, browser E2E and seal E2E.

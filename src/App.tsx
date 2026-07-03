@@ -139,7 +139,9 @@ import {
   generateModeShareCard,
   generateShareCard,
   isPublishableShareArtifact,
+  isProductionShareArtifact,
 } from "./shareCard";
+import { buildSharePublishQueue } from "./sharePublishing";
 import type {
   AppView,
   BracketPath,
@@ -1313,6 +1315,32 @@ function App() {
     setNotice("Mode proof share image generated.");
   };
 
+  const publishMissingShareCards = async () => {
+    const queue = buildSharePublishQueue(records, modeRuns, shareEvidence);
+    const recordTargetIds = new Set(queue.items.filter((item) => item.kind === "record").map((item) => item.id));
+    const modeTargetIds = new Set(queue.items.filter((item) => item.kind === "mode").map((item) => item.id));
+    const recordTargets = records.filter((record) => recordTargetIds.has(record.capsule.id));
+    const modeTargets = modeRuns.filter((run) => modeTargetIds.has(run.id));
+    const total = queue.missingProduction;
+    if (total === 0) {
+      setNotice("All proof cards already have production share evidence.");
+      return;
+    }
+    setNotice(`Publishing ${total} missing proof card${total === 1 ? "" : "s"}...`);
+    for (const record of recordTargets) {
+      await generateShareImageForRecord(record);
+    }
+    for (const run of modeTargets) {
+      await generateShareImageForModeRun(run);
+    }
+    const cloud = getCloudState();
+    setNotice(
+      cloud.configured && cloud.authenticated
+        ? `Generated and queued ${total} proof card${total === 1 ? "" : "s"} for Supabase upload/read-back.`
+        : `Generated ${total} proof card${total === 1 ? "" : "s"} locally. Sign in with Supabase to publish public image URLs.`,
+    );
+  };
+
   const shareRecordToTwitter = async (record: MemoryRecord) => {
     const publicUrl = proofUrl(record.capsule.id);
     const text = buildProofShareText(record, publicUrl);
@@ -2003,6 +2031,7 @@ function App() {
           onSignOut={signOut}
           onOpenProfile={openPublicProfile}
           onCopyProfileLink={() => copyProfileLink()}
+          onPublishMissingShareCards={publishMissingShareCards}
         />
       )}
       {utilityPanel && (
@@ -3912,6 +3941,7 @@ function AccountDashboard({
   onSignOut,
   onOpenProfile,
   onCopyProfileLink,
+  onPublishMissingShareCards,
 }: {
   profile: ReturnType<typeof loadProfile>;
   cloudState: CloudSyncState;
@@ -3943,6 +3973,7 @@ function AccountDashboard({
   onSignOut: () => void;
   onOpenProfile: () => void;
   onCopyProfileLink: () => void;
+  onPublishMissingShareCards: () => void;
 }) {
   const syncCoverage = buildCloudSyncCoverage(cloudState, records, modeRuns, shareEvidence);
   const syncAudit = buildCloudSyncAudit(cloudState, profile, records, modeRuns, leaderboardEntries, shareEvidence);
@@ -4203,7 +4234,12 @@ function AccountDashboard({
           <ProductionEvidencePanel evidence={productionEvidence} status={productionEvidenceStatus} />
           <CloudReadbackLedger verification={verification} records={records} modeRuns={modeRuns} shareEvidence={shareEvidence} />
           <LeaderboardEvidencePanel evidence={leaderboardScopeEvidence} />
-          <ShareArtifactLedger records={records} modeRuns={modeRuns} evidence={shareEvidence} />
+          <ShareArtifactLedger
+            records={records}
+            modeRuns={modeRuns}
+            evidence={shareEvidence}
+            onPublishMissing={onPublishMissingShareCards}
+          />
           <label>
             <span>Magic link email</span>
             <input value={email} onChange={(event) => onEmail(event.target.value)} />
@@ -4668,10 +4704,12 @@ function ShareArtifactLedger({
   records,
   modeRuns,
   evidence,
+  onPublishMissing,
 }: {
   records: MemoryRecord[];
   modeRuns: GameModeRun[];
   evidence: ShareArtifactEvidence[];
+  onPublishMissing: () => void;
 }) {
   const artifactFor = (id: string, kind: ShareArtifactEvidence["kind"]) =>
     evidence.find((item) => item.id === id && item.kind === kind);
@@ -4692,6 +4730,7 @@ function ShareArtifactLedger({
     })),
   ];
   const publishable = rows.filter((row) => isPublishableShareArtifact(row.evidence)).length;
+  const queue = buildSharePublishQueue(records, modeRuns, evidence);
   return (
     <div className="share-artifact-ledger" aria-label="Share artifact ledger">
       <div className="panel-head">
@@ -4699,7 +4738,13 @@ function ShareArtifactLedger({
           <p className="eyebrow">Share artifacts</p>
           <h3>Publishable proof cards</h3>
         </div>
-        <span className="pill">{publishable}/{rows.length}</span>
+        <span className="pill">{queue.productionReady}/{rows.length} production</span>
+      </div>
+      <div className="share-ledger-actions">
+        <button disabled={rows.length === 0 || queue.missingProduction === 0} onClick={onPublishMissing}>
+          <ImageDown size={16} /> Publish missing cards
+        </button>
+        <span>{publishable}/{rows.length} PNG manifests · {queue.missingProduction} need public image URL evidence</span>
       </div>
       {rows.length === 0 ? (
         <article>
@@ -4712,13 +4757,14 @@ function ShareArtifactLedger({
       ) : (
         rows.map((row) => {
           const ready = isPublishableShareArtifact(row.evidence);
+          const production = isProductionShareArtifact(row.evidence);
           const channel = row.evidence?.nativeShareOpenedAt ? "native share" : row.evidence?.xIntentOpenedAt ? "X intent" : "not opened";
           return (
-            <article key={`${row.kind}-${row.id}`} className={ready ? "passed" : ""}>
+            <article key={`${row.kind}-${row.id}`} className={production ? "passed" : ready ? "partial" : ""}>
               <div>
                 <ImageDown size={16} />
                 <strong>{row.label}</strong>
-                <span>{row.kind}</span>
+                <span>{production ? "production" : ready ? "local manifest" : row.kind}</span>
               </div>
               <small>Card: {ready ? `${row.evidence?.fileName} · ${Math.round((row.evidence?.imageByteLength ?? 0) / 1024)} KB` : "missing publishable PNG manifest"}</small>
               <small>Hash: {row.evidence?.imageHash ? `${row.evidence.imageHash.slice(0, 16)}...` : "none"}</small>

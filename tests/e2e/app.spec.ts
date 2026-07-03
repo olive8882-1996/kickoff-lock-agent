@@ -72,6 +72,7 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Production launch packet")).toContainText(/doctor:production/i);
   await expect(page.getByLabel("Leaderboard query evidence")).toContainText(/Leaderboard scope read-back/i);
   await expect(page.getByLabel("Share artifact ledger")).toContainText(/Publishable proof cards/i);
+  await expect(page.getByRole("button", { name: /Publish missing cards/i })).toBeVisible();
   await expect(page.getByLabel("Production acceptance")).toContainText(/真实成品验收雷达/i);
   await expect(page.getByLabel("Production acceptance")).toContainText(/真实账号系统/i);
   await expect(page.getByLabel("Production acceptance")).toContainText(/真实 Filecoin 自动封存/i);
@@ -205,6 +206,7 @@ test("expanded product workflow is usable", async ({ page }) => {
 
   await mainNav.getByRole("button", { name: "Account" }).click();
   await expect(page.getByLabel("Share artifact ledger")).toContainText(/Publishable proof cards/i);
+  await expect(page.getByRole("button", { name: /Publish missing cards/i })).toBeVisible();
   await expect(page.getByLabel("Share artifact ledger")).toContainText(/KB/i);
   await expect(page.getByLabel("Share artifact ledger")).toContainText(/Hash:/i);
   await expect(page.getByLabel("Share artifact ledger")).toContainText(/not publicly hosted/i);

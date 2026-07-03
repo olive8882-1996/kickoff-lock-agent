@@ -3480,6 +3480,42 @@ pre {
   margin-bottom: 0;
 }
 
+.share-ledger-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(238, 247, 243, 0.1);
+  background: rgba(3, 8, 10, 0.28);
+}
+
+.share-ledger-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(241, 201, 77, 0.28);
+  border-radius: 4px;
+  background: rgba(241, 201, 77, 0.1);
+  color: #f1c94d;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.share-ledger-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.54;
+}
+
+.share-ledger-actions span {
+  min-width: 0;
+}
+
 .share-artifact-ledger article {
   display: grid;
   gap: 7px;
@@ -3487,6 +3523,11 @@ pre {
   padding: 10px;
   border: 1px solid rgba(255, 77, 64, 0.2);
   background: rgba(255, 77, 64, 0.055);
+}
+
+.share-artifact-ledger article.partial {
+  border-color: rgba(241, 201, 77, 0.22);
+  background: rgba(241, 201, 77, 0.055);
 }
 
 .share-artifact-ledger article.passed {
@@ -3507,6 +3548,10 @@ pre {
 
 .share-artifact-ledger article.passed svg {
   color: #d8ffd9;
+}
+
+.share-artifact-ledger article.partial svg {
+  color: #f1c94d;
 }
 
 .share-artifact-ledger strong {
@@ -4718,6 +4763,7 @@ pre {
   .production-evidence-grid,
   .production-evidence-grid article > div,
   .readback-ledger article > div,
+  .share-ledger-actions,
   .seal-checklist div,
   .seal-evidence-head,
   .seal-evidence-grid,
@@ -4777,6 +4823,7 @@ pre {
   .versus,
   .public-profile-hero,
   .public-profile-identity,
+  .share-ledger-actions,
   .bracket-footer,
   .production-target-actions,
   .actions {

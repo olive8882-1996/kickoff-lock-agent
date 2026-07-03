@@ -1,13 +1,26 @@
 import { spawn } from "node:child_process";
 import { get } from "node:http";
-
-const previewUrl = "http://127.0.0.1:4173/kickoff-lock-agent/";
+import { createServer } from "node:net";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const ping = () =>
+const findOpenPort = (startPort) =>
+  new Promise((resolve, reject) => {
+    const server = createServer();
+    server.unref();
+    server.on("error", (error) => {
+      if (error.code === "EADDRINUSE") resolve(findOpenPort(startPort + 1));
+      else reject(error);
+    });
+    server.listen(startPort, "127.0.0.1", () => {
+      const address = server.address();
+      server.close(() => resolve(address.port));
+    });
+  });
+
+const ping = (url) =>
   new Promise((resolve) => {
-    const req = get(previewUrl, (res) => {
+    const req = get(url, (res) => {
       res.resume();
       resolve(res.statusCode >= 200 && res.statusCode < 500);
     });
@@ -18,10 +31,10 @@ const ping = () =>
     });
   });
 
-const waitForPreview = async () => {
+const waitForPreview = async (previewUrl) => {
   const started = Date.now();
   while (Date.now() - started < 30_000) {
-    if (await ping()) return;
+    if (await ping(previewUrl)) return;
     await sleep(500);
   }
   throw new Error(`Preview did not become ready at ${previewUrl}`);
@@ -45,11 +58,15 @@ let preview;
 
 try {
   await run("bun", ["run", "build"]);
-  preview = spawn("bunx", ["vite", "preview", "--host", "127.0.0.1", "--port", "4173"], {
+  const previewPort = await findOpenPort(4173);
+  const previewUrl = `http://127.0.0.1:${previewPort}/kickoff-lock-agent/`;
+  const env = { ...process.env, E2E_BASE_URL: previewUrl };
+  preview = spawn("bunx", ["vite", "preview", "--host", "127.0.0.1", "--port", String(previewPort), "--strictPort"], {
+    env,
     stdio: "inherit",
   });
-  await waitForPreview();
-  await run("bunx", ["playwright", "test"]);
+  await waitForPreview(previewUrl);
+  await run("bunx", ["playwright", "test"], { env });
 } finally {
   preview?.kill("SIGTERM");
 }

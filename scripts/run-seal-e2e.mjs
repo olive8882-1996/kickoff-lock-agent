@@ -1,10 +1,22 @@
 import { spawn } from "node:child_process";
 import { get } from "node:http";
-
-const appUrl = "http://127.0.0.1:4174/kickoff-lock-agent/";
-const sealHealthUrl = "http://127.0.0.1:8788/health";
+import { createServer } from "node:net";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const findOpenPort = (startPort) =>
+  new Promise((resolve, reject) => {
+    const server = createServer();
+    server.unref();
+    server.on("error", (error) => {
+      if (error.code === "EADDRINUSE") resolve(findOpenPort(startPort + 1));
+      else reject(error);
+    });
+    server.listen(startPort, "127.0.0.1", () => {
+      const address = server.address();
+      server.close(() => resolve(address.port));
+    });
+  });
 
 const ping = (url) =>
   new Promise((resolve) => {
@@ -42,26 +54,30 @@ const run = (command, args, options = {}) =>
     child.on("error", reject);
   });
 
-const env = {
-  ...process.env,
-  FILECOIN_SEAL_MOCK: "1",
-  PORT: "8788",
-  VITE_FILECOIN_SEAL_API: "http://127.0.0.1:8788/seal",
-  E2E_BASE_URL: appUrl,
-  E2E_TEST_MATCH: "seal.spec.ts",
-};
-
-const sealApi = spawn("bun", ["server/filecoin-seal-api.mjs"], {
-  env,
-  stdio: "inherit",
-});
-
+let sealApi;
 let preview;
 
 try {
+  const appPort = await findOpenPort(4174);
+  const sealPort = await findOpenPort(8788);
+  const appUrl = `http://127.0.0.1:${appPort}/kickoff-lock-agent/`;
+  const sealHealthUrl = `http://127.0.0.1:${sealPort}/health`;
+  const env = {
+    ...process.env,
+    FILECOIN_SEAL_MOCK: "1",
+    PORT: String(sealPort),
+    VITE_FILECOIN_SEAL_API: `http://127.0.0.1:${sealPort}/seal`,
+    E2E_BASE_URL: appUrl,
+    E2E_TEST_MATCH: "seal.spec.ts",
+  };
+
+  sealApi = spawn("bun", ["server/filecoin-seal-api.mjs"], {
+    env,
+    stdio: "inherit",
+  });
   await waitFor(sealHealthUrl, "Mock Filecoin seal API");
   await run("bun", ["run", "build"], { env });
-  preview = spawn("bunx", ["vite", "preview", "--host", "127.0.0.1", "--port", "4174"], {
+  preview = spawn("bunx", ["vite", "preview", "--host", "127.0.0.1", "--port", String(appPort), "--strictPort"], {
     env,
     stdio: "inherit",
   });

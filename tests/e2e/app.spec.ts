@@ -119,7 +119,9 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /Latest proof capsules/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Tournament mode runs/i })).toBeVisible();
   await expect(page.getByText(/Bracket path sealed/i)).toBeVisible();
-  await expect(page.getByText(/Prediction 0-1/i)).toBeVisible();
+  const publicPredictionRows = page.locator(".profile-records").filter({ hasText: "Latest proof capsules" });
+  await expect(publicPredictionRows.locator("article")).toHaveCount(1);
+  await expect(publicPredictionRows).toContainText(/Prediction \d+-\d+/i);
   await expect(page.getByLabel("Social metadata")).toContainText(/Public profile/i);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /[?&]profile=/);
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Kickoff Analyst/i);

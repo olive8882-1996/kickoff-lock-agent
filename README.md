@@ -32,7 +32,8 @@ Kickoff Lock Agent turns World Cup predictions into verifiable Filecoin-backed m
 - Browser favicon: `public/assets/kickoff-lock-icon-32.png`
 - PWA icon set: `public/assets/kickoff-lock-icon-192.png` and `public/assets/kickoff-lock-icon-512.png`
 - Apple touch icon: `public/assets/kickoff-lock-apple-touch.png`
-- The generated trophy-lock logo is used in the hero lockup, public proof masthead, share-card renderer, browser favicon, Open Graph/Twitter preview image, and PWA manifest.
+- Production share image: `public/generated/kickoff-production-share.png`
+- The generated trophy-lock logo is used in the hero lockup, public proof masthead, share-card renderer, production share image generator, browser favicon, Open Graph/Twitter preview image, and PWA manifest.
 
 ## Data Strategy
 
@@ -164,6 +165,7 @@ bun run doctor:filecoin
 bun run doctor:data
 bun run doctor:sharing
 bun run scout:data-targets
+bun run share:production-image
 bun run seed:production-targets --dry-run
 bun run seal:production-targets --dry-run
 bun run deploy:pages
@@ -179,6 +181,7 @@ The Account view also includes a "Production environment gates" panel. It checks
 `bun run doctor:data` is the focused realtime-data drill-down. It checks free schedule continuity through TheSportsDB or ESPN, API-Football key and `KICKOFF_VERIFY_FIXTURE_ID`, live rows from API-Football lineups, injuries and odds endpoints, odds provider configuration, and optional The Odds API H2H read-back. Empty endpoint responses stay failed, so configured keys alone cannot satisfy live-data acceptance.
 `bun run doctor:sharing` is the focused public sharing drill-down. It renders the deployed profile, prediction proof and mode proof URLs with Playwright, then checks canonical links, required visible proof content, forbidden fallback states, Open Graph/Twitter metadata, JSON-LD and a public share-card image URL. It exits non-zero until `VITE_PUBLIC_APP_URL`, `KICKOFF_VERIFY_PROFILE_ID`, `KICKOFF_VERIFY_PROOF_ID`, `KICKOFF_VERIFY_MODE_ID` and `KICKOFF_VERIFY_SHARE_IMAGE_URL` point at real deployed artifacts.
 `bun run scout:data-targets` uses `VITE_APIFOOTBALL_KEY` to scan API-Football World Cup fixtures, check each candidate's lineups, injuries and odds endpoints, and print the best `KICKOFF_VERIFY_FIXTURE_ID` for `bun run doctor:data`. Override the scan with `KICKOFF_DATA_SCOUT_LEAGUE_ID`, `KICKOFF_DATA_SCOUT_SEASON`, `KICKOFF_DATA_SCOUT_NEXT` and `KICKOFF_DATA_SCOUT_LIMIT` when API-Football changes competition IDs or you need to search deeper.
+`bun run share:production-image` renders a 1200x675 PNG at `public/generated/kickoff-production-share.png` with the project trophy-lock logo, match pick, score, CID/hash snippets and public verifier URL. After `bun run deploy:pages`, use the printed `KICKOFF_SEED_SHARE_IMAGE_URL` and `KICKOFF_VERIFY_SHARE_IMAGE_URL` for production seed and sharing doctors.
 `bun run seed:production-targets --dry-run` builds the Supabase production acceptance target rows without writing them: one public profile, one prediction proof row, one mode proof row, record/mode share artifact manifests and a ready-to-copy `KICKOFF_VERIFY_*` block. Remove `--dry-run` only after `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` and `KICKOFF_SEED_SHARE_IMAGE_URL` point at a real project and public generated share-card image; the script then upserts those rows with the service role key and runs the Supabase doctor read-back.
 `bun run seal:production-targets --dry-run` builds the exact record and mode proof JSON payloads that the seal API accepts, computes their upload payload hashes, and prints the Filecoin `KICKOFF_VERIFY_*` values. Remove `--dry-run` only after a production seal API is reachable at `VITE_FILECOIN_SEAL_API` with `VITE_FILECOIN_SEAL_TOKEN`; the script then posts both payloads to `/seal`, reads `/verify?cid=` and `/proof/:cid` back, and prints the resulting record/mode CIDs plus payload hashes for `bun run doctor:filecoin`.
 `docs/deploy-pages.workflow.yml` is a ready-to-install GitHub Actions workflow for the same evidence pipeline. It publishes once after `bun run verify:acceptance`, waits for Pages propagation, runs `KICKOFF_VERIFY_ALLOW_FAILURES=1 bun run verify:production`, then publishes again so the deployed app includes both fresh acceptance evidence and the latest production evidence packet. The file is kept under `docs/` because pushing a live `.github/workflows` file requires a GitHub token with `workflow` scope. Locally, `bun run deploy:pages` uses the same `scripts/deploy-gh-pages.mjs` sync path.

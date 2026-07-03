@@ -13,6 +13,7 @@
     "verify:production": "bun scripts/run-production-evidence.mjs",
     "doctor:production": "bun scripts/run-production-doctor.mjs",
     "doctor:supabase": "bun scripts/run-supabase-production-doctor.mjs",
+    "doctor:filecoin": "bun scripts/run-filecoin-production-doctor.mjs",
     "deploy:pages": "bun scripts/deploy-gh-pages.mjs",
     "pages:rebuild": "bun scripts/request-pages-build.mjs",
     "test:watch": "vitest",

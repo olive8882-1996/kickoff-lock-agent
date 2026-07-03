@@ -75,9 +75,9 @@ export const ACCEPTANCE_TEST_SUITES: AcceptanceTestSuite[] = [
     id: "filecoin-api",
     label: "Filecoin API contract",
     command: "bun run test",
-    file: "src/filecoinSeal.test.ts, src/filecoinSealApi.test.ts",
+    file: "src/filecoinSeal.test.ts, src/filecoinSealApi.test.ts, src/filecoinProductionDoctor.test.ts",
     coverage: ["filecoin-api"],
-    proves: "seal API health, prediction and mode proof upload payload hash matching, CID lookup and proof registry behavior",
+    proves: "seal API health, prediction and mode proof upload payload hash matching, CID lookup, proof registry behavior, production Filecoin doctor health/CID/hash/read-back checks and optional POST /seal smoke testing",
   },
   {
     id: "game-modes",

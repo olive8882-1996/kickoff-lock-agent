@@ -88,6 +88,10 @@ import { buildModeEvidencePacket, type ModeEvidencePacket } from "./modeEvidence
 import { buildModeSettlementPacket, type ModeSettlementPacket } from "./modeSettlement";
 import { createGameModeRun, getModeReadiness } from "./modes";
 import { buildMatchDataEvidencePacket, type MatchDataEvidencePacket } from "./matchDataEvidence";
+import {
+  buildMatchIntelligenceProvenancePacket,
+  type MatchIntelligenceProvenancePacket,
+} from "./matchIntelligenceProvenance";
 import { applyRealProof, applyVerifiedProof, createCapsule, stableJson } from "./proof";
 import {
   applyPublicProofMeta,
@@ -2262,6 +2266,7 @@ function MatchIntelligence({ match, onEnrich }: { match: Match; onEnrich: () => 
   const dataCoverage = insights?.dataCoverage ?? buildDataCoverage(match);
   const intelScore = buildMatchIntelligenceScore(match);
   const evidencePacket = buildMatchDataEvidencePacket(match);
+  const provenancePacket = buildMatchIntelligenceProvenancePacket(match);
   return (
     <div className="intel-panel">
       <div className="intel-head">
@@ -2299,6 +2304,7 @@ function MatchIntelligence({ match, onEnrich }: { match: Match; onEnrich: () => 
         ))}
       </div>
       <MatchDataEvidenceCard packet={evidencePacket} />
+      <MatchIntelligenceProvenanceCard packet={provenancePacket} />
       {insights ? (
         <>
           <div className="intel-grid">
@@ -2336,6 +2342,58 @@ function MatchIntelligence({ match, onEnrich }: { match: Match; onEnrich: () => 
         <p className="coverage-note">This provider gives enough metadata to lock a capsule, but lineup, injury and odds feeds need configured enrichment.</p>
       )}
     </div>
+  );
+}
+
+function MatchIntelligenceProvenanceCard({ packet }: { packet: MatchIntelligenceProvenancePacket }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPacket = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <section className={`match-provenance ${packet.productionReady ? "passed" : ""}`} aria-label="Match intelligence provenance">
+      <div className="match-provenance-head">
+        <div>
+          <strong>Endpoint provenance</strong>
+          <span>{packet.readySignals}/{packet.totalSignals} auditable signals</span>
+        </div>
+        <button onClick={copyPacket}>
+          <Link2 size={15} /> {copyStatus === "copied" ? "Copied provenance" : copyStatus === "manual" ? "Provenance text shown" : "Copy provenance"}
+        </button>
+      </div>
+      <p>{packet.summary}</p>
+      <div className="match-provenance-facts">
+        <span>{packet.provider}</span>
+        <span>{packet.providerId}</span>
+        <span>{packet.liveEndpoints} live endpoints</span>
+      </div>
+      <small>Next action: {packet.nextAction}</small>
+      {copyStatus === "manual" && (
+        <label className="match-provenance-copy">
+          <span>Manual provenance copy</span>
+          <textarea
+            aria-label="Manual provenance copy"
+            readOnly
+            value={packet.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="match-provenance-grid">
+        {packet.items.map((item) => (
+          <article key={item.key} className={item.productionReady ? "ready" : "gap"}>
+            <div>
+              <strong>{item.label}</strong>
+              <span>{item.status}</span>
+            </div>
+            <code>{item.endpoint}</code>
+            <small>{item.source} · {item.detail}</small>
+            <small>Sample: {item.sample}</small>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 

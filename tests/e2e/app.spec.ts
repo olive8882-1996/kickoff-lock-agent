@@ -119,6 +119,10 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Match data evidence")).toContainText(/Match data evidence/i);
   await expect(page.getByLabel("Match data evidence")).toContainText(/production signals/i);
   await expect(page.getByLabel("Match data evidence")).toContainText(/Next action/i);
+  await expect(page.getByLabel("Match intelligence provenance")).toContainText(/Endpoint provenance/i);
+  await expect(page.getByLabel("Match intelligence provenance")).toContainText(/auditable signals/i);
+  await expect(page.getByLabel("Match intelligence provenance")).toContainText(/live endpoints/i);
+  await expect(page.getByRole("button", { name: /Copy provenance/i })).toBeVisible();
   await expect(page.getByLabel("Intelligence action plan")).toContainText(/Action plan/i);
   await expect(page.locator(".intel-notes")).toContainText(/Ranking/i);
   await expect(page.locator(".intel-notes")).toContainText(/2026-06-11/i);

@@ -82,6 +82,10 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Production launch packet")).toContainText(/Next action/i);
   await expect(page.getByRole("button", { name: /Copy launch packet/i })).toBeVisible();
   await expect(page.getByLabel("Production launch packet")).toContainText(/doctor:production/i);
+  await expect(page.getByLabel("Filecoin automation evidence")).toContainText(/One-click seal evidence/i);
+  await expect(page.getByLabel("Filecoin automation evidence")).toContainText(/Prediction seal lane/i);
+  await expect(page.getByLabel("Filecoin automation evidence")).toContainText(/Mode proof seal lane/i);
+  await expect(page.getByRole("button", { name: /Copy automation/i })).toBeVisible();
   await expect(page.getByLabel("Realtime production data packet")).toContainText(/Production data packet/i);
   await expect(page.getByLabel("Realtime production data packet")).toContainText(/Signals/i);
   await expect(page.getByRole("button", { name: /Copy data packet/i })).toBeVisible();

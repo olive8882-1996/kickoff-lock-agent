@@ -3349,6 +3349,125 @@ pre {
   resize: vertical;
 }
 
+.filecoin-automation-evidence {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid rgba(34, 185, 255, 0.2);
+  background:
+    linear-gradient(135deg, rgba(34, 185, 255, 0.08), rgba(77, 217, 137, 0.045)),
+    rgba(3, 8, 10, 0.34);
+}
+
+.filecoin-automation-evidence.ready {
+  border-color: rgba(77, 217, 137, 0.3);
+  background:
+    linear-gradient(135deg, rgba(77, 217, 137, 0.08), rgba(34, 185, 255, 0.045)),
+    rgba(3, 8, 10, 0.34);
+}
+
+.filecoin-automation-evidence .panel-head {
+  margin-bottom: 0;
+}
+
+.filecoin-automation-evidence .panel-head button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(34, 185, 255, 0.3);
+  border-radius: 4px;
+  background: rgba(34, 185, 255, 0.1);
+  color: #9bdfff;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.filecoin-automation-summary,
+.filecoin-automation-checks,
+.filecoin-automation-lanes {
+  display: grid;
+  gap: 8px;
+}
+
+.filecoin-automation-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.filecoin-automation-summary div,
+.filecoin-automation-checks article,
+.filecoin-automation-lanes article {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(238, 247, 243, 0.1);
+  background: rgba(3, 8, 10, 0.34);
+}
+
+.filecoin-automation-summary div {
+  display: grid;
+  gap: 5px;
+  align-content: center;
+}
+
+.filecoin-automation-summary span,
+.filecoin-automation-summary strong {
+  display: block;
+}
+
+.filecoin-automation-checks {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.filecoin-automation-lanes {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.filecoin-automation-checks article,
+.filecoin-automation-lanes article {
+  display: grid;
+  gap: 6px;
+  border-color: rgba(255, 91, 78, 0.2);
+  background: rgba(255, 91, 78, 0.05);
+}
+
+.filecoin-automation-checks article.passed,
+.filecoin-automation-lanes article.lane-verified {
+  border-color: rgba(77, 217, 137, 0.24);
+  background: rgba(77, 217, 137, 0.06);
+}
+
+.filecoin-automation-lanes article.lane-partial {
+  border-color: rgba(241, 201, 77, 0.24);
+  background: rgba(241, 201, 77, 0.06);
+}
+
+.filecoin-automation-checks article > div,
+.filecoin-automation-lanes article > div {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.filecoin-automation-checks article > div span,
+.filecoin-automation-lanes article > div span {
+  grid-column: 1 / -1;
+  color: rgba(238, 247, 243, 0.62);
+  font-size: 0.68rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.filecoin-automation-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.filecoin-automation-copy textarea {
+  min-height: 130px;
+  resize: vertical;
+}
+
 .production-launch-packet,
 .realtime-data-evidence-packet,
 .intelligence-enrichment-packet,
@@ -3507,6 +3626,9 @@ pre {
 .brand-asset-packet span,
 .brand-asset-packet small,
 .brand-asset-packet p,
+.filecoin-automation-evidence span,
+.filecoin-automation-evidence small,
+.filecoin-automation-evidence p,
 .realtime-data-evidence-packet span,
 .realtime-data-evidence-packet small,
 .realtime-data-evidence-packet p,
@@ -3527,6 +3649,7 @@ pre {
 
 .production-launch-packet span,
 .brand-asset-packet span,
+.filecoin-automation-evidence span,
 .realtime-data-evidence-packet span,
 .intelligence-enrichment-packet span,
 .data-continuity-evidence span {
@@ -3536,6 +3659,7 @@ pre {
 
 .production-launch-packet strong,
 .brand-asset-packet strong,
+.filecoin-automation-evidence strong,
 .realtime-data-evidence-packet strong,
 .intelligence-enrichment-packet strong,
 .data-continuity-evidence strong {
@@ -5699,6 +5823,11 @@ pre {
   .brand-asset-grid,
   .brand-usage-grid,
   .brand-asset-grid article > div,
+  .filecoin-automation-summary,
+  .filecoin-automation-checks,
+  .filecoin-automation-checks article > div,
+  .filecoin-automation-lanes,
+  .filecoin-automation-lanes article > div,
   .production-doctor-grid,
   .production-doctor-grid article > div,
   .production-launch-summary,

@@ -83,6 +83,10 @@ import {
   verifyCloudSyncReadback,
 } from "./cloud";
 import { filecoinSealConfigured, lookupFilecoinProof, runModeSealJob, runSealJob, sealBackendProductionReady } from "./filecoinSeal";
+import {
+  buildFilecoinAutomationEvidencePacket,
+  type FilecoinAutomationEvidencePacket,
+} from "./filecoinAutomationEvidence";
 import { buildSealEvidencePacket, type SealEvidencePacket } from "./filecoinSealEvidence";
 import { buildLeaderboardEvidencePacket, type LeaderboardEvidencePacket } from "./leaderboardEvidence";
 import {
@@ -4552,6 +4556,7 @@ function AccountDashboard({
   );
   const productionLaunchPacket = buildProductionLaunchPacket(productionDoctor);
   const brandAssetPacket = buildBrandAssetPacket(import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin + import.meta.env.BASE_URL);
+  const filecoinAutomationEvidence = buildFilecoinAutomationEvidencePacket(records, modeRuns);
   const accountHandoff = buildAccountHandoffPacket({
     profile,
     cloudState,
@@ -4769,6 +4774,7 @@ function AccountDashboard({
           <ProfileArchiveEvidencePanel packet={profileArchiveEvidence} />
           <BrandAssetPacketPanel packet={brandAssetPacket} />
           <ProductionDoctorPanel report={productionDoctor} />
+          <FilecoinAutomationEvidencePanel packet={filecoinAutomationEvidence} />
           <RealtimeDataEvidencePacketPanel packet={realtimeDataEvidence} />
           <DataContinuityEvidencePanel packet={dataContinuityEvidence} />
           <IntelligenceEnrichmentEvidencePanel packet={intelligenceEnrichmentEvidence} />
@@ -4966,6 +4972,73 @@ function BrandAssetPacketPanel({ packet }: { packet: BrandAssetPacket }) {
               <strong>{usage.surface}</strong>
             </div>
             <small>{usage.evidence}</small>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FilecoinAutomationEvidencePanel({ packet }: { packet: FilecoinAutomationEvidencePacket }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPacket = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <div className={`filecoin-automation-evidence ${packet.ready ? "ready" : ""}`} aria-label="Filecoin automation evidence">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Filecoin automation</p>
+          <h3>One-click seal evidence</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <UploadCloud size={16} /> {copyStatus === "copied" ? "Copied automation" : "Copy automation"}
+        </button>
+      </div>
+      <div className="filecoin-automation-summary">
+        <div><span>Lanes</span><strong>{packet.lanesReady}/{packet.totalLanes}</strong></div>
+        <div><span>Registry</span><strong>{packet.registryMatches}/{packet.totalLanes}</strong></div>
+        <div><span>Backend</span><strong>{packet.productionBackends}/{packet.totalLanes}</strong></div>
+        <div><span>Polls</span><strong>{packet.pollAttempts}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Next action: {packet.nextAction}</small>
+      {copyStatus === "manual" && (
+        <label className="filecoin-automation-copy">
+          <span>Manual automation copy</span>
+          <textarea
+            aria-label="Manual automation copy"
+            readOnly
+            value={packet.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="filecoin-automation-checks">
+        {packet.checks.map((check) => (
+          <article key={check.key} className={check.passed ? "passed" : "pending"}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{check.label}</strong>
+              <span>{check.passed ? "passed" : "pending"}</span>
+            </div>
+            <small>{check.detail}</small>
+          </article>
+        ))}
+      </div>
+      <div className="filecoin-automation-lanes">
+        {packet.lanes.map((lane) => (
+          <article key={lane.kind} className={`lane-${lane.status}`}>
+            <div>
+              <UploadCloud size={16} />
+              <strong>{lane.kind === "record" ? "Prediction seal" : "Mode proof seal"}</strong>
+              <span>{lane.status}</span>
+            </div>
+            <small>Artifact: {lane.artifactId ?? "missing"}</small>
+            <small>CID: {lane.cid ?? "missing"}</small>
+            <small>Polls: {lane.pollAttempts} · Registry: {lane.registryHashMatch ? "hash match" : "pending"}</small>
+            <small>Blockers: {lane.blockers.join(", ") || "none"}</small>
           </article>
         ))}
       </div>

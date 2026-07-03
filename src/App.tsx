@@ -88,6 +88,10 @@ import {
   buildIntelligenceEnrichmentEvidencePacket,
   type IntelligenceEnrichmentEvidencePacket,
 } from "./intelligenceEnrichmentEvidence";
+import {
+  buildDataContinuityEvidencePacket,
+  type DataContinuityEvidencePacket,
+} from "./dataContinuityEvidence";
 import { buildModeEvidencePacket, type ModeEvidencePacket } from "./modeEvidence";
 import { buildModeSettlementPacket, type ModeSettlementPacket } from "./modeSettlement";
 import { createGameModeRun, getModeReadiness } from "./modes";
@@ -984,6 +988,13 @@ function App() {
     audit: providerEnrichmentAudit,
     health: providerHealth,
   });
+  const dataContinuityEvidence = buildDataContinuityEvidencePacket({
+    matches,
+    routeAudit: providerRouteAudit,
+    health: providerHealth,
+    evidence: providerEvidence,
+    responseAudit: providerResponseAudit,
+  });
   const runtimeConfigReadiness = buildRuntimeConfigReadiness(import.meta.env);
   const runtimeConfigSummary = summarizeRuntimeConfigReadiness(runtimeConfigReadiness);
   const productionReadiness = buildProductionReadiness({
@@ -1728,6 +1739,7 @@ function App() {
             ))}
           </div>
           <ProviderHealthPanel health={providerHealth} />
+          <DataContinuityEvidencePanel packet={dataContinuityEvidence} />
           {realtimeDataAudit && <RealtimeDataAuditPanel audit={realtimeDataAudit} />}
           <IntelligenceEnrichmentEvidencePanel packet={intelligenceEnrichmentEvidence} />
           <ProviderRouteAudit items={providerRouteAudit} />
@@ -2061,6 +2073,7 @@ function App() {
           runtimeConfigReadiness={runtimeConfigReadiness}
           runtimeConfigSummary={runtimeConfigSummary}
           intelligenceEnrichmentEvidence={intelligenceEnrichmentEvidence}
+          dataContinuityEvidence={dataContinuityEvidence}
           onEmail={setAccountEmail}
           onProfile={updateProfile}
           onMagicLink={requestMagicLink}
@@ -2185,6 +2198,63 @@ function ProviderHealthPanel({ health }: { health: ProviderHealthSnapshot }) {
       <small>{health.detail}</small>
       {health.missingSignals.length > 0 && <p>Missing: {health.missingSignals.join(", ")}</p>}
       <p>{health.nextAction}</p>
+    </div>
+  );
+}
+
+function DataContinuityEvidencePanel({ packet }: { packet: DataContinuityEvidencePacket }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPacket = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <div
+      className={`data-continuity-evidence ${packet.continuityReady ? "continuity-ready" : "continuity-partial"}`}
+      aria-label="Free data continuity evidence"
+    >
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Free data continuity</p>
+          <h3>Schedule and score fallback chain</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <Database size={16} /> {copyStatus === "copied" ? "Copied continuity" : copyStatus === "manual" ? "Continuity text shown" : "Copy continuity"}
+        </button>
+      </div>
+      <div className="data-continuity-summary">
+        <div><span>External</span><strong>{packet.externalMatches}</strong></div>
+        <div><span>Seed</span><strong>{packet.seedMatches}</strong></div>
+        <div><span>Schedule</span><strong>{packet.scheduleReady}/{packet.totalMatches}</strong></div>
+        <div><span>Scores</span><strong>{packet.scoreReady}/{packet.totalMatches}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Active route: {packet.activeRoute}</small>
+      <small>Next action: {packet.nextAction}</small>
+      {copyStatus === "manual" && (
+        <label className="data-continuity-copy">
+          <span>Manual continuity copy</span>
+          <textarea
+            aria-label="Manual continuity copy"
+            readOnly
+            value={packet.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="data-continuity-checks">
+        {packet.checks.map((check) => (
+          <article key={check.key} className={`continuity-${check.status}`}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{check.label}</strong>
+              <span>{check.status}</span>
+            </div>
+            <small>{check.detail}</small>
+            <p>{check.status === "passed" ? "Evidence available." : check.action}</p>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
@@ -4281,6 +4351,7 @@ function AccountDashboard({
   runtimeConfigReadiness,
   runtimeConfigSummary,
   intelligenceEnrichmentEvidence,
+  dataContinuityEvidence,
   onEmail,
   onProfile,
   onMagicLink,
@@ -4316,6 +4387,7 @@ function AccountDashboard({
   runtimeConfigReadiness: RuntimeConfigItem[];
   runtimeConfigSummary: RuntimeConfigSummary;
   intelligenceEnrichmentEvidence: IntelligenceEnrichmentEvidencePacket;
+  dataContinuityEvidence: DataContinuityEvidencePacket;
   onEmail: (value: string) => void;
   onProfile: (patch: Partial<ReturnType<typeof loadProfile>>) => void;
   onMagicLink: () => void;
@@ -4613,6 +4685,7 @@ function AccountDashboard({
           <ProfileArchiveEvidencePanel packet={profileArchiveEvidence} />
           <ProductionDoctorPanel report={productionDoctor} />
           <RealtimeDataEvidencePacketPanel packet={realtimeDataEvidence} />
+          <DataContinuityEvidencePanel packet={dataContinuityEvidence} />
           <IntelligenceEnrichmentEvidencePanel packet={intelligenceEnrichmentEvidence} />
           <ProductionLaunchPacketPanel packet={productionLaunchPacket} />
           <ProductionEvidencePanel evidence={productionEvidence} status={productionEvidenceStatus} />

@@ -13,6 +13,9 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".provider-readiness")).toContainText(/Odds/i);
   await expect(page.getByLabel("Realtime data health")).toContainText(/Realtime data health/i);
   await expect(page.getByLabel("Realtime data health")).toContainText(/signals/i);
+  await expect(page.getByLabel("Free data continuity evidence")).toContainText(/Free data continuity/i);
+  await expect(page.getByLabel("Free data continuity evidence")).toContainText(/Schedule and score fallback chain/i);
+  await expect(page.getByRole("button", { name: /Copy continuity/i })).toBeVisible();
   await expect(page.getByLabel("Realtime data evidence")).toContainText(/Realtime evidence packet/i);
   await expect(page.getByLabel("Realtime data evidence")).toContainText(/matches/i);
   await expect(page.getByLabel("Realtime data evidence")).toContainText(/Schedule/i);
@@ -82,6 +85,7 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Realtime production data packet")).toContainText(/Production data packet/i);
   await expect(page.getByLabel("Realtime production data packet")).toContainText(/Signals/i);
   await expect(page.getByRole("button", { name: /Copy data packet/i })).toBeVisible();
+  await expect(page.getByLabel("Free data continuity evidence")).toContainText(/Cloud artifacts|External/i);
   await expect(page.getByLabel("Intelligence enrichment packet")).toContainText(/Enrichment evidence packet/i);
   await expect(page.getByRole("button", { name: /Copy enrichment/i })).toBeVisible();
   await expect(page.getByLabel("Leaderboard query evidence")).toContainText(/Leaderboard scope read-back/i);

@@ -26,7 +26,7 @@ const pageFor = (url: string): RenderedPublicPage => {
   }
   if (mode) {
     return {
-      text: `Mode proof verification Mode proof facts Social metadata ${mode}`,
+      text: `Mode proof verification Mode proof facts Proof timeline Social metadata ${mode}`,
       canonical: url,
       ogTitle: "Mode",
       ogImage: "https://cdn.example.com/mode.png",
@@ -35,7 +35,7 @@ const pageFor = (url: string): RenderedPublicPage => {
     };
   }
   return {
-    text: `Proof verification Proof facts Social metadata Prediction ${proof}`,
+    text: `Proof verification Proof facts Proof timeline Social metadata Prediction ${proof}`,
     canonical: url,
     ogTitle: "Proof",
     ogImage: "https://cdn.example.com/proof.png",
@@ -111,4 +111,3 @@ describe("sharing production doctor", () => {
     });
   });
 });
-

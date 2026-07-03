@@ -3598,6 +3598,92 @@ pre {
   grid-column: 1 / -1;
 }
 
+.proof-timeline {
+  grid-column: 1 / -1;
+}
+
+.proof-timeline ol {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.proof-timeline li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(238, 247, 243, 0.08);
+}
+
+.proof-timeline li::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 30px;
+  bottom: -12px;
+  width: 1px;
+  background: rgba(238, 247, 243, 0.14);
+}
+
+.proof-timeline li:last-child {
+  border-bottom: 0;
+}
+
+.proof-timeline li:last-child::before {
+  display: none;
+}
+
+.timeline-dot {
+  width: 17px;
+  height: 17px;
+  margin-top: 3px;
+  border: 2px solid rgba(238, 247, 243, 0.3);
+  border-radius: 999px;
+  background: #071110;
+}
+
+.proof-timeline li.passed .timeline-dot {
+  border-color: rgba(116, 237, 136, 0.92);
+  background: rgba(116, 237, 136, 0.25);
+}
+
+.proof-timeline li.pending .timeline-dot {
+  border-color: rgba(241, 201, 77, 0.9);
+  background: rgba(241, 201, 77, 0.18);
+}
+
+.proof-timeline li.failed .timeline-dot {
+  border-color: rgba(231, 54, 50, 0.9);
+  background: rgba(231, 54, 50, 0.2);
+}
+
+.proof-timeline strong {
+  color: #fff7de;
+}
+
+.proof-timeline p {
+  margin: 3px 0;
+  color: rgba(238, 247, 243, 0.7);
+}
+
+.proof-timeline small {
+  color: rgba(238, 247, 243, 0.52);
+}
+
+.proof-timeline b {
+  align-self: start;
+  padding: 4px 7px;
+  border: 1px solid rgba(238, 247, 243, 0.13);
+  border-radius: 4px;
+  color: rgba(238, 247, 243, 0.72);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
 .share-manifest-card.passed {
   border-color: rgba(116, 237, 136, 0.32);
   background:

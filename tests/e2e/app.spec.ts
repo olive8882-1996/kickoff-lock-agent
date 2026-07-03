@@ -130,6 +130,8 @@ test("expanded product workflow is usable", async ({ page }) => {
   await page.locator(".profile-records").filter({ hasText: "Tournament mode runs" }).getByRole("button", { name: /Verify/i }).first().click();
   await expect(page.getByRole("heading", { name: /Mode proof verification/i })).toBeVisible();
   await expect(page.locator(".proof-facts")).toContainText(/Mode proof facts/i);
+  await expect(page.getByLabel("Proof timeline")).toContainText(/Mode proof created/i);
+  await expect(page.getByLabel("Proof timeline")).toContainText(/Mode share image manifest/i);
   await expect(page.locator(".locked-payload")).toContainText(/modeRun/i);
   await expect(page.getByLabel("Social metadata")).toContainText(/Mode proof/i);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /[?&]mode=/);
@@ -154,6 +156,8 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.locator(".public-proof-hero")).toContainText(/Prediction/i);
   await expect(page.locator(".public-proof-rail")).toContainText(/Public URL/i);
   await expect(page.locator(".proof-facts")).toContainText(/Proof facts/i);
+  await expect(page.getByLabel("Proof timeline")).toContainText(/Prediction locked/i);
+  await expect(page.getByLabel("Proof timeline")).toContainText(/Filecoin proof attached/i);
   await expect(page.getByLabel("Social metadata")).toContainText(/Prediction/i);
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /[?&]proof=/);
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Prediction/i);

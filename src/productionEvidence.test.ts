@@ -155,12 +155,12 @@ describe("production evidence summary", () => {
     });
     expect(publicRenderExpectation("proof", "cap-1")).toMatchObject({
       queryKey: "proof",
-      requiredText: expect.arrayContaining(["Proof verification", "cap-1"]),
+      requiredText: expect.arrayContaining(["Proof verification", "Proof timeline", "cap-1"]),
       forbiddenText: expect.arrayContaining(["No share manifest yet"]),
     });
     expect(publicRenderExpectation("mode", "mode-1")).toMatchObject({
       queryKey: "mode",
-      requiredText: expect.arrayContaining(["Mode proof verification", "mode-1"]),
+      requiredText: expect.arrayContaining(["Mode proof verification", "Proof timeline", "mode-1"]),
       forbiddenText: expect.arrayContaining(["Cloud mode proof loaded. No share manifest"]),
     });
   });

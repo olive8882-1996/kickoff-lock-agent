@@ -82,6 +82,7 @@ import {
   buildRecordProofMeta,
   type PublicProofMeta,
 } from "./publicProofMeta";
+import { buildModeProofTimeline, buildRecordProofTimeline, type ProofTimelineItem } from "./proofTimeline";
 import { buildPublicUrl } from "./publicUrls";
 import {
   buildDataCoverage,
@@ -3016,6 +3017,7 @@ function VerifyDashboard({
               </article>
             ))}
           </div>
+          <ProofTimelineCard items={buildModeProofTimeline(modeRun, modeShareArtifact)} />
           <div className="verify-card locked-payload">
             <h3>Mode payload</h3>
             <pre>{stableJson({ modeRun })}</pre>
@@ -3176,6 +3178,7 @@ function VerifyDashboard({
               </article>
             ))}
           </div>
+          <ProofTimelineCard items={buildRecordProofTimeline(record, recordShareArtifact)} />
           <div className="verify-card locked-payload">
             <h3>Locked payload</h3>
             <pre>{stableJson({ capsule: record.capsule, result: record.result, match })}</pre>
@@ -3243,6 +3246,33 @@ function ShareManifestCard({
           <code>{expectedUrl}</code>
         </div>
       )}
+    </div>
+  );
+}
+
+function ProofTimelineCard({ items }: { items: ProofTimelineItem[] }) {
+  return (
+    <div className="verify-card proof-timeline" aria-label="Proof timeline">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Evidence chain</p>
+          <h3>Proof timeline</h3>
+        </div>
+        <span className="pill">{items.filter((item) => item.status === "passed").length}/{items.length}</span>
+      </div>
+      <ol>
+        {items.map((item) => (
+          <li key={item.id} className={item.status}>
+            <span className="timeline-dot" />
+            <div>
+              <strong>{item.label}</strong>
+              <p>{item.detail}</p>
+              <small>{item.timestamp ? formatDate(item.timestamp) : "not timestamped"}</small>
+            </div>
+            <b>{item.status}</b>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

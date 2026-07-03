@@ -59,9 +59,9 @@ export const ACCEPTANCE_TEST_SUITES: AcceptanceTestSuite[] = [
     id: "live-data",
     label: "Live data providers",
     command: "bun run test",
-    file: "src/providers.test.ts, src/dataProductionDoctor.test.ts",
+    file: "src/providers.test.ts, src/dataProductionDoctor.test.ts, src/dataTargetScout.test.ts",
     coverage: ["providers"],
-    proves: "provider routing, fallback behavior, structured realtime evidence packets, API-Football enrichment read-back, live-data readiness, odds enrichment merging and production data doctor free/API-Football/odds endpoint checks",
+    proves: "provider routing, fallback behavior, structured realtime evidence packets, API-Football enrichment read-back, API-Football fixture target scouting, live-data readiness, odds enrichment merging and production data doctor free/API-Football/odds endpoint checks",
   },
   {
     id: "share-cards",

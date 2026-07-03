@@ -16,6 +16,7 @@
     "doctor:filecoin": "bun scripts/run-filecoin-production-doctor.mjs",
     "doctor:data": "bun scripts/run-data-production-doctor.mjs",
     "doctor:sharing": "bun scripts/run-sharing-production-doctor.mjs",
+    "scout:data-targets": "bun scripts/run-data-target-scout.mjs",
     "seed:production-targets": "bun scripts/run-production-target-seed.mjs",
     "deploy:pages": "bun scripts/deploy-gh-pages.mjs",
     "pages:rebuild": "bun scripts/request-pages-build.mjs",

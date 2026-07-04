@@ -72,34 +72,24 @@
       "action": "Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Cloudflare Pages function at /data-proxy/proxy and set VITE_DATA_PROXY_SAME_ORIGIN=1."
     },
     {
-      "key": "VITE_APIFOOTBALL_KEY",
+      "key": "APIFOOTBALL_KEY_OR_VITE_APIFOOTBALL_KEY_OR_DATA_PROXY",
       "label": "Lineups + injuries",
       "group": "runtime",
       "required": true,
       "status": "missing",
-      "detail": "Missing VITE_APIFOOTBALL_KEY",
+      "detail": "Missing VITE_APIFOOTBALL_KEY or deployed data proxy with server-side APIFOOTBALL_KEY",
       "command": "bun run data:bootstrap",
-      "action": "Configure API-Football to fetch fixture lineups, injuries and richer odds."
+      "action": "Configure API-Football directly for diagnostics, or deploy the data proxy with server-side APIFOOTBALL_KEY to fetch fixture lineups, injuries and richer odds without exposing the key."
     },
     {
-      "key": "VITE_ODDS_API_KEY",
+      "key": "API_FOOTBALL_OR_ODDS_PROVIDER",
       "label": "Odds /盘口",
       "group": "runtime",
       "required": true,
       "status": "missing",
       "detail": "Missing odds provider keys",
       "command": "bun run data:bootstrap",
-      "action": "Configure API-Football odds or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY."
-    },
-    {
-      "key": "VITE_ODDS_API_SPORT_KEY",
-      "label": "Odds /盘口",
-      "group": "runtime",
-      "required": true,
-      "status": "missing",
-      "detail": "Missing odds provider keys",
-      "command": "bun run data:bootstrap",
-      "action": "Configure API-Football odds or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY."
+      "action": "Configure API-Football odds directly, deploy the data proxy with server-side APIFOOTBALL_KEY/ODDS_API_KEY, or set VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY for diagnostics."
     },
     {
       "key": "VITE_FOOTBALL_DATA_TOKEN",
@@ -232,24 +222,14 @@
       "action": "When VITE_FILECOIN_SEAL_SAME_ORIGIN=1, set FILECOIN_SEAL_UPSTREAM_URL on the Pages/Worker runtime to the trusted production /seal API."
     },
     {
-      "key": "CLOUDFLARE_API_TOKEN",
-      "label": "Cloudflare API token",
+      "key": "CLOUDFLARE_DEPLOY_AUTH",
+      "label": "Cloudflare deploy auth",
       "group": "deployment",
       "required": false,
       "status": "optional",
       "detail": "optional Cloudflare Pages deployment",
       "command": "bun run pages:cf:deploy",
-      "action": "Set a Cloudflare API token that can deploy the Pages project with Functions."
-    },
-    {
-      "key": "CLOUDFLARE_ACCOUNT_ID",
-      "label": "Cloudflare account id",
-      "group": "deployment",
-      "required": false,
-      "status": "optional",
-      "detail": "optional Cloudflare Pages deployment",
-      "command": "bun run pages:cf:deploy",
-      "action": "Set the Cloudflare account id that owns the Pages project."
+      "action": "Set CLOUDFLARE_API_TOKEN plus CLOUDFLARE_ACCOUNT_ID for CI, or run bunx wrangler login locally and set CLOUDFLARE_WRANGLER_LOGIN=1."
     },
     {
       "key": "CLOUDFLARE_PAGES_PROJECT_NAME",
@@ -456,9 +436,8 @@
     "VITE_SUPABASE_URL",
     "VITE_SUPABASE_ANON_KEY",
     "VITE_DATA_PROXY_URL_OR_SAME_ORIGIN",
-    "VITE_APIFOOTBALL_KEY",
-    "VITE_ODDS_API_KEY",
-    "VITE_ODDS_API_SPORT_KEY",
+    "APIFOOTBALL_KEY_OR_VITE_APIFOOTBALL_KEY_OR_DATA_PROXY",
+    "API_FOOTBALL_OR_ODDS_PROVIDER",
     "VITE_FILECOIN_SEAL_API_OR_SAME_ORIGIN",
     "VITE_FILECOIN_SEAL_TOKEN",
     "SUPABASE_DB_URL",
@@ -484,7 +463,7 @@
       "label": "Browser runtime",
       "ready": false,
       "filled": 6,
-      "total": 14
+      "total": 13
     },
     {
       "group": "server",
@@ -508,7 +487,7 @@
       "total": 17
     }
   ],
-  "templateText": "# Browser runtime\nVITE_SUPABASE_URL=\nVITE_SUPABASE_ANON_KEY=\nVITE_DATA_PROXY_URL=\nVITE_DATA_PROXY_SAME_ORIGIN=0\nVITE_APIFOOTBALL_KEY=\nVITE_ODDS_API_KEY=\nVITE_ODDS_API_SPORT_KEY=\nVITE_FILECOIN_SEAL_API=\nVITE_FILECOIN_SEAL_SAME_ORIGIN=0\nVITE_FILECOIN_SEAL_TOKEN=\n\n# Server/service\nSUPABASE_DB_URL=\nSUPABASE_SERVICE_ROLE_KEY=\nSYNAPSE_PRIVATE_KEY=\nFILECOIN_SEAL_TOKEN=\nFILECOIN_PROOF_STORE_PATH=\nALLOW_ORIGIN=\n\n# Production targets\nKICKOFF_VERIFY_FILECOIN_RECORD_CID=\nKICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH=\nKICKOFF_VERIFY_FILECOIN_MODE_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH=\nKICKOFF_VERIFY_FILECOIN_MODE_CIDS=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES=\nKICKOFF_VERIFY_FIXTURE_ID=\nKICKOFF_VERIFY_FIXTURE_IDS=\nKICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX=\n",
-  "copyText": "Kickoff Lock Agent production env plan\nReady: no\nMissing required: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_DATA_PROXY_URL_OR_SAME_ORIGIN, VITE_APIFOOTBALL_KEY, VITE_ODDS_API_KEY, VITE_ODDS_API_SPORT_KEY, VITE_FILECOIN_SEAL_API_OR_SAME_ORIGIN, VITE_FILECOIN_SEAL_TOKEN, SUPABASE_DB_URL, SUPABASE_SERVICE_ROLE_KEY, SYNAPSE_PRIVATE_KEY, FILECOIN_SEAL_TOKEN, FILECOIN_PROOF_STORE_PATH, ALLOW_ORIGIN, KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CID, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES, KICKOFF_VERIFY_FIXTURE_ID, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\nInvalid required: none\nNext action: bun run supabase:bootstrap · Set Supabase project URL and anon key before claiming cross-device account sync.\n\n# Browser runtime\nVITE_SUPABASE_URL=\nVITE_SUPABASE_ANON_KEY=\nVITE_DATA_PROXY_URL=\nVITE_DATA_PROXY_SAME_ORIGIN=0\nVITE_APIFOOTBALL_KEY=\nVITE_ODDS_API_KEY=\nVITE_ODDS_API_SPORT_KEY=\nVITE_FILECOIN_SEAL_API=\nVITE_FILECOIN_SEAL_SAME_ORIGIN=0\nVITE_FILECOIN_SEAL_TOKEN=\n\n# Server/service\nSUPABASE_DB_URL=\nSUPABASE_SERVICE_ROLE_KEY=\nSYNAPSE_PRIVATE_KEY=\nFILECOIN_SEAL_TOKEN=\nFILECOIN_PROOF_STORE_PATH=\nALLOW_ORIGIN=\n\n# Production targets\nKICKOFF_VERIFY_FILECOIN_RECORD_CID=\nKICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH=\nKICKOFF_VERIFY_FILECOIN_MODE_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH=\nKICKOFF_VERIFY_FILECOIN_MODE_CIDS=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES=\nKICKOFF_VERIFY_FIXTURE_ID=\nKICKOFF_VERIFY_FIXTURE_IDS=\nKICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX=",
+  "templateText": "# Browser runtime\nVITE_SUPABASE_URL=\nVITE_SUPABASE_ANON_KEY=\nVITE_DATA_PROXY_URL=\nVITE_DATA_PROXY_SAME_ORIGIN=0\nAPIFOOTBALL_KEY=\nVITE_APIFOOTBALL_KEY=\nODDS_API_KEY=\nVITE_ODDS_API_KEY=\nVITE_ODDS_API_SPORT_KEY=\nVITE_FILECOIN_SEAL_API=\nVITE_FILECOIN_SEAL_SAME_ORIGIN=0\nVITE_FILECOIN_SEAL_TOKEN=\n\n# Server/service\nSUPABASE_DB_URL=\nSUPABASE_SERVICE_ROLE_KEY=\nSYNAPSE_PRIVATE_KEY=\nFILECOIN_SEAL_TOKEN=\nFILECOIN_PROOF_STORE_PATH=\nALLOW_ORIGIN=\n\n# Production targets\nKICKOFF_VERIFY_FILECOIN_RECORD_CID=\nKICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH=\nKICKOFF_VERIFY_FILECOIN_MODE_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH=\nKICKOFF_VERIFY_FILECOIN_MODE_CIDS=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES=\nKICKOFF_VERIFY_FIXTURE_ID=\nKICKOFF_VERIFY_FIXTURE_IDS=\nKICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX=\n",
+  "copyText": "Kickoff Lock Agent production env plan\nReady: no\nMissing required: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_DATA_PROXY_URL_OR_SAME_ORIGIN, APIFOOTBALL_KEY_OR_VITE_APIFOOTBALL_KEY_OR_DATA_PROXY, API_FOOTBALL_OR_ODDS_PROVIDER, VITE_FILECOIN_SEAL_API_OR_SAME_ORIGIN, VITE_FILECOIN_SEAL_TOKEN, SUPABASE_DB_URL, SUPABASE_SERVICE_ROLE_KEY, SYNAPSE_PRIVATE_KEY, FILECOIN_SEAL_TOKEN, FILECOIN_PROOF_STORE_PATH, ALLOW_ORIGIN, KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CID, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES, KICKOFF_VERIFY_FIXTURE_ID, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\nInvalid required: none\nNext action: bun run supabase:bootstrap · Set Supabase project URL and anon key before claiming cross-device account sync.\n\n# Browser runtime\nVITE_SUPABASE_URL=\nVITE_SUPABASE_ANON_KEY=\nVITE_DATA_PROXY_URL=\nVITE_DATA_PROXY_SAME_ORIGIN=0\nAPIFOOTBALL_KEY=\nVITE_APIFOOTBALL_KEY=\nODDS_API_KEY=\nVITE_ODDS_API_KEY=\nVITE_ODDS_API_SPORT_KEY=\nVITE_FILECOIN_SEAL_API=\nVITE_FILECOIN_SEAL_SAME_ORIGIN=0\nVITE_FILECOIN_SEAL_TOKEN=\n\n# Server/service\nSUPABASE_DB_URL=\nSUPABASE_SERVICE_ROLE_KEY=\nSYNAPSE_PRIVATE_KEY=\nFILECOIN_SEAL_TOKEN=\nFILECOIN_PROOF_STORE_PATH=\nALLOW_ORIGIN=\n\n# Production targets\nKICKOFF_VERIFY_FILECOIN_RECORD_CID=\nKICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH=\nKICKOFF_VERIFY_FILECOIN_MODE_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH=\nKICKOFF_VERIFY_FILECOIN_MODE_CIDS=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES=\nKICKOFF_VERIFY_FIXTURE_ID=\nKICKOFF_VERIFY_FIXTURE_IDS=\nKICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX=",
   "nextAction": "bun run supabase:bootstrap: Set Supabase project URL and anon key before claiming cross-device account sync."
 }

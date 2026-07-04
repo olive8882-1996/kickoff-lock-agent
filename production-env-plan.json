@@ -242,6 +242,36 @@
       "action": "When VITE_FILECOIN_SEAL_SAME_ORIGIN=1, set FILECOIN_SEAL_UPSTREAM_URL on the Pages/Worker runtime to the trusted production /seal API."
     },
     {
+      "key": "CLOUDFLARE_API_TOKEN",
+      "label": "Cloudflare API token",
+      "group": "deployment",
+      "required": false,
+      "status": "optional",
+      "detail": "optional Cloudflare Pages deployment",
+      "command": "bun run pages:cf:deploy",
+      "action": "Set a Cloudflare API token that can deploy the Pages project with Functions."
+    },
+    {
+      "key": "CLOUDFLARE_ACCOUNT_ID",
+      "label": "Cloudflare account id",
+      "group": "deployment",
+      "required": false,
+      "status": "optional",
+      "detail": "optional Cloudflare Pages deployment",
+      "command": "bun run pages:cf:deploy",
+      "action": "Set the Cloudflare account id that owns the Pages project."
+    },
+    {
+      "key": "CLOUDFLARE_PAGES_PROJECT_NAME",
+      "label": "Cloudflare Pages project",
+      "group": "deployment",
+      "required": false,
+      "status": "filled",
+      "detail": "configured",
+      "command": "bun run pages:cf:deploy",
+      "action": "Set the Pages project name, or keep kickoff-lock-agent when that is the deployed project."
+    },
+    {
       "key": "KICKOFF_VERIFY_USER_ID",
       "label": "Synced user id",
       "group": "verification",
@@ -474,6 +504,13 @@
       "ready": false,
       "filled": 0,
       "total": 6
+    },
+    {
+      "group": "deployment",
+      "label": "Deployment",
+      "ready": false,
+      "filled": 0,
+      "total": 0
     },
     {
       "group": "verification",

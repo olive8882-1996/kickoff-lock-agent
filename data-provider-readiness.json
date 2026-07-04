@@ -1,21 +1,28 @@
 {
   "ready": false,
   "passed": 2,
-  "total": 6,
+  "total": 7,
   "checks": [
     {
       "id": "api-football-key",
       "label": "API-Football key",
       "passed": false,
       "detail": "missing",
-      "action": "Set VITE_APIFOOTBALL_KEY so lineups, injuries and API-Football odds can be read back."
+      "action": "Set VITE_APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back."
     },
     {
       "id": "fixture-targets",
       "label": "Production fixture targets",
       "passed": false,
       "detail": "missing",
-      "action": "Run bun run scout:data-targets or set KICKOFF_VERIFY_FIXTURE_IDS to fixtures that return lineups, injuries and odds."
+      "action": "Run bun run scout:data-targets or set KICKOFF_VERIFY_FIXTURE_IDS to fixtures that return lineups, injuries, odds and standings."
+    },
+    {
+      "id": "fixture-signal-matrix",
+      "label": "Fixture signal matrix",
+      "passed": false,
+      "detail": "waiting for production fixture targets",
+      "action": "Run bun run scout:data-targets so KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX covers every target fixture with positive lineups, injuries, odds and standings rows."
     },
     {
       "id": "odds-provider",
@@ -29,7 +36,7 @@
       "label": "Static hosting data proxy",
       "passed": false,
       "detail": "missing",
-      "action": "Deploy server/data-proxy-worker.mjs and set VITE_DATA_PROXY_URL to an HTTPS /proxy endpoint."
+      "action": "Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1."
     },
     {
       "id": "api-football-enrichment-limit",
@@ -52,14 +59,21 @@
       "label": "API-Football key",
       "passed": false,
       "detail": "missing",
-      "action": "Set VITE_APIFOOTBALL_KEY so lineups, injuries and API-Football odds can be read back."
+      "action": "Set VITE_APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back."
     },
     {
       "id": "fixture-targets",
       "label": "Production fixture targets",
       "passed": false,
       "detail": "missing",
-      "action": "Run bun run scout:data-targets or set KICKOFF_VERIFY_FIXTURE_IDS to fixtures that return lineups, injuries and odds."
+      "action": "Run bun run scout:data-targets or set KICKOFF_VERIFY_FIXTURE_IDS to fixtures that return lineups, injuries, odds and standings."
+    },
+    {
+      "id": "fixture-signal-matrix",
+      "label": "Fixture signal matrix",
+      "passed": false,
+      "detail": "waiting for production fixture targets",
+      "action": "Run bun run scout:data-targets so KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX covers every target fixture with positive lineups, injuries, odds and standings rows."
     },
     {
       "id": "odds-provider",
@@ -73,10 +87,10 @@
       "label": "Static hosting data proxy",
       "passed": false,
       "detail": "missing",
-      "action": "Deploy server/data-proxy-worker.mjs and set VITE_DATA_PROXY_URL to an HTTPS /proxy endpoint."
+      "action": "Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1."
     }
   ],
-  "generatedAt": "2026-07-04T13:08:49.396Z",
+  "generatedAt": "2026-07-04T16:52:14.131Z",
   "envFiles": [
     ".env.production.local"
   ],
@@ -84,6 +98,7 @@
   "targets": {
     "fixtureIds": [],
     "requiredFixtureCount": 3,
+    "fixtureSignalMatrix": "",
     "dataProxyUrl": "",
     "apiFootballConfigured": false,
     "oddsProviderConfigured": false,
@@ -94,6 +109,7 @@
   "acceptance": {
     "apiFootballKey": false,
     "fixtureTargets": false,
+    "fixtureSignalMatrix": false,
     "oddsProvider": false,
     "dataProxyHttps": false,
     "enrichmentLimitReady": true,
@@ -101,7 +117,9 @@
     "outputEnvKeys": [
       "VITE_APIFOOTBALL_KEY",
       "VITE_DATA_PROXY_URL",
+      "VITE_DATA_PROXY_SAME_ORIGIN",
       "KICKOFF_VERIFY_FIXTURE_IDS",
+      "KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX",
       "VITE_APIFOOTBALL_ENRICHMENT_LIMIT",
       "KICKOFF_DATA_SCOUT_LIMIT",
       "KICKOFF_DATA_SCOUT_TARGETS"

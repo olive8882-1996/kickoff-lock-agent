@@ -1,0 +1,771 @@
+{
+  "generatedAt": "2026-07-04T05:52:53.186Z",
+  "source": "production-target-seed",
+  "profile": {
+    "id": "kickoff-production-seed",
+    "email": "production-seed@kickoff.local",
+    "displayName": "Kickoff Production Seed",
+    "location": "Chengdu",
+    "createdAt": "2026-07-04T05:52:53.183Z",
+    "cloudMode": "supabase",
+    "records": [
+      {
+        "capsule": {
+          "id": "cap-prod-73dc2618d1f9",
+          "matchId": "production-seed-brazil-japan",
+          "matchLabel": "Brazil vs Japan",
+          "kickoffAt": "2026-06-20T19:00:00.000Z",
+          "createdAt": "2026-07-04T05:52:53.183Z",
+          "prediction": {
+            "homeScore": 2,
+            "awayScore": 1,
+            "winner": "Brazil",
+            "keyPlayers": [
+              "No. 10"
+            ],
+            "confidence": 72,
+            "style": "analysis",
+            "reasoning": "Production seed lock used to verify cloud read-back, public proof pages and leaderboard scope rows.",
+            "agentSummary": "Seed artifact for production acceptance. Replace with a real synced lock before final judging if desired.",
+            "markets": [
+              {
+                "id": "winner",
+                "label": "1X2",
+                "pick": "Brazil",
+                "confidence": 72,
+                "rationale": "Seed market pick for share-card and leaderboard verification."
+              }
+            ]
+          },
+          "sealedAt": "2026-07-04T05:52:53.183Z",
+          "payloadHash": "73dc2618d1f932c7fe9f664f2950cdd08a9b17081d44cbc78c9ea49425ab37d4",
+          "filecoinProof": {
+            "mode": "demo",
+            "cid": "bafy-kickoff-seed-73dc2618d1f932c7fe9f664f2950cdd0",
+            "pieceCid": "baga6seed73dc2618d1f932c7fe9f664f2950cdd0",
+            "provider": "demo-provider.fil",
+            "dataSetId": "seed-73dc2618d1",
+            "proofStatus": "retrievable",
+            "payloadHash": "73dc2618d1f932c7fe9f664f2950cdd08a9b17081d44cbc78c9ea49425ab37d4",
+            "byteLength": 4096
+          },
+          "locked": true,
+          "lateLock": false
+        },
+        "result": {
+          "id": "result-cap-prod-73dc2618d1f9",
+          "capsuleId": "cap-prod-73dc2618d1f9",
+          "revealedAt": "2026-07-04T05:52:53.183Z",
+          "homeScore": 2,
+          "awayScore": 1,
+          "keyPlayers": [
+            "No. 10"
+          ],
+          "source": "manual",
+          "totalScore": 92,
+          "breakdown": {
+            "winner": 30,
+            "exactScore": 30,
+            "goalDifference": 12,
+            "markets": 8,
+            "keyPlayer": 4,
+            "confidence": 4,
+            "reasoning": 4
+          },
+          "explanation": [
+            "Production seed verifies cloud read-back and public proof rendering."
+          ],
+          "agentReview": [
+            "Seed result keeps leaderboard rows non-empty for acceptance checks."
+          ]
+        }
+      }
+    ],
+    "modeRuns": [
+      {
+        "id": "mode-prod-bracket-f90d6276",
+        "modeId": "bracket",
+        "title": "Production bracket path",
+        "createdAt": "2026-07-04T05:52:53.183Z",
+        "capsuleIds": [
+          "cap-prod-73dc2618d1f9"
+        ],
+        "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+        "filecoinProof": {
+          "mode": "demo",
+          "cid": "bafy-kickoff-seed-f90d6276d2e730c763b216a76618883e",
+          "pieceCid": "baga6seedf90d6276d2e730c763b216a76618883e",
+          "provider": "demo-provider.fil",
+          "dataSetId": "seed-f90d6276d2",
+          "proofStatus": "retrievable",
+          "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+          "byteLength": 4096
+        },
+        "status": "scored",
+        "score": 88,
+        "requirements": [
+          "Public mode proof target",
+          "Share-card manifest",
+          "Leaderboard scope row"
+        ],
+        "summary": "Production bracket path sealed for public mode proof and leaderboard acceptance.",
+        "artifact": {
+          "kind": "bracket-path",
+          "bracketPath": {
+            "id": "bracket-mode-prod-bracket-f90d6276",
+            "title": "Production bracket path",
+            "createdAt": "2026-07-04T05:52:53.183Z",
+            "updatedAt": "2026-07-04T05:52:53.183Z",
+            "picks": [
+              {
+                "id": "pick-cap-prod-73dc2618d1f9",
+                "matchId": "production-seed-brazil-japan",
+                "matchLabel": "Brazil vs Japan",
+                "stage": "Round of 16",
+                "winner": "Brazil",
+                "confidence": 72,
+                "note": "Seeded acceptance pick."
+              }
+            ],
+            "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+            "filecoinProof": {
+              "mode": "demo",
+              "cid": "bafy-kickoff-seed-f90d6276d2e730c763b216a76618883e",
+              "pieceCid": "baga6seedf90d6276d2e730c763b216a76618883e",
+              "provider": "demo-provider.fil",
+              "dataSetId": "seed-f90d6276d2",
+              "proofStatus": "retrievable",
+              "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+              "byteLength": 4096
+            }
+          }
+        }
+      },
+      {
+        "id": "mode-prod-parlay-77bf4ef2",
+        "modeId": "parlay",
+        "title": "Production parlay ticket",
+        "createdAt": "2026-07-04T05:52:53.183Z",
+        "capsuleIds": [
+          "cap-prod-73dc2618d1f9"
+        ],
+        "payloadHash": "77bf4ef2d7f03e37bbbc617cdd38e8aba78722bfa96537181e6c5727a401d114",
+        "filecoinProof": {
+          "mode": "demo",
+          "cid": "bafy-kickoff-seed-77bf4ef2d7f03e37bbbc617cdd38e8ab",
+          "pieceCid": "baga6seed77bf4ef2d7f03e37bbbc617cdd38e8ab",
+          "provider": "demo-provider.fil",
+          "dataSetId": "seed-77bf4ef2d7",
+          "proofStatus": "retrievable",
+          "payloadHash": "77bf4ef2d7f03e37bbbc617cdd38e8aba78722bfa96537181e6c5727a401d114",
+          "byteLength": 4096
+        },
+        "status": "scored",
+        "score": 100,
+        "requirements": [
+          "Public mode proof target",
+          "Share-card manifest",
+          "Leaderboard scope row"
+        ],
+        "summary": "Production parlay ticket sealed for all-leg public proof acceptance.",
+        "artifact": {
+          "kind": "parlay-ticket",
+          "legs": [
+            {
+              "capsuleId": "cap-prod-73dc2618d1f9",
+              "matchLabel": "Brazil vs Japan",
+              "pick": "Brazil",
+              "confidence": 72,
+              "markets": [
+                {
+                  "id": "winner",
+                  "label": "1X2",
+                  "pick": "Brazil",
+                  "confidence": 72,
+                  "rationale": "Seed market pick for share-card and leaderboard verification."
+                }
+              ],
+              "resultScore": 92,
+              "winnerHit": true
+            }
+          ],
+          "settledLegs": 1,
+          "hitLegs": 1
+        }
+      },
+      {
+        "id": "mode-prod-agent-vs-human-f8b27b3a",
+        "modeId": "agent-vs-human",
+        "title": "Production agent calibration",
+        "createdAt": "2026-07-04T05:52:53.183Z",
+        "capsuleIds": [
+          "cap-prod-73dc2618d1f9"
+        ],
+        "payloadHash": "f8b27b3a4799d84f7823455d4f808675013e4ed067b20679f179904472c46aff",
+        "filecoinProof": {
+          "mode": "demo",
+          "cid": "bafy-kickoff-seed-f8b27b3a4799d84f7823455d4f808675",
+          "pieceCid": "baga6seedf8b27b3a4799d84f7823455d4f808675",
+          "provider": "demo-provider.fil",
+          "dataSetId": "seed-f8b27b3a47",
+          "proofStatus": "retrievable",
+          "payloadHash": "f8b27b3a4799d84f7823455d4f808675013e4ed067b20679f179904472c46aff",
+          "byteLength": 4096
+        },
+        "status": "scored",
+        "score": 86,
+        "requirements": [
+          "Public mode proof target",
+          "Share-card manifest",
+          "Leaderboard scope row"
+        ],
+        "summary": "Production Agent vs Human calibration sealed for judge-facing mode proof acceptance.",
+        "artifact": {
+          "kind": "agent-calibration",
+          "samples": [
+            {
+              "capsuleId": "cap-prod-73dc2618d1f9",
+              "matchLabel": "Brazil vs Japan",
+              "confidence": 72,
+              "totalScore": 92,
+              "winnerHit": true,
+              "calibrationError": 20,
+              "review": [
+                "Seed result keeps leaderboard rows non-empty for acceptance checks."
+              ]
+            }
+          ],
+          "averageCalibrationError": 20
+        }
+      },
+      {
+        "id": "mode-prod-upset-9f6dd619",
+        "modeId": "upset",
+        "title": "Production upset challenge",
+        "createdAt": "2026-07-04T05:52:53.183Z",
+        "capsuleIds": [
+          "cap-prod-73dc2618d1f9"
+        ],
+        "payloadHash": "9f6dd619ee0a9d5c01b9af43c633d608e0fd479f6e221d2e0b219b4ab39bd46d",
+        "filecoinProof": {
+          "mode": "demo",
+          "cid": "bafy-kickoff-seed-9f6dd619ee0a9d5c01b9af43c633d608",
+          "pieceCid": "baga6seed9f6dd619ee0a9d5c01b9af43c633d608",
+          "provider": "demo-provider.fil",
+          "dataSetId": "seed-9f6dd619ee",
+          "proofStatus": "retrievable",
+          "payloadHash": "9f6dd619ee0a9d5c01b9af43c633d608e0fd479f6e221d2e0b219b4ab39bd46d",
+          "byteLength": 4096
+        },
+        "status": "scored",
+        "score": 94,
+        "requirements": [
+          "Public mode proof target",
+          "Share-card manifest",
+          "Leaderboard scope row"
+        ],
+        "summary": "Production upset challenge sealed for multiplier and public proof acceptance.",
+        "artifact": {
+          "kind": "upset-ticket",
+          "picks": [
+            {
+              "capsuleId": "cap-prod-73dc2618d1f9",
+              "matchLabel": "Brazil vs Japan",
+              "predictedWinner": "Brazil",
+              "confidence": 72,
+              "resultScore": 92,
+              "winnerHit": true,
+              "multiplier": 2
+            }
+          ],
+          "resolvedPicks": 1,
+          "hitPicks": 1,
+          "bonusXp": 100
+        }
+      }
+    ],
+    "shareArtifacts": [
+      {
+        "id": "cap-prod-73dc2618d1f9",
+        "kind": "record",
+        "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9",
+        "imageGenerated": true,
+        "generatedAt": "2026-07-04T05:52:53.183Z",
+        "fileName": "cap-prod-73dc2618d1f9-record-share-card.png",
+        "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
+        "imageMime": "image/png",
+        "imageByteLength": 231266,
+        "imageHash": "1c241dd03fbba6c1fd875f80bae88c039b5acd645181d18d852e7dfa7ca9ca90",
+        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+prediction+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+        "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+      },
+      {
+        "id": "mode-prod-bracket-f90d6276",
+        "kind": "mode",
+        "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276",
+        "imageGenerated": true,
+        "generatedAt": "2026-07-04T05:52:53.183Z",
+        "fileName": "mode-prod-bracket-f90d6276-mode-share-card.png",
+        "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+        "imageMime": "image/png",
+        "imageByteLength": 238857,
+        "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
+        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+        "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+      },
+      {
+        "id": "mode-prod-parlay-77bf4ef2",
+        "kind": "mode",
+        "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2",
+        "imageGenerated": true,
+        "generatedAt": "2026-07-04T05:52:53.183Z",
+        "fileName": "mode-prod-parlay-77bf4ef2-mode-share-card.png",
+        "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+        "imageMime": "image/png",
+        "imageByteLength": 238857,
+        "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
+        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+        "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+      },
+      {
+        "id": "mode-prod-agent-vs-human-f8b27b3a",
+        "kind": "mode",
+        "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a",
+        "imageGenerated": true,
+        "generatedAt": "2026-07-04T05:52:53.183Z",
+        "fileName": "mode-prod-agent-vs-human-f8b27b3a-mode-share-card.png",
+        "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+        "imageMime": "image/png",
+        "imageByteLength": 238857,
+        "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
+        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+        "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+      },
+      {
+        "id": "mode-prod-upset-9f6dd619",
+        "kind": "mode",
+        "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619",
+        "imageGenerated": true,
+        "generatedAt": "2026-07-04T05:52:53.183Z",
+        "fileName": "mode-prod-upset-9f6dd619-mode-share-card.png",
+        "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+        "imageMime": "image/png",
+        "imageByteLength": 238857,
+        "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
+        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+        "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+      }
+    ],
+    "locks": 1,
+    "revealed": 1,
+    "modeProofs": 4,
+    "averageScore": 92,
+    "bestScore": 92,
+    "xp": 940
+  },
+  "record": {
+    "capsule": {
+      "id": "cap-prod-73dc2618d1f9",
+      "matchId": "production-seed-brazil-japan",
+      "matchLabel": "Brazil vs Japan",
+      "kickoffAt": "2026-06-20T19:00:00.000Z",
+      "createdAt": "2026-07-04T05:52:53.183Z",
+      "prediction": {
+        "homeScore": 2,
+        "awayScore": 1,
+        "winner": "Brazil",
+        "keyPlayers": [
+          "No. 10"
+        ],
+        "confidence": 72,
+        "style": "analysis",
+        "reasoning": "Production seed lock used to verify cloud read-back, public proof pages and leaderboard scope rows.",
+        "agentSummary": "Seed artifact for production acceptance. Replace with a real synced lock before final judging if desired.",
+        "markets": [
+          {
+            "id": "winner",
+            "label": "1X2",
+            "pick": "Brazil",
+            "confidence": 72,
+            "rationale": "Seed market pick for share-card and leaderboard verification."
+          }
+        ]
+      },
+      "sealedAt": "2026-07-04T05:52:53.183Z",
+      "payloadHash": "73dc2618d1f932c7fe9f664f2950cdd08a9b17081d44cbc78c9ea49425ab37d4",
+      "filecoinProof": {
+        "mode": "demo",
+        "cid": "bafy-kickoff-seed-73dc2618d1f932c7fe9f664f2950cdd0",
+        "pieceCid": "baga6seed73dc2618d1f932c7fe9f664f2950cdd0",
+        "provider": "demo-provider.fil",
+        "dataSetId": "seed-73dc2618d1",
+        "proofStatus": "retrievable",
+        "payloadHash": "73dc2618d1f932c7fe9f664f2950cdd08a9b17081d44cbc78c9ea49425ab37d4",
+        "byteLength": 4096
+      },
+      "locked": true,
+      "lateLock": false
+    },
+    "result": {
+      "id": "result-cap-prod-73dc2618d1f9",
+      "capsuleId": "cap-prod-73dc2618d1f9",
+      "revealedAt": "2026-07-04T05:52:53.183Z",
+      "homeScore": 2,
+      "awayScore": 1,
+      "keyPlayers": [
+        "No. 10"
+      ],
+      "source": "manual",
+      "totalScore": 92,
+      "breakdown": {
+        "winner": 30,
+        "exactScore": 30,
+        "goalDifference": 12,
+        "markets": 8,
+        "keyPlayer": 4,
+        "confidence": 4,
+        "reasoning": 4
+      },
+      "explanation": [
+        "Production seed verifies cloud read-back and public proof rendering."
+      ],
+      "agentReview": [
+        "Seed result keeps leaderboard rows non-empty for acceptance checks."
+      ]
+    }
+  },
+  "modeRun": {
+    "id": "mode-prod-bracket-f90d6276",
+    "modeId": "bracket",
+    "title": "Production bracket path",
+    "createdAt": "2026-07-04T05:52:53.183Z",
+    "capsuleIds": [
+      "cap-prod-73dc2618d1f9"
+    ],
+    "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+    "filecoinProof": {
+      "mode": "demo",
+      "cid": "bafy-kickoff-seed-f90d6276d2e730c763b216a76618883e",
+      "pieceCid": "baga6seedf90d6276d2e730c763b216a76618883e",
+      "provider": "demo-provider.fil",
+      "dataSetId": "seed-f90d6276d2",
+      "proofStatus": "retrievable",
+      "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+      "byteLength": 4096
+    },
+    "status": "scored",
+    "score": 88,
+    "requirements": [
+      "Public mode proof target",
+      "Share-card manifest",
+      "Leaderboard scope row"
+    ],
+    "summary": "Production bracket path sealed for public mode proof and leaderboard acceptance.",
+    "artifact": {
+      "kind": "bracket-path",
+      "bracketPath": {
+        "id": "bracket-mode-prod-bracket-f90d6276",
+        "title": "Production bracket path",
+        "createdAt": "2026-07-04T05:52:53.183Z",
+        "updatedAt": "2026-07-04T05:52:53.183Z",
+        "picks": [
+          {
+            "id": "pick-cap-prod-73dc2618d1f9",
+            "matchId": "production-seed-brazil-japan",
+            "matchLabel": "Brazil vs Japan",
+            "stage": "Round of 16",
+            "winner": "Brazil",
+            "confidence": 72,
+            "note": "Seeded acceptance pick."
+          }
+        ],
+        "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+        "filecoinProof": {
+          "mode": "demo",
+          "cid": "bafy-kickoff-seed-f90d6276d2e730c763b216a76618883e",
+          "pieceCid": "baga6seedf90d6276d2e730c763b216a76618883e",
+          "provider": "demo-provider.fil",
+          "dataSetId": "seed-f90d6276d2",
+          "proofStatus": "retrievable",
+          "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+          "byteLength": 4096
+        }
+      }
+    }
+  },
+  "modeRuns": [
+    {
+      "id": "mode-prod-bracket-f90d6276",
+      "modeId": "bracket",
+      "title": "Production bracket path",
+      "createdAt": "2026-07-04T05:52:53.183Z",
+      "capsuleIds": [
+        "cap-prod-73dc2618d1f9"
+      ],
+      "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+      "filecoinProof": {
+        "mode": "demo",
+        "cid": "bafy-kickoff-seed-f90d6276d2e730c763b216a76618883e",
+        "pieceCid": "baga6seedf90d6276d2e730c763b216a76618883e",
+        "provider": "demo-provider.fil",
+        "dataSetId": "seed-f90d6276d2",
+        "proofStatus": "retrievable",
+        "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+        "byteLength": 4096
+      },
+      "status": "scored",
+      "score": 88,
+      "requirements": [
+        "Public mode proof target",
+        "Share-card manifest",
+        "Leaderboard scope row"
+      ],
+      "summary": "Production bracket path sealed for public mode proof and leaderboard acceptance.",
+      "artifact": {
+        "kind": "bracket-path",
+        "bracketPath": {
+          "id": "bracket-mode-prod-bracket-f90d6276",
+          "title": "Production bracket path",
+          "createdAt": "2026-07-04T05:52:53.183Z",
+          "updatedAt": "2026-07-04T05:52:53.183Z",
+          "picks": [
+            {
+              "id": "pick-cap-prod-73dc2618d1f9",
+              "matchId": "production-seed-brazil-japan",
+              "matchLabel": "Brazil vs Japan",
+              "stage": "Round of 16",
+              "winner": "Brazil",
+              "confidence": 72,
+              "note": "Seeded acceptance pick."
+            }
+          ],
+          "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+          "filecoinProof": {
+            "mode": "demo",
+            "cid": "bafy-kickoff-seed-f90d6276d2e730c763b216a76618883e",
+            "pieceCid": "baga6seedf90d6276d2e730c763b216a76618883e",
+            "provider": "demo-provider.fil",
+            "dataSetId": "seed-f90d6276d2",
+            "proofStatus": "retrievable",
+            "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+            "byteLength": 4096
+          }
+        }
+      }
+    },
+    {
+      "id": "mode-prod-parlay-77bf4ef2",
+      "modeId": "parlay",
+      "title": "Production parlay ticket",
+      "createdAt": "2026-07-04T05:52:53.183Z",
+      "capsuleIds": [
+        "cap-prod-73dc2618d1f9"
+      ],
+      "payloadHash": "77bf4ef2d7f03e37bbbc617cdd38e8aba78722bfa96537181e6c5727a401d114",
+      "filecoinProof": {
+        "mode": "demo",
+        "cid": "bafy-kickoff-seed-77bf4ef2d7f03e37bbbc617cdd38e8ab",
+        "pieceCid": "baga6seed77bf4ef2d7f03e37bbbc617cdd38e8ab",
+        "provider": "demo-provider.fil",
+        "dataSetId": "seed-77bf4ef2d7",
+        "proofStatus": "retrievable",
+        "payloadHash": "77bf4ef2d7f03e37bbbc617cdd38e8aba78722bfa96537181e6c5727a401d114",
+        "byteLength": 4096
+      },
+      "status": "scored",
+      "score": 100,
+      "requirements": [
+        "Public mode proof target",
+        "Share-card manifest",
+        "Leaderboard scope row"
+      ],
+      "summary": "Production parlay ticket sealed for all-leg public proof acceptance.",
+      "artifact": {
+        "kind": "parlay-ticket",
+        "legs": [
+          {
+            "capsuleId": "cap-prod-73dc2618d1f9",
+            "matchLabel": "Brazil vs Japan",
+            "pick": "Brazil",
+            "confidence": 72,
+            "markets": [
+              {
+                "id": "winner",
+                "label": "1X2",
+                "pick": "Brazil",
+                "confidence": 72,
+                "rationale": "Seed market pick for share-card and leaderboard verification."
+              }
+            ],
+            "resultScore": 92,
+            "winnerHit": true
+          }
+        ],
+        "settledLegs": 1,
+        "hitLegs": 1
+      }
+    },
+    {
+      "id": "mode-prod-agent-vs-human-f8b27b3a",
+      "modeId": "agent-vs-human",
+      "title": "Production agent calibration",
+      "createdAt": "2026-07-04T05:52:53.183Z",
+      "capsuleIds": [
+        "cap-prod-73dc2618d1f9"
+      ],
+      "payloadHash": "f8b27b3a4799d84f7823455d4f808675013e4ed067b20679f179904472c46aff",
+      "filecoinProof": {
+        "mode": "demo",
+        "cid": "bafy-kickoff-seed-f8b27b3a4799d84f7823455d4f808675",
+        "pieceCid": "baga6seedf8b27b3a4799d84f7823455d4f808675",
+        "provider": "demo-provider.fil",
+        "dataSetId": "seed-f8b27b3a47",
+        "proofStatus": "retrievable",
+        "payloadHash": "f8b27b3a4799d84f7823455d4f808675013e4ed067b20679f179904472c46aff",
+        "byteLength": 4096
+      },
+      "status": "scored",
+      "score": 86,
+      "requirements": [
+        "Public mode proof target",
+        "Share-card manifest",
+        "Leaderboard scope row"
+      ],
+      "summary": "Production Agent vs Human calibration sealed for judge-facing mode proof acceptance.",
+      "artifact": {
+        "kind": "agent-calibration",
+        "samples": [
+          {
+            "capsuleId": "cap-prod-73dc2618d1f9",
+            "matchLabel": "Brazil vs Japan",
+            "confidence": 72,
+            "totalScore": 92,
+            "winnerHit": true,
+            "calibrationError": 20,
+            "review": [
+              "Seed result keeps leaderboard rows non-empty for acceptance checks."
+            ]
+          }
+        ],
+        "averageCalibrationError": 20
+      }
+    },
+    {
+      "id": "mode-prod-upset-9f6dd619",
+      "modeId": "upset",
+      "title": "Production upset challenge",
+      "createdAt": "2026-07-04T05:52:53.183Z",
+      "capsuleIds": [
+        "cap-prod-73dc2618d1f9"
+      ],
+      "payloadHash": "9f6dd619ee0a9d5c01b9af43c633d608e0fd479f6e221d2e0b219b4ab39bd46d",
+      "filecoinProof": {
+        "mode": "demo",
+        "cid": "bafy-kickoff-seed-9f6dd619ee0a9d5c01b9af43c633d608",
+        "pieceCid": "baga6seed9f6dd619ee0a9d5c01b9af43c633d608",
+        "provider": "demo-provider.fil",
+        "dataSetId": "seed-9f6dd619ee",
+        "proofStatus": "retrievable",
+        "payloadHash": "9f6dd619ee0a9d5c01b9af43c633d608e0fd479f6e221d2e0b219b4ab39bd46d",
+        "byteLength": 4096
+      },
+      "status": "scored",
+      "score": 94,
+      "requirements": [
+        "Public mode proof target",
+        "Share-card manifest",
+        "Leaderboard scope row"
+      ],
+      "summary": "Production upset challenge sealed for multiplier and public proof acceptance.",
+      "artifact": {
+        "kind": "upset-ticket",
+        "picks": [
+          {
+            "capsuleId": "cap-prod-73dc2618d1f9",
+            "matchLabel": "Brazil vs Japan",
+            "predictedWinner": "Brazil",
+            "confidence": 72,
+            "resultScore": 92,
+            "winnerHit": true,
+            "multiplier": 2
+          }
+        ],
+        "resolvedPicks": 1,
+        "hitPicks": 1,
+        "bonusXp": 100
+      }
+    }
+  ],
+  "shareArtifacts": [
+    {
+      "id": "cap-prod-73dc2618d1f9",
+      "kind": "record",
+      "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9",
+      "imageGenerated": true,
+      "generatedAt": "2026-07-04T05:52:53.183Z",
+      "fileName": "cap-prod-73dc2618d1f9-record-share-card.png",
+      "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
+      "imageMime": "image/png",
+      "imageByteLength": 231266,
+      "imageHash": "1c241dd03fbba6c1fd875f80bae88c039b5acd645181d18d852e7dfa7ca9ca90",
+      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+prediction+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+    },
+    {
+      "id": "mode-prod-bracket-f90d6276",
+      "kind": "mode",
+      "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276",
+      "imageGenerated": true,
+      "generatedAt": "2026-07-04T05:52:53.183Z",
+      "fileName": "mode-prod-bracket-f90d6276-mode-share-card.png",
+      "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+      "imageMime": "image/png",
+      "imageByteLength": 238857,
+      "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
+      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+    },
+    {
+      "id": "mode-prod-parlay-77bf4ef2",
+      "kind": "mode",
+      "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2",
+      "imageGenerated": true,
+      "generatedAt": "2026-07-04T05:52:53.183Z",
+      "fileName": "mode-prod-parlay-77bf4ef2-mode-share-card.png",
+      "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+      "imageMime": "image/png",
+      "imageByteLength": 238857,
+      "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
+      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+    },
+    {
+      "id": "mode-prod-agent-vs-human-f8b27b3a",
+      "kind": "mode",
+      "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a",
+      "imageGenerated": true,
+      "generatedAt": "2026-07-04T05:52:53.183Z",
+      "fileName": "mode-prod-agent-vs-human-f8b27b3a-mode-share-card.png",
+      "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+      "imageMime": "image/png",
+      "imageByteLength": 238857,
+      "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
+      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+    },
+    {
+      "id": "mode-prod-upset-9f6dd619",
+      "kind": "mode",
+      "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619",
+      "imageGenerated": true,
+      "generatedAt": "2026-07-04T05:52:53.183Z",
+      "fileName": "mode-prod-upset-9f6dd619-mode-share-card.png",
+      "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+      "imageMime": "image/png",
+      "imageByteLength": 238857,
+      "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
+      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+    }
+  ]
+}

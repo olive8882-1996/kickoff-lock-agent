@@ -1,0 +1,159 @@
+{
+  "ready": false,
+  "execute": false,
+  "stageReadyCount": 2,
+  "totalStages": 5,
+  "blockedStages": 3,
+  "missingEnv": [
+    "VITE_SUPABASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY"
+  ],
+  "stages": [
+    {
+      "id": "record-image",
+      "label": "Generate record share image",
+      "status": "done",
+      "command": "bun run share:production-image",
+      "executeCommand": "bun run share:production-image",
+      "requiredEnv": [
+        "VITE_PUBLIC_APP_URL"
+      ],
+      "missingEnv": [],
+      "outputEnv": [
+        "public/generated/kickoff-production-share.png",
+        "KICKOFF_SEED_SHARE_IMAGE_URL",
+        "KICKOFF_VERIFY_SHARE_IMAGE_URL"
+      ],
+      "detail": "Record proof PNG already exists in public/generated."
+    },
+    {
+      "id": "mode-image",
+      "label": "Generate mode share image",
+      "status": "done",
+      "command": "bun run share:production-image -- --kind=mode --out=public/generated/kickoff-production-mode-share.png",
+      "executeCommand": "bun run share:production-image -- --kind=mode --out=public/generated/kickoff-production-mode-share.png",
+      "requiredEnv": [
+        "VITE_PUBLIC_APP_URL"
+      ],
+      "missingEnv": [],
+      "outputEnv": [
+        "public/generated/kickoff-production-mode-share.png",
+        "KICKOFF_SEED_MODE_SHARE_IMAGE_URL",
+        "KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL"
+      ],
+      "detail": "Mode proof PNG already exists in public/generated."
+    },
+    {
+      "id": "record-upload",
+      "label": "Upload record share image",
+      "status": "blocked",
+      "command": "bun run share:upload-image",
+      "executeCommand": "bun run share:upload-image",
+      "requiredEnv": [
+        "VITE_SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "public/generated/kickoff-production-share.png"
+      ],
+      "missingEnv": [
+        "VITE_SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ],
+      "outputEnv": [
+        "KICKOFF_SEED_SHARE_IMAGE_URL",
+        "KICKOFF_VERIFY_SHARE_IMAGE_URL"
+      ],
+      "detail": "Record share image URL is present but is not valid production Supabase Storage evidence."
+    },
+    {
+      "id": "mode-upload",
+      "label": "Upload mode share image",
+      "status": "blocked",
+      "command": "bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png",
+      "executeCommand": "bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png",
+      "requiredEnv": [
+        "VITE_SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "public/generated/kickoff-production-mode-share.png"
+      ],
+      "missingEnv": [
+        "VITE_SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ],
+      "outputEnv": [
+        "KICKOFF_SEED_MODE_SHARE_IMAGE_URL",
+        "KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL"
+      ],
+      "detail": "Mode share image URL is present but is not valid production Supabase Storage evidence."
+    },
+    {
+      "id": "doctor",
+      "label": "Verify public sharing surfaces",
+      "status": "blocked",
+      "command": "bun run doctor:sharing",
+      "executeCommand": "bun run doctor:sharing",
+      "requiredEnv": [
+        "VITE_PUBLIC_APP_URL",
+        "KICKOFF_VERIFY_PROFILE_ID",
+        "KICKOFF_VERIFY_PROOF_ID",
+        "KICKOFF_VERIFY_MODE_IDS",
+        "KICKOFF_VERIFY_SHARE_IMAGE_URL",
+        "KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL"
+      ],
+      "missingEnv": [
+        "VITE_SUPABASE_URL"
+      ],
+      "outputEnv": [
+        "public proof/profile/mode render evidence",
+        "public image read-back evidence"
+      ],
+      "detail": "Render deployed profile, proof and mode pages; verify canonical URLs, social metadata, JSON-LD and public share image reads."
+    }
+  ],
+  "commands": [
+    "bun run share:upload-image",
+    "bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png",
+    "bun run doctor:sharing"
+  ],
+  "nextAction": "Upload record share image: set VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY first.",
+  "copyText": "Kickoff Lock Agent public sharing production bootstrap\nMode: plan\nStages: 2/5 ready or done\nMissing env: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\nNext action: Upload record share image: set VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY first.\nCommands:\n- bun run share:upload-image\n- bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n- bun run doctor:sharing\nStages:\n- Generate record share image [done]\n  command: bun run share:production-image\n  execute: bun run share:production-image\n  requires: VITE_PUBLIC_APP_URL\n  missing: none\n  outputs: public/generated/kickoff-production-share.png, KICKOFF_SEED_SHARE_IMAGE_URL, KICKOFF_VERIFY_SHARE_IMAGE_URL\n  detail: Record proof PNG already exists in public/generated.\n- Generate mode share image [done]\n  command: bun run share:production-image -- --kind=mode --out=public/generated/kickoff-production-mode-share.png\n  execute: bun run share:production-image -- --kind=mode --out=public/generated/kickoff-production-mode-share.png\n  requires: VITE_PUBLIC_APP_URL\n  missing: none\n  outputs: public/generated/kickoff-production-mode-share.png, KICKOFF_SEED_MODE_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  detail: Mode proof PNG already exists in public/generated.\n- Upload record share image [blocked]\n  command: bun run share:upload-image\n  execute: bun run share:upload-image\n  requires: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/generated/kickoff-production-share.png\n  missing: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\n  outputs: KICKOFF_SEED_SHARE_IMAGE_URL, KICKOFF_VERIFY_SHARE_IMAGE_URL\n  detail: Record share image URL is present but is not valid production Supabase Storage evidence.\n- Upload mode share image [blocked]\n  command: bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  execute: bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  requires: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/generated/kickoff-production-mode-share.png\n  missing: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\n  outputs: KICKOFF_SEED_MODE_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  detail: Mode share image URL is present but is not valid production Supabase Storage evidence.\n- Verify public sharing surfaces [blocked]\n  command: bun run doctor:sharing\n  execute: bun run doctor:sharing\n  requires: VITE_PUBLIC_APP_URL, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  missing: VITE_SUPABASE_URL\n  outputs: public proof/profile/mode render evidence, public image read-back evidence\n  detail: Render deployed profile, proof and mode pages; verify canonical URLs, social metadata, JSON-LD and public share image reads.",
+  "generatedAt": "2026-07-04T16:08:08.421Z",
+  "envFiles": [
+    ".env.production.local"
+  ],
+  "artifactVersion": 1,
+  "targets": {
+    "proofId": "cap-prod-73dc2618d1f9",
+    "modeIds": [
+      "mode-prod-bracket-f90d6276",
+      "mode-prod-parlay-77bf4ef2",
+      "mode-prod-agent-vs-human-f8b27b3a",
+      "mode-prod-upset-9f6dd619"
+    ]
+  },
+  "doctor": {
+    "ready": false,
+    "requiredPassed": 1,
+    "requiredTotal": 21,
+    "shareChannelCheckIds": [
+      "target-share-channel-row",
+      "target-mode-share-channel-row"
+    ],
+    "passedShareChannelCheckIds": [],
+    "failedShareChannelCheckIds": [
+      "target-share-channel-row",
+      "target-mode-share-channel-row"
+    ]
+  },
+  "acceptance": {
+    "recordChannelOpened": false,
+    "modeChannelCount": 0,
+    "requiredModeChannelCount": 4,
+    "passedTargetCount": 0,
+    "requiredTargetCount": 5,
+    "targetEnvReady": true,
+    "outputEnvKeys": [
+      "KICKOFF_VERIFY_PROOF_ID",
+      "KICKOFF_VERIFY_MODE_IDS"
+    ]
+  }
+}

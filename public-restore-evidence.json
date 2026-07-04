@@ -1,0 +1,196 @@
+{
+  "ready": false,
+  "requiredPassed": 7,
+  "requiredTotal": 10,
+  "checks": [
+    {
+      "id": "public-app-url",
+      "label": "Public HTTPS app URL",
+      "required": true,
+      "detail": "https://olive8882-1996.github.io/kickoff-lock-agent/",
+      "action": "Set VITE_PUBLIC_APP_URL to the deployed HTTPS app URL.",
+      "status": "passed"
+    },
+    {
+      "id": "profile-target-id",
+      "label": "Public profile target",
+      "required": true,
+      "detail": "kickoff-production-seed",
+      "action": "Set KICKOFF_VERIFY_PROFILE_ID to a synced Supabase profile id.",
+      "sampleIds": [
+        "kickoff-production-seed"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "proof-target-id",
+      "label": "Public prediction proof target",
+      "required": true,
+      "detail": "cap-prod-73dc2618d1f9",
+      "action": "Set KICKOFF_VERIFY_PROOF_ID to a synced prediction capsule id with a share manifest.",
+      "sampleIds": [
+        "cap-prod-73dc2618d1f9"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "mode-target-id",
+      "label": "Public mode proof target",
+      "required": true,
+      "detail": "mode-prod-bracket-f90d6276, mode-prod-parlay-77bf4ef2, mode-prod-agent-vs-human-f8b27b3a, mode-prod-upset-9f6dd619",
+      "action": "Set KICKOFF_VERIFY_MODE_IDS to synced mode proof run ids with share manifests.",
+      "sampleIds": [
+        "mode-prod-bracket-f90d6276",
+        "mode-prod-parlay-77bf4ef2",
+        "mode-prod-agent-vs-human-f8b27b3a",
+        "mode-prod-upset-9f6dd619"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "profile-render",
+      "label": "Public profile render",
+      "required": true,
+      "detail": "rendered 1/1 profile page with canonical URL, social metadata and JSON-LD",
+      "action": "Set KICKOFF_VERIFY_PROFILE_ID to a synced Supabase profile id.",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?profile=kickoff-production-seed",
+      "sampleIds": [
+        "kickoff-production-seed"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "proof-render",
+      "label": "Public prediction proof render",
+      "required": true,
+      "detail": "rendered 1/1 proof page with canonical URL, social metadata and JSON-LD",
+      "action": "Set KICKOFF_VERIFY_PROOF_ID to a synced prediction capsule id with a share manifest.",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9",
+      "sampleIds": [
+        "cap-prod-73dc2618d1f9"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "mode-render",
+      "label": "Public mode proof render",
+      "required": true,
+      "detail": "rendered 4/4 mode pages with canonical URL, social metadata and JSON-LD",
+      "action": "Set KICKOFF_VERIFY_MODE_IDS to synced mode proof run ids with share manifests.",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276",
+      "sampleIds": [
+        "mode-prod-bracket-f90d6276",
+        "mode-prod-parlay-77bf4ef2",
+        "mode-prod-agent-vs-human-f8b27b3a",
+        "mode-prod-upset-9f6dd619"
+      ],
+      "status": "passed"
+    },
+    {
+      "id": "clean-session-restore",
+      "label": "Clean-session account restore",
+      "required": true,
+      "detail": "clean-session cloud restore missing profile (fixture fallback or local-only page rendered); proof (fixture fallback or local-only page rendered); mode (fixture fallback or local-only page rendered)",
+      "action": "Render profile, proof and every mode proof page from the deployed app with cloud-loaded Supabase content in a clean browser context.",
+      "sampleIds": [
+        "kickoff-production-seed",
+        "cap-prod-73dc2618d1f9",
+        "mode-prod-bracket-f90d6276",
+        "mode-prod-parlay-77bf4ef2",
+        "mode-prod-agent-vs-human-f8b27b3a",
+        "mode-prod-upset-9f6dd619"
+      ],
+      "status": "failed"
+    },
+    {
+      "id": "share-image-public-read",
+      "label": "Public share image read",
+      "required": true,
+      "detail": "VITE_SUPABASE_URL",
+      "action": "Generate a record share card PNG, upload it to Supabase Storage and set KICKOFF_VERIFY_SHARE_IMAGE_URL.",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
+      "status": "failed"
+    },
+    {
+      "id": "mode-share-image-public-read",
+      "label": "Public mode share image read",
+      "required": true,
+      "detail": "VITE_SUPABASE_URL",
+      "action": "Generate a mode proof share card PNG, upload it to Supabase Storage and set KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL.",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+      "status": "failed"
+    }
+  ],
+  "nextActions": [
+    {
+      "id": "clean-session-restore",
+      "label": "Clean-session account restore",
+      "required": true,
+      "detail": "clean-session cloud restore missing profile (fixture fallback or local-only page rendered); proof (fixture fallback or local-only page rendered); mode (fixture fallback or local-only page rendered)",
+      "action": "Render profile, proof and every mode proof page from the deployed app with cloud-loaded Supabase content in a clean browser context.",
+      "sampleIds": [
+        "kickoff-production-seed",
+        "cap-prod-73dc2618d1f9",
+        "mode-prod-bracket-f90d6276",
+        "mode-prod-parlay-77bf4ef2",
+        "mode-prod-agent-vs-human-f8b27b3a",
+        "mode-prod-upset-9f6dd619"
+      ],
+      "status": "failed"
+    },
+    {
+      "id": "share-image-public-read",
+      "label": "Public share image read",
+      "required": true,
+      "detail": "VITE_SUPABASE_URL",
+      "action": "Generate a record share card PNG, upload it to Supabase Storage and set KICKOFF_VERIFY_SHARE_IMAGE_URL.",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
+      "status": "failed"
+    },
+    {
+      "id": "mode-share-image-public-read",
+      "label": "Public mode share image read",
+      "required": true,
+      "detail": "VITE_SUPABASE_URL",
+      "action": "Generate a mode proof share card PNG, upload it to Supabase Storage and set KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL.",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+      "status": "failed"
+    }
+  ],
+  "generatedAt": "2026-07-04T13:14:55.735Z",
+  "envFiles": [
+    ".env.production.local"
+  ],
+  "artifactVersion": 1,
+  "targets": {
+    "publicAppUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/",
+    "profileId": "kickoff-production-seed",
+    "proofId": "cap-prod-73dc2618d1f9",
+    "modeIds": [
+      "mode-prod-bracket-f90d6276",
+      "mode-prod-parlay-77bf4ef2",
+      "mode-prod-agent-vs-human-f8b27b3a",
+      "mode-prod-upset-9f6dd619"
+    ],
+    "shareImageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
+    "modeShareImageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png"
+  },
+  "acceptance": {
+    "publicAppUrlReady": true,
+    "cleanSessionRestore": false,
+    "profileRender": true,
+    "proofRender": true,
+    "modeRenderCount": 4,
+    "requiredModeRenderCount": 4,
+    "shareImageReadBack": false,
+    "modeShareImageReadBack": false,
+    "outputEnvKeys": [
+      "VITE_PUBLIC_APP_URL",
+      "KICKOFF_VERIFY_PROFILE_ID",
+      "KICKOFF_VERIFY_PROOF_ID",
+      "KICKOFF_VERIFY_MODE_IDS",
+      "KICKOFF_VERIFY_SHARE_IMAGE_URL",
+      "KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL"
+    ]
+  }
+}

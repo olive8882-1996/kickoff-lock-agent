@@ -1,0 +1,144 @@
+{
+  "generatedAt": "2026-07-04T16:25:18.291Z",
+  "source": "local-script",
+  "envFiles": [
+    ".env.production.local"
+  ],
+  "includeExample": false,
+  "outputPath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/filecoin-bootstrap-plan.json",
+  "wrote": true,
+  "ready": false,
+  "execute": false,
+  "stageReadyCount": 0,
+  "totalStages": 4,
+  "blockedStages": 4,
+  "missingEnv": [
+    "Synapse private key",
+    "Server upload token",
+    "Browser token matches server",
+    "Persistent proof store",
+    "Restricted CORS origin",
+    "Browser seal endpoint",
+    "VITE_SUPABASE_URL",
+    "production-ready seal API",
+    "VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL",
+    "VITE_FILECOIN_SEAL_TOKEN",
+    "KICKOFF_VERIFY_FILECOIN_RECORD_CID",
+    "KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH",
+    "KICKOFF_VERIFY_FILECOIN_MODE_CIDS",
+    "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES"
+  ],
+  "stages": [
+    {
+      "id": "api",
+      "label": "Preflight production seal API",
+      "status": "blocked",
+      "command": "bun run filecoin:api:check",
+      "executeCommand": "bun run filecoin:api:check",
+      "requiredEnv": [
+        "SYNAPSE_PRIVATE_KEY",
+        "FILECOIN_SEAL_TOKEN",
+        "VITE_FILECOIN_SEAL_TOKEN",
+        "FILECOIN_PROOF_STORE_PATH",
+        "ALLOW_ORIGIN",
+        "VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN",
+        "FILECOIN_SEAL_UPSTREAM_URL when VITE_FILECOIN_SEAL_SAME_ORIGIN=1"
+      ],
+      "missingEnv": [
+        "Synapse private key",
+        "Server upload token",
+        "Browser token matches server",
+        "Persistent proof store",
+        "Restricted CORS origin",
+        "Browser seal endpoint"
+      ],
+      "outputEnv": [
+        "production-ready /health response"
+      ],
+      "detail": "Synapse private key: Set SYNAPSE_PRIVATE_KEY to a funded 0x-prefixed 32-byte Filecoin/Synapse private key. Server upload token: Set FILECOIN_SEAL_TOKEN to a strong bearer token before exposing POST /seal. Browser token matches server: Set VITE_FILECOIN_SEAL_TOKEN to the same value expected by FILECOIN_SEAL_TOKEN in the deployed seal API. Persistent proof store: Set FILECOIN_PROOF_STORE_PATH to a durable mounted file path and ensure its parent directory is writable. Restricted CORS origin: Set ALLOW_ORIGIN to the deployed HTTPS app origin, not '*'. Browser seal endpoint: Set VITE_FILECOIN_SEAL_API to the deployed HTTPS /seal endpoint, or set VITE_FILECOIN_SEAL_SAME_ORIGIN=1 when the production API is mounted at /seal on the app origin."
+    },
+    {
+      "id": "dry-run",
+      "label": "Build seal target payloads",
+      "status": "blocked",
+      "command": "bun run seal:production-targets -- --dry-run",
+      "executeCommand": "bun run seal:production-targets -- --dry-run",
+      "requiredEnv": [
+        "VITE_PUBLIC_APP_URL",
+        "VITE_SUPABASE_URL",
+        "KICKOFF_SEED_SHARE_IMAGE_URL or KICKOFF_VERIFY_SHARE_IMAGE_URL",
+        "KICKOFF_SEED_MODE_SHARE_IMAGE_URL or KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL"
+      ],
+      "missingEnv": [
+        "VITE_SUPABASE_URL"
+      ],
+      "outputEnv": [
+        "record payload hash",
+        "mode payload hashes",
+        "KICKOFF_VERIFY_PROOF_ID",
+        "KICKOFF_VERIFY_MODE_IDS"
+      ],
+      "detail": "Build deterministic production record and mode payloads before submitting them to the seal API."
+    },
+    {
+      "id": "seal",
+      "label": "Seal production proof targets",
+      "status": "blocked",
+      "command": "bun run seal:production-targets",
+      "executeCommand": "bun run seal:production-targets",
+      "requiredEnv": [
+        "production-ready seal API",
+        "VITE_PUBLIC_APP_URL",
+        "VITE_SUPABASE_URL",
+        "KICKOFF_SEED_SHARE_IMAGE_URL or KICKOFF_VERIFY_SHARE_IMAGE_URL",
+        "KICKOFF_SEED_MODE_SHARE_IMAGE_URL or KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL"
+      ],
+      "missingEnv": [
+        "production-ready seal API",
+        "VITE_SUPABASE_URL"
+      ],
+      "outputEnv": [
+        "KICKOFF_VERIFY_FILECOIN_RECORD_CID",
+        "KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CIDS",
+        "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES"
+      ],
+      "detail": "POST the record target and all 4 mode targets to /seal?async=1, poll /jobs/:id, then verify /verify and /proof read-back."
+    },
+    {
+      "id": "doctor",
+      "label": "Verify Filecoin read-back",
+      "status": "blocked",
+      "command": "bun run doctor:filecoin",
+      "executeCommand": "bun run doctor:filecoin",
+      "requiredEnv": [
+        "VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN",
+        "VITE_FILECOIN_SEAL_TOKEN",
+        "KICKOFF_VERIFY_FILECOIN_RECORD_CID",
+        "KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CIDS",
+        "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES"
+      ],
+      "missingEnv": [
+        "VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL",
+        "VITE_FILECOIN_SEAL_TOKEN",
+        "KICKOFF_VERIFY_FILECOIN_RECORD_CID",
+        "KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CIDS",
+        "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES"
+      ],
+      "outputEnv": [
+        "Filecoin production evidence"
+      ],
+      "detail": "Verify health, contract readiness, record CID read-back and every required mode CID/hash pair."
+    }
+  ],
+  "commands": [
+    "bun run filecoin:api:check",
+    "bun run seal:production-targets -- --dry-run",
+    "bun run seal:production-targets",
+    "bun run doctor:filecoin"
+  ],
+  "nextAction": "Preflight production seal API: set Synapse private key, Server upload token, Browser token matches server, Persistent proof store, Restricted CORS origin, Browser seal endpoint first.",
+  "copyText": "Kickoff Lock Agent Filecoin production bootstrap\nMode: plan\nStages: 0/4 ready or done\nMissing env: Synapse private key, Server upload token, Browser token matches server, Persistent proof store, Restricted CORS origin, Browser seal endpoint, VITE_SUPABASE_URL, production-ready seal API, VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL, VITE_FILECOIN_SEAL_TOKEN, KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES\nNext action: Preflight production seal API: set Synapse private key, Server upload token, Browser token matches server, Persistent proof store, Restricted CORS origin, Browser seal endpoint first.\nCommands:\n- bun run filecoin:api:check\n- bun run seal:production-targets -- --dry-run\n- bun run seal:production-targets\n- bun run doctor:filecoin\nStages:\n- Preflight production seal API [blocked]\n  command: bun run filecoin:api:check\n  execute: bun run filecoin:api:check\n  requires: SYNAPSE_PRIVATE_KEY, FILECOIN_SEAL_TOKEN, VITE_FILECOIN_SEAL_TOKEN, FILECOIN_PROOF_STORE_PATH, ALLOW_ORIGIN, VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN, FILECOIN_SEAL_UPSTREAM_URL when VITE_FILECOIN_SEAL_SAME_ORIGIN=1\n  missing: Synapse private key, Server upload token, Browser token matches server, Persistent proof store, Restricted CORS origin, Browser seal endpoint\n  outputs: production-ready /health response\n  detail: Synapse private key: Set SYNAPSE_PRIVATE_KEY to a funded 0x-prefixed 32-byte Filecoin/Synapse private key. Server upload token: Set FILECOIN_SEAL_TOKEN to a strong bearer token before exposing POST /seal. Browser token matches server: Set VITE_FILECOIN_SEAL_TOKEN to the same value expected by FILECOIN_SEAL_TOKEN in the deployed seal API. Persistent proof store: Set FILECOIN_PROOF_STORE_PATH to a durable mounted file path and ensure its parent directory is writable. Restricted CORS origin: Set ALLOW_ORIGIN to the deployed HTTPS app origin, not '*'. Browser seal endpoint: Set VITE_FILECOIN_SEAL_API to the deployed HTTPS /seal endpoint, or set VITE_FILECOIN_SEAL_SAME_ORIGIN=1 when the production API is mounted at /seal on the app origin.\n- Build seal target payloads [blocked]\n  command: bun run seal:production-targets -- --dry-run\n  execute: bun run seal:production-targets -- --dry-run\n  requires: VITE_PUBLIC_APP_URL, VITE_SUPABASE_URL, KICKOFF_SEED_SHARE_IMAGE_URL or KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_SEED_MODE_SHARE_IMAGE_URL or KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  missing: VITE_SUPABASE_URL\n  outputs: record payload hash, mode payload hashes, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS\n  detail: Build deterministic production record and mode payloads before submitting them to the seal API.\n- Seal production proof targets [blocked]\n  command: bun run seal:production-targets\n  execute: bun run seal:production-targets\n  requires: production-ready seal API, VITE_PUBLIC_APP_URL, VITE_SUPABASE_URL, KICKOFF_SEED_SHARE_IMAGE_URL or KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_SEED_MODE_SHARE_IMAGE_URL or KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  missing: production-ready seal API, VITE_SUPABASE_URL\n  outputs: KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES\n  detail: POST the record target and all 4 mode targets to /seal?async=1, poll /jobs/:id, then verify /verify and /proof read-back.\n- Verify Filecoin read-back [blocked]\n  command: bun run doctor:filecoin\n  execute: bun run doctor:filecoin\n  requires: VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN, VITE_FILECOIN_SEAL_TOKEN, KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES\n  missing: VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL, VITE_FILECOIN_SEAL_TOKEN, KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES\n  outputs: Filecoin production evidence\n  detail: Verify health, contract readiness, record CID read-back and every required mode CID/hash pair."
+}

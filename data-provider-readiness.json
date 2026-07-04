@@ -1,0 +1,110 @@
+{
+  "ready": false,
+  "passed": 2,
+  "total": 6,
+  "checks": [
+    {
+      "id": "api-football-key",
+      "label": "API-Football key",
+      "passed": false,
+      "detail": "missing",
+      "action": "Set VITE_APIFOOTBALL_KEY so lineups, injuries and API-Football odds can be read back."
+    },
+    {
+      "id": "fixture-targets",
+      "label": "Production fixture targets",
+      "passed": false,
+      "detail": "missing",
+      "action": "Run bun run scout:data-targets or set KICKOFF_VERIFY_FIXTURE_IDS to fixtures that return lineups, injuries and odds."
+    },
+    {
+      "id": "odds-provider",
+      "label": "Odds provider",
+      "passed": false,
+      "detail": "missing",
+      "action": "Configure API-Football odds or set VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY."
+    },
+    {
+      "id": "data-proxy",
+      "label": "Static hosting data proxy",
+      "passed": false,
+      "detail": "missing",
+      "action": "Deploy server/data-proxy-worker.mjs and set VITE_DATA_PROXY_URL to an HTTPS /proxy endpoint."
+    },
+    {
+      "id": "api-football-enrichment-limit",
+      "label": "API-Football enrichment limit",
+      "passed": true,
+      "detail": "12",
+      "action": "Set VITE_APIFOOTBALL_ENRICHMENT_LIMIT to a positive value no larger than 50 to protect quota."
+    },
+    {
+      "id": "scout-search-window",
+      "label": "Data scout search window",
+      "passed": true,
+      "detail": "limit 12, targets 3",
+      "action": "Set KICKOFF_DATA_SCOUT_LIMIT and KICKOFF_DATA_SCOUT_TARGETS, or provide KICKOFF_DATA_SCOUT_FIXTURE_IDS with enough candidate fixtures."
+    }
+  ],
+  "blockers": [
+    {
+      "id": "api-football-key",
+      "label": "API-Football key",
+      "passed": false,
+      "detail": "missing",
+      "action": "Set VITE_APIFOOTBALL_KEY so lineups, injuries and API-Football odds can be read back."
+    },
+    {
+      "id": "fixture-targets",
+      "label": "Production fixture targets",
+      "passed": false,
+      "detail": "missing",
+      "action": "Run bun run scout:data-targets or set KICKOFF_VERIFY_FIXTURE_IDS to fixtures that return lineups, injuries and odds."
+    },
+    {
+      "id": "odds-provider",
+      "label": "Odds provider",
+      "passed": false,
+      "detail": "missing",
+      "action": "Configure API-Football odds or set VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY."
+    },
+    {
+      "id": "data-proxy",
+      "label": "Static hosting data proxy",
+      "passed": false,
+      "detail": "missing",
+      "action": "Deploy server/data-proxy-worker.mjs and set VITE_DATA_PROXY_URL to an HTTPS /proxy endpoint."
+    }
+  ],
+  "generatedAt": "2026-07-04T13:08:49.396Z",
+  "envFiles": [
+    ".env.production.local"
+  ],
+  "artifactVersion": 1,
+  "targets": {
+    "fixtureIds": [],
+    "requiredFixtureCount": 3,
+    "dataProxyUrl": "",
+    "apiFootballConfigured": false,
+    "oddsProviderConfigured": false,
+    "apiFootballEnrichmentLimit": "12",
+    "scoutLimit": "12",
+    "scoutTargets": "3"
+  },
+  "acceptance": {
+    "apiFootballKey": false,
+    "fixtureTargets": false,
+    "oddsProvider": false,
+    "dataProxyHttps": false,
+    "enrichmentLimitReady": true,
+    "scoutWindowReady": true,
+    "outputEnvKeys": [
+      "VITE_APIFOOTBALL_KEY",
+      "VITE_DATA_PROXY_URL",
+      "KICKOFF_VERIFY_FIXTURE_IDS",
+      "VITE_APIFOOTBALL_ENRICHMENT_LIMIT",
+      "KICKOFF_DATA_SCOUT_LIMIT",
+      "KICKOFF_DATA_SCOUT_TARGETS"
+    ]
+  }
+}

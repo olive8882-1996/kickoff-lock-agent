@@ -6,6 +6,7 @@ window.__KICKOFF_RUNTIME_CONFIG__ = Object.freeze(
   "VITE_SUPABASE_SHARE_BUCKET": "kickoff-share-cards",
   "VITE_PUBLIC_APP_URL": "https://olive8882-1996.github.io/kickoff-lock-agent/",
   "VITE_DATA_PROXY_URL": "",
+  "VITE_DATA_PROXY_SAME_ORIGIN": "0",
   "VITE_APIFOOTBALL_KEY": "",
   "VITE_APIFOOTBALL_ENRICHMENT_LIMIT": "12",
   "VITE_FOOTBALL_DATA_TOKEN": "",
@@ -17,6 +18,7 @@ window.__KICKOFF_RUNTIME_CONFIG__ = Object.freeze(
   "VITE_ODDS_API_KEY": "",
   "VITE_ODDS_API_SPORT_KEY": "",
   "VITE_FILECOIN_SEAL_API": "",
+  "VITE_FILECOIN_SEAL_SAME_ORIGIN": "0",
   "VITE_FILECOIN_SEAL_TOKEN": ""
 }
 );

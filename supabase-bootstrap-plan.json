@@ -1,0 +1,128 @@
+{
+  "generatedAt": "2026-07-04T15:44:37.948Z",
+  "source": "local-script",
+  "envFiles": [
+    ".env.production.local"
+  ],
+  "includeExample": false,
+  "outputPath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/supabase-bootstrap-plan.json",
+  "wrote": true,
+  "ready": false,
+  "execute": false,
+  "stageReadyCount": 0,
+  "totalStages": 4,
+  "blockedStages": 4,
+  "missingEnv": [
+    "SUPABASE_DB_URL",
+    "VITE_SUPABASE_ANON_KEY",
+    "VITE_SUPABASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY"
+  ],
+  "stages": [
+    {
+      "id": "schema",
+      "label": "Apply Supabase schema",
+      "status": "blocked",
+      "command": "bun run supabase:schema:check",
+      "executeCommand": "bun run supabase:schema:apply",
+      "requiredEnv": [
+        "SUPABASE_DB_URL"
+      ],
+      "missingEnv": [
+        "SUPABASE_DB_URL"
+      ],
+      "outputEnv": [
+        "kickoff_profiles",
+        "kickoff_records",
+        "kickoff_mode_runs",
+        "kickoff_share_artifacts",
+        "kickoff_leaderboard"
+      ],
+      "detail": "Set SUPABASE_DB_URL to the Supabase project Postgres connection string, for example postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres."
+    },
+    {
+      "id": "auth",
+      "label": "Verify account auth redirect",
+      "status": "blocked",
+      "command": "bun run runtime:config:check",
+      "executeCommand": "bun run runtime:config:check",
+      "requiredEnv": [
+        "VITE_PUBLIC_APP_URL",
+        "VITE_SUPABASE_URL",
+        "VITE_SUPABASE_ANON_KEY",
+        "VITE_SUPABASE_REDIRECT_URL"
+      ],
+      "missingEnv": [
+        "VITE_SUPABASE_ANON_KEY",
+        "VITE_SUPABASE_URL"
+      ],
+      "outputEnv": [
+        "Google OAuth authorize URL",
+        "magic-link redirect URL"
+      ],
+      "detail": "Google OAuth and magic links redirect to https://olive8882-1996.github.io/kickoff-lock-agent/."
+    },
+    {
+      "id": "seed",
+      "label": "Seed account, proof and leaderboard rows",
+      "status": "blocked",
+      "command": "bun run seed:production-targets --dry-run",
+      "executeCommand": "bun run seed:production-targets --upload-share-image --upload-mode-share-image",
+      "requiredEnv": [
+        "VITE_PUBLIC_APP_URL",
+        "VITE_SUPABASE_URL",
+        "VITE_SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "KICKOFF_SEED_SHARE_IMAGE_URL or KICKOFF_VERIFY_SHARE_IMAGE_URL",
+        "KICKOFF_SEED_MODE_SHARE_IMAGE_URL or KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL"
+      ],
+      "missingEnv": [
+        "VITE_SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "VITE_SUPABASE_URL"
+      ],
+      "outputEnv": [
+        "KICKOFF_VERIFY_USER_ID",
+        "KICKOFF_VERIFY_PROFILE_ID",
+        "KICKOFF_VERIFY_PROOF_ID",
+        "KICKOFF_VERIFY_MODE_IDS",
+        "KICKOFF_VERIFY_FRIEND_CODE",
+        "KICKOFF_VERIFY_SEASON_KEY"
+      ],
+      "detail": "6/6 Supabase target env keys collected; waiting for write prerequisites."
+    },
+    {
+      "id": "doctor",
+      "label": "Verify Supabase read-back",
+      "status": "blocked",
+      "command": "bun run doctor:supabase",
+      "executeCommand": "bun run doctor:supabase",
+      "requiredEnv": [
+        "VITE_SUPABASE_URL",
+        "VITE_SUPABASE_ANON_KEY",
+        "KICKOFF_VERIFY_USER_ID",
+        "KICKOFF_VERIFY_PROFILE_ID",
+        "KICKOFF_VERIFY_PROOF_ID",
+        "KICKOFF_VERIFY_MODE_IDS",
+        "KICKOFF_VERIFY_FRIEND_CODE",
+        "KICKOFF_VERIFY_SEASON_KEY"
+      ],
+      "missingEnv": [
+        "VITE_SUPABASE_ANON_KEY",
+        "VITE_SUPABASE_URL"
+      ],
+      "outputEnv": [
+        "supabase production evidence"
+      ],
+      "detail": "Verify public REST reads, target rows, share artifacts and global/friend/season leaderboard scopes."
+    }
+  ],
+  "commands": [
+    "bun run supabase:schema:check",
+    "bun run runtime:config:check",
+    "bun run seed:production-targets --dry-run",
+    "bun run doctor:supabase"
+  ],
+  "nextAction": "Apply Supabase schema: set SUPABASE_DB_URL first.",
+  "copyText": "Kickoff Lock Agent Supabase production bootstrap\nMode: plan\nStages: 0/4 ready or done\nMissing env: SUPABASE_DB_URL, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\nNext action: Apply Supabase schema: set SUPABASE_DB_URL first.\nCommands:\n- bun run supabase:schema:check\n- bun run runtime:config:check\n- bun run seed:production-targets --dry-run\n- bun run doctor:supabase\nStages:\n- Apply Supabase schema [blocked]\n  command: bun run supabase:schema:check\n  execute: bun run supabase:schema:apply\n  requires: SUPABASE_DB_URL\n  missing: SUPABASE_DB_URL\n  outputs: kickoff_profiles, kickoff_records, kickoff_mode_runs, kickoff_share_artifacts, kickoff_leaderboard\n  detail: Set SUPABASE_DB_URL to the Supabase project Postgres connection string, for example postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres.\n- Verify account auth redirect [blocked]\n  command: bun run runtime:config:check\n  execute: bun run runtime:config:check\n  requires: VITE_PUBLIC_APP_URL, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_REDIRECT_URL\n  missing: VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL\n  outputs: Google OAuth authorize URL, magic-link redirect URL\n  detail: Google OAuth and magic links redirect to https://olive8882-1996.github.io/kickoff-lock-agent/.\n- Seed account, proof and leaderboard rows [blocked]\n  command: bun run seed:production-targets --dry-run\n  execute: bun run seed:production-targets --upload-share-image --upload-mode-share-image\n  requires: VITE_PUBLIC_APP_URL, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, KICKOFF_SEED_SHARE_IMAGE_URL or KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_SEED_MODE_SHARE_IMAGE_URL or KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  missing: VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, VITE_SUPABASE_URL\n  outputs: KICKOFF_VERIFY_USER_ID, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_FRIEND_CODE, KICKOFF_VERIFY_SEASON_KEY\n  detail: 6/6 Supabase target env keys collected; waiting for write prerequisites.\n- Verify Supabase read-back [blocked]\n  command: bun run doctor:supabase\n  execute: bun run doctor:supabase\n  requires: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, KICKOFF_VERIFY_USER_ID, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_FRIEND_CODE, KICKOFF_VERIFY_SEASON_KEY\n  missing: VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL\n  outputs: supabase production evidence\n  detail: Verify public REST reads, target rows, share artifacts and global/friend/season leaderboard scopes."
+}

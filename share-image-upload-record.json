@@ -1,0 +1,30 @@
+{
+  "ready": false,
+  "missing": [
+    "VITE_SUPABASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY"
+  ],
+  "generatedAt": "2026-07-04T13:13:59.531Z",
+  "envFiles": [
+    ".env.production.local"
+  ],
+  "artifactVersion": 1,
+  "filePath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/generated/kickoff-production-share.png",
+  "target": {
+    "profileId": "kickoff-production-seed",
+    "kind": "record",
+    "artifactId": "cap-prod-73dc2618d1f9",
+    "fileName": "kickoff-production-share.png",
+    "imageMime": "image/png"
+  },
+  "acceptance": {
+    "uploaded": false,
+    "publicReadBack": false,
+    "supabasePublicUrl": false,
+    "imageHashReady": false,
+    "outputEnvKeys": [
+      "KICKOFF_SEED_SHARE_IMAGE_URL",
+      "KICKOFF_VERIFY_SHARE_IMAGE_URL"
+    ]
+  }
+}

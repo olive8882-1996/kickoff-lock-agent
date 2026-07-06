@@ -1,6 +1,6 @@
 {
   "artifactVersion": 1,
-  "generatedAt": "2026-07-06T10:54:50.591Z",
+  "generatedAt": "2026-07-06T12:03:41.654Z",
   "source": "local-script",
   "envFiles": [
     ".env.production.local"
@@ -26,20 +26,27 @@
   "plannedPagesUrl": "https://kickoff-lock-agent.pages.dev/",
   "tokenAuthReady": false,
   "wranglerLoginReady": false,
-  "sameOriginData": false,
-  "sameOriginSeal": false,
+  "sameOriginData": true,
+  "sameOriginSeal": true,
   "functionsReady": true,
   "runtimePreflight": {
-    "sameOriginData": false,
-    "sameOriginSeal": false,
+    "sameOriginData": true,
+    "sameOriginSeal": true,
     "functionsReady": true,
     "functionEntryProblems": [],
-    "problems": []
+    "problems": [
+      "APIFOOTBALL_KEY is missing for same-origin /data-proxy enrichment.",
+      "FILECOIN_SEAL_UPSTREAM_URL is missing.",
+      "FILECOIN_SEAL_TOKEN is missing for same-origin /seal token injection."
+    ]
   },
-  "stageReadyCount": 2,
+  "stageReadyCount": 1,
   "totalStages": 4,
-  "blockedStages": 2,
+  "blockedStages": 3,
   "missingEnv": [
+    "APIFOOTBALL_KEY",
+    "FILECOIN_SEAL_UPSTREAM_URL",
+    "FILECOIN_SEAL_TOKEN",
     "CLOUDFLARE_API_TOKEN",
     "CLOUDFLARE_ACCOUNT_ID"
   ],
@@ -59,15 +66,25 @@
     {
       "id": "runtime-secrets",
       "label": "Set Pages runtime secrets",
-      "status": "done",
+      "status": "blocked",
       "command": "Set Cloudflare Pages environment variables: APIFOOTBALL_KEY, ODDS_API_KEY, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN, ALLOW_ORIGIN",
-      "requiredEnv": [],
-      "missingEnv": [],
+      "requiredEnv": [
+        "APIFOOTBALL_KEY",
+        "optional ODDS_API_KEY",
+        "FILECOIN_SEAL_UPSTREAM_URL",
+        "FILECOIN_SEAL_TOKEN",
+        "ALLOW_ORIGIN"
+      ],
+      "missingEnv": [
+        "APIFOOTBALL_KEY",
+        "FILECOIN_SEAL_UPSTREAM_URL",
+        "FILECOIN_SEAL_TOKEN"
+      ],
       "outputEnv": [
         "same-origin /data-proxy/health",
         "same-origin /seal health"
       ],
-      "detail": "Runtime secrets are ready for Pages Functions."
+      "detail": "APIFOOTBALL_KEY is missing for same-origin /data-proxy enrichment. FILECOIN_SEAL_UPSTREAM_URL is missing. FILECOIN_SEAL_TOKEN is missing for same-origin /seal token injection."
     },
     {
       "id": "auth",
@@ -98,6 +115,9 @@
         "deploy auth"
       ],
       "missingEnv": [
+        "APIFOOTBALL_KEY",
+        "FILECOIN_SEAL_UPSTREAM_URL",
+        "FILECOIN_SEAL_TOKEN",
         "CLOUDFLARE_API_TOKEN",
         "CLOUDFLARE_ACCOUNT_ID"
       ],
@@ -114,6 +134,6 @@
     "bun run pages:cf:check",
     "bun run pages:cf:deploy"
   ],
-  "nextAction": "Authenticate Cloudflare deploy: Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, or run bunx wrangler login and set CLOUDFLARE_WRANGLER_LOGIN=1.",
-  "copyText": "Kickoff Lock Agent Cloudflare Pages deploy plan\nReady: no\nProject: kickoff-lock-agent\nBranch: main\nPlanned URL: https://kickoff-lock-agent.pages.dev/\nSame-origin data proxy: no\nSame-origin Filecoin seal proxy: no\nNext action: Authenticate Cloudflare deploy: Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, or run bunx wrangler login and set CLOUDFLARE_WRANGLER_LOGIN=1.\nCommands:\n- bun run pages:functions:build\n- bun run pages:cf:check\n- bun run pages:cf:deploy\nStages:\n- Build Cloudflare Pages Functions bundle [done]\n  command: bun run pages:functions:build\n  missing: none\n  detail: Cloudflare Pages Functions bundle compiled with Wrangler.\n- Set Pages runtime secrets [done]\n  command: Set Cloudflare Pages environment variables: APIFOOTBALL_KEY, ODDS_API_KEY, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN, ALLOW_ORIGIN\n  missing: none\n  detail: Runtime secrets are ready for Pages Functions.\n- Authenticate Cloudflare deploy [blocked]\n  command: bun run pages:cf:check\n  missing: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID\n  detail: Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, or run bunx wrangler login and set CLOUDFLARE_WRANGLER_LOGIN=1.\n- Deploy app and same-origin backend routes [blocked]\n  command: bun run pages:cf:deploy\n  missing: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID\n  detail: Complete Functions, runtime secrets and Cloudflare auth before deploying the same-origin backend routes."
+  "nextAction": "Set Pages runtime secrets: APIFOOTBALL_KEY is missing for same-origin /data-proxy enrichment. FILECOIN_SEAL_UPSTREAM_URL is missing. FILECOIN_SEAL_TOKEN is missing for same-origin /seal token injection.",
+  "copyText": "Kickoff Lock Agent Cloudflare Pages deploy plan\nReady: no\nProject: kickoff-lock-agent\nBranch: main\nPlanned URL: https://kickoff-lock-agent.pages.dev/\nSame-origin data proxy: yes\nSame-origin Filecoin seal proxy: yes\nNext action: Set Pages runtime secrets: APIFOOTBALL_KEY is missing for same-origin /data-proxy enrichment. FILECOIN_SEAL_UPSTREAM_URL is missing. FILECOIN_SEAL_TOKEN is missing for same-origin /seal token injection.\nCommands:\n- bun run pages:functions:build\n- bun run pages:cf:check\n- bun run pages:cf:deploy\nStages:\n- Build Cloudflare Pages Functions bundle [done]\n  command: bun run pages:functions:build\n  missing: none\n  detail: Cloudflare Pages Functions bundle compiled with Wrangler.\n- Set Pages runtime secrets [blocked]\n  command: Set Cloudflare Pages environment variables: APIFOOTBALL_KEY, ODDS_API_KEY, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN, ALLOW_ORIGIN\n  missing: APIFOOTBALL_KEY, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN\n  detail: APIFOOTBALL_KEY is missing for same-origin /data-proxy enrichment. FILECOIN_SEAL_UPSTREAM_URL is missing. FILECOIN_SEAL_TOKEN is missing for same-origin /seal token injection.\n- Authenticate Cloudflare deploy [blocked]\n  command: bun run pages:cf:check\n  missing: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID\n  detail: Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, or run bunx wrangler login and set CLOUDFLARE_WRANGLER_LOGIN=1.\n- Deploy app and same-origin backend routes [blocked]\n  command: bun run pages:cf:deploy\n  missing: APIFOOTBALL_KEY, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID\n  detail: Complete Functions, runtime secrets and Cloudflare auth before deploying the same-origin backend routes."
 }

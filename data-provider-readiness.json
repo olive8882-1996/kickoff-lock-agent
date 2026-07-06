@@ -1,7 +1,7 @@
 {
   "ready": false,
   "passed": 2,
-  "total": 7,
+  "total": 8,
   "checks": [
     {
       "id": "api-football-key",
@@ -9,6 +9,13 @@
       "passed": false,
       "detail": "missing",
       "action": "Set VITE_APIFOOTBALL_KEY for direct browser calls, or deploy the data proxy with APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back without exposing the key."
+    },
+    {
+      "id": "football-data-backup",
+      "label": "Football-Data.org matches and standings backup",
+      "passed": false,
+      "detail": "missing",
+      "action": "Set FOOTBALL_DATA_TOKEN on the Worker/Pages runtime, or VITE_FOOTBALL_DATA_TOKEN for direct diagnostics, so matches and standings can be read back as the stable schedule/ranking backup."
     },
     {
       "id": "fixture-targets",
@@ -35,7 +42,7 @@
       "id": "data-proxy",
       "label": "Static hosting data proxy",
       "passed": false,
-      "detail": "missing",
+      "detail": "VITE_DATA_PROXY_URL",
       "action": "Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1."
     },
     {
@@ -62,6 +69,13 @@
       "action": "Set VITE_APIFOOTBALL_KEY for direct browser calls, or deploy the data proxy with APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back without exposing the key."
     },
     {
+      "id": "football-data-backup",
+      "label": "Football-Data.org matches and standings backup",
+      "passed": false,
+      "detail": "missing",
+      "action": "Set FOOTBALL_DATA_TOKEN on the Worker/Pages runtime, or VITE_FOOTBALL_DATA_TOKEN for direct diagnostics, so matches and standings can be read back as the stable schedule/ranking backup."
+    },
+    {
       "id": "fixture-targets",
       "label": "Production fixture targets",
       "passed": false,
@@ -86,11 +100,11 @@
       "id": "data-proxy",
       "label": "Static hosting data proxy",
       "passed": false,
-      "detail": "missing",
+      "detail": "VITE_DATA_PROXY_URL",
       "action": "Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1."
     }
   ],
-  "generatedAt": "2026-07-06T03:08:35.275Z",
+  "generatedAt": "2026-07-06T13:51:24.022Z",
   "envFiles": [
     ".env.production.local"
   ],
@@ -101,6 +115,7 @@
     "fixtureSignalMatrix": "",
     "dataProxyUrl": "",
     "apiFootballConfigured": false,
+    "footballDataBackupConfigured": false,
     "oddsProviderConfigured": false,
     "fixtureSignalRows": [],
     "apiFootballEnrichmentLimit": "12",
@@ -109,6 +124,7 @@
   },
   "acceptance": {
     "apiFootballKey": false,
+    "footballDataBackup": false,
     "fixtureTargets": false,
     "fixtureSignalMatrix": false,
     "oddsProvider": false,
@@ -118,6 +134,9 @@
     "outputEnvKeys": [
       "APIFOOTBALL_KEY",
       "VITE_APIFOOTBALL_KEY",
+      "FOOTBALL_DATA_TOKEN",
+      "FOOTBALL_DATA_ORG_TOKEN",
+      "VITE_FOOTBALL_DATA_TOKEN",
       "VITE_DATA_PROXY_URL",
       "VITE_DATA_PROXY_SAME_ORIGIN",
       "KICKOFF_VERIFY_FIXTURE_IDS",

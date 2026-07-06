@@ -4,15 +4,15 @@
   ],
   "outputPath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/public-deployment-evidence.json",
   "wrote": true,
-  "generatedAt": "2026-07-06T04:12:31.785Z",
+  "generatedAt": "2026-07-06T04:18:37.265Z",
   "source": "local-script",
   "ready": true,
   "publicAppUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/",
   "pagesBuildStatus": "built",
-  "pagesBuildCommit": "97b3c21b6f6ae9739315024b28e331ef55b06e4e",
+  "pagesBuildCommit": "beb6a278843c3aa0876b23b1d6dafbdc6410c928",
   "pagesBuildError": null,
-  "liveBundle": "assets/index-uda8FOOw.js",
-  "expectedBundle": "assets/index-uda8FOOw.js",
+  "liveBundle": "assets/index-ChvnWCG7.js",
+  "expectedBundle": "assets/index-ChvnWCG7.js",
   "liveStylesheet": "assets/index-CjxULvOR.css",
   "expectedStylesheet": "assets/index-CjxULvOR.css",
   "checks": [
@@ -33,28 +33,28 @@
       "key": "pages-commit",
       "label": "Pages commit",
       "passed": true,
-      "detail": "Pages 97b3c21b6f6ae9739315024b28e331ef55b06e4e"
+      "detail": "Pages beb6a278843c3aa0876b23b1d6dafbdc6410c928"
     },
     {
       "key": "live-index",
       "label": "Live index",
       "passed": true,
-      "detail": "HTTP 200 · bundle assets/index-uda8FOOw.js · css assets/index-CjxULvOR.css",
+      "detail": "HTTP 200 · bundle assets/index-ChvnWCG7.js · css assets/index-CjxULvOR.css",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/"
     },
     {
       "key": "bundle-match",
       "label": "Bundle hash",
       "passed": true,
-      "detail": "expected assets/index-uda8FOOw.js · live assets/index-uda8FOOw.js",
-      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-uda8FOOw.js"
+      "detail": "expected assets/index-ChvnWCG7.js · live assets/index-ChvnWCG7.js",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-ChvnWCG7.js"
     },
     {
       "key": "bundle-http",
       "label": "Bundle asset",
       "passed": true,
-      "detail": "HTTP 200 · assets/index-uda8FOOw.js",
-      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-uda8FOOw.js"
+      "detail": "HTTP 200 · assets/index-ChvnWCG7.js",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-ChvnWCG7.js"
     },
     {
       "key": "stylesheet-match",
@@ -71,7 +71,7 @@
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-CjxULvOR.css"
     }
   ],
-  "summary": "Live deployment matches assets/index-uda8FOOw.js.",
+  "summary": "Live deployment matches assets/index-ChvnWCG7.js.",
   "nextAction": "Public deployment is live: Pages build, commit and hashed assets all match.",
-  "copyText": "Kickoff Lock Agent public deployment evidence\nReady: yes\nPublic app: https://olive8882-1996.github.io/kickoff-lock-agent/\nExpected commit: unknown\nPages build: built 97b3c21b6f6ae9739315024b28e331ef55b06e4e\nExpected bundle: assets/index-uda8FOOw.js\nLive bundle: assets/index-uda8FOOw.js\nExpected stylesheet: assets/index-CjxULvOR.css\nLive stylesheet: assets/index-CjxULvOR.css\nNext action: Public deployment is live: Pages build, commit and hashed assets all match.\nChecks:\n- Public app URL: passed · https://olive8882-1996.github.io/kickoff-lock-agent/\n- GitHub Pages build: passed · built\n- Pages commit: passed · Pages 97b3c21b6f6ae9739315024b28e331ef55b06e4e\n- Live index: passed · HTTP 200 · bundle assets/index-uda8FOOw.js · css assets/index-CjxULvOR.css\n- Bundle hash: passed · expected assets/index-uda8FOOw.js · live assets/index-uda8FOOw.js\n- Bundle asset: passed · HTTP 200 · assets/index-uda8FOOw.js\n- Stylesheet hash: passed · expected assets/index-CjxULvOR.css · live assets/index-CjxULvOR.css\n- Stylesheet asset: passed · HTTP 200 · assets/index-CjxULvOR.css"
+  "copyText": "Kickoff Lock Agent public deployment evidence\nReady: yes\nPublic app: https://olive8882-1996.github.io/kickoff-lock-agent/\nExpected commit: unknown\nPages build: built beb6a278843c3aa0876b23b1d6dafbdc6410c928\nExpected bundle: assets/index-ChvnWCG7.js\nLive bundle: assets/index-ChvnWCG7.js\nExpected stylesheet: assets/index-CjxULvOR.css\nLive stylesheet: assets/index-CjxULvOR.css\nNext action: Public deployment is live: Pages build, commit and hashed assets all match.\nChecks:\n- Public app URL: passed · https://olive8882-1996.github.io/kickoff-lock-agent/\n- GitHub Pages build: passed · built\n- Pages commit: passed · Pages beb6a278843c3aa0876b23b1d6dafbdc6410c928\n- Live index: passed · HTTP 200 · bundle assets/index-ChvnWCG7.js · css assets/index-CjxULvOR.css\n- Bundle hash: passed · expected assets/index-ChvnWCG7.js · live assets/index-ChvnWCG7.js\n- Bundle asset: passed · HTTP 200 · assets/index-ChvnWCG7.js\n- Stylesheet hash: passed · expected assets/index-CjxULvOR.css · live assets/index-CjxULvOR.css\n- Stylesheet asset: passed · HTTP 200 · assets/index-CjxULvOR.css"
 }

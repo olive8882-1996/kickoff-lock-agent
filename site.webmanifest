@@ -2,10 +2,16 @@
   "name": "Kickoff Lock Agent",
   "short_name": "Kickoff Lock",
   "description": "Seal World Cup predictions before kickoff and verify them after the final whistle.",
+  "id": "/kickoff-lock-agent/",
   "start_url": "/kickoff-lock-agent/",
+  "scope": "/kickoff-lock-agent/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#050b0e",
   "theme_color": "#050b0e",
+  "categories": ["sports", "productivity", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
       "src": "assets/kickoff-lock-icon-32.png",
@@ -31,5 +37,56 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Lock Prediction",
+      "short_name": "Lock",
+      "description": "Open the prediction lock flow.",
+      "url": "/kickoff-lock-agent/?action=lock",
+      "icons": [
+        {
+          "src": "assets/kickoff-lock-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Verify Proof",
+      "short_name": "Verify",
+      "description": "Open public proof verification.",
+      "url": "/kickoff-lock-agent/?action=verify",
+      "icons": [
+        {
+          "src": "assets/kickoff-lock-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Leaderboard",
+      "short_name": "Ranks",
+      "description": "Open global and friend leaderboard scopes.",
+      "url": "/kickoff-lock-agent/?view=leaderboard",
+      "icons": [
+        {
+          "src": "assets/kickoff-lock-icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "kickoff-lock-screenshot.png",
+      "sizes": "1265x712",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Kickoff Lock Agent World Cup prediction workspace"
+    }
+  ],
+  "prefer_related_applications": false
 }

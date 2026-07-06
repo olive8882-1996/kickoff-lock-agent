@@ -4,15 +4,15 @@
   ],
   "outputPath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/public-deployment-evidence.json",
   "wrote": true,
-  "generatedAt": "2026-07-06T05:56:38.529Z",
+  "generatedAt": "2026-07-06T06:03:48.255Z",
   "source": "local-script",
-  "ready": true,
+  "ready": false,
   "publicAppUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/",
-  "pagesBuildStatus": "built",
-  "pagesBuildCommit": "f6a3f000e70206d1b2d7a878a8a3fb7b2c91f20f",
+  "pagesBuildStatus": "building",
+  "pagesBuildCommit": "c564f69860e7b6024f48c3c4992297e16d15db7a",
   "pagesBuildError": null,
   "liveBundle": "assets/index-7O5e3JuD.js",
-  "expectedBundle": "assets/index-7O5e3JuD.js",
+  "expectedBundle": "assets/index-X0uLyhKd.js",
   "liveStylesheet": "assets/index-DxIgsgSF.css",
   "expectedStylesheet": "assets/index-DxIgsgSF.css",
   "checks": [
@@ -26,14 +26,14 @@
     {
       "key": "pages-build",
       "label": "GitHub Pages build",
-      "passed": true,
-      "detail": "built"
+      "passed": false,
+      "detail": "building"
     },
     {
       "key": "pages-commit",
       "label": "Pages commit",
       "passed": true,
-      "detail": "Pages f6a3f000e70206d1b2d7a878a8a3fb7b2c91f20f"
+      "detail": "Pages c564f69860e7b6024f48c3c4992297e16d15db7a"
     },
     {
       "key": "live-index",
@@ -45,8 +45,8 @@
     {
       "key": "bundle-match",
       "label": "Bundle hash",
-      "passed": true,
-      "detail": "expected assets/index-7O5e3JuD.js · live assets/index-7O5e3JuD.js",
+      "passed": false,
+      "detail": "expected assets/index-X0uLyhKd.js · live assets/index-7O5e3JuD.js",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-7O5e3JuD.js"
     },
     {
@@ -71,7 +71,7 @@
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-DxIgsgSF.css"
     }
   ],
-  "summary": "Live deployment matches assets/index-7O5e3JuD.js.",
-  "nextAction": "Public deployment is live: Pages build status or published assets, commit and hashed assets all match.",
-  "copyText": "Kickoff Lock Agent public deployment evidence\nReady: yes\nPublic app: https://olive8882-1996.github.io/kickoff-lock-agent/\nExpected commit: unknown\nPages build: built f6a3f000e70206d1b2d7a878a8a3fb7b2c91f20f\nExpected bundle: assets/index-7O5e3JuD.js\nLive bundle: assets/index-7O5e3JuD.js\nExpected stylesheet: assets/index-DxIgsgSF.css\nLive stylesheet: assets/index-DxIgsgSF.css\nNext action: Public deployment is live: Pages build status or published assets, commit and hashed assets all match.\nChecks:\n- Public app URL: passed · https://olive8882-1996.github.io/kickoff-lock-agent/\n- GitHub Pages build: passed · built\n- Pages commit: passed · Pages f6a3f000e70206d1b2d7a878a8a3fb7b2c91f20f\n- Live index: passed · HTTP 200 · bundle assets/index-7O5e3JuD.js · css assets/index-DxIgsgSF.css\n- Bundle hash: passed · expected assets/index-7O5e3JuD.js · live assets/index-7O5e3JuD.js\n- Bundle asset: passed · HTTP 200 · assets/index-7O5e3JuD.js\n- Stylesheet hash: passed · expected assets/index-DxIgsgSF.css · live assets/index-DxIgsgSF.css\n- Stylesheet asset: passed · HTTP 200 · assets/index-DxIgsgSF.css"
+  "summary": "2/8 public deployment checks still failing · live assets/index-7O5e3JuD.js · expected assets/index-X0uLyhKd.js.",
+  "nextAction": "Rerun the failed GitHub Pages deployment, then re-run bun run deploy:evidence.",
+  "copyText": "Kickoff Lock Agent public deployment evidence\nReady: no\nPublic app: https://olive8882-1996.github.io/kickoff-lock-agent/\nExpected commit: unknown\nPages build: building c564f69860e7b6024f48c3c4992297e16d15db7a\nExpected bundle: assets/index-X0uLyhKd.js\nLive bundle: assets/index-7O5e3JuD.js\nExpected stylesheet: assets/index-DxIgsgSF.css\nLive stylesheet: assets/index-DxIgsgSF.css\nNext action: Rerun the failed GitHub Pages deployment, then re-run bun run deploy:evidence.\nChecks:\n- Public app URL: passed · https://olive8882-1996.github.io/kickoff-lock-agent/\n- GitHub Pages build: failed · building\n- Pages commit: passed · Pages c564f69860e7b6024f48c3c4992297e16d15db7a\n- Live index: passed · HTTP 200 · bundle assets/index-7O5e3JuD.js · css assets/index-DxIgsgSF.css\n- Bundle hash: failed · expected assets/index-X0uLyhKd.js · live assets/index-7O5e3JuD.js\n- Bundle asset: passed · HTTP 200 · assets/index-7O5e3JuD.js\n- Stylesheet hash: passed · expected assets/index-DxIgsgSF.css · live assets/index-DxIgsgSF.css\n- Stylesheet asset: passed · HTTP 200 · assets/index-DxIgsgSF.css"
 }

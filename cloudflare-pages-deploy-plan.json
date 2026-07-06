@@ -1,6 +1,6 @@
 {
   "artifactVersion": 1,
-  "generatedAt": "2026-07-06T18:20:50.991Z",
+  "generatedAt": "2026-07-06T22:37:41.341Z",
   "source": "local-script",
   "envFiles": [
     ".env.production.local"
@@ -36,7 +36,6 @@
     "functionEntryProblems": [],
     "problems": [
       "APIFOOTBALL_KEY is missing for same-origin /data-proxy enrichment.",
-      "FOOTBALL_DATA_TOKEN is missing for proxied Football-Data.org matches and standings.",
       "FILECOIN_SEAL_UPSTREAM_URL is missing.",
       "FILECOIN_SEAL_TOKEN is missing for same-origin /seal token injection."
     ]
@@ -46,7 +45,6 @@
   "blockedStages": 3,
   "missingEnv": [
     "APIFOOTBALL_KEY",
-    "FOOTBALL_DATA_TOKEN",
     "FILECOIN_SEAL_UPSTREAM_URL",
     "FILECOIN_SEAL_TOKEN",
     "CLOUDFLARE_API_TOKEN",
@@ -69,18 +67,16 @@
       "id": "runtime-secrets",
       "label": "Set Pages runtime secrets",
       "status": "blocked",
-      "command": "Set Cloudflare Pages environment variables: APIFOOTBALL_KEY, FOOTBALL_DATA_TOKEN, ODDS_API_KEY, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN, ALLOW_ORIGIN",
+      "command": "Set Cloudflare Pages environment variables: APIFOOTBALL_KEY, ODDS_API_KEY, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN, ALLOW_ORIGIN",
       "requiredEnv": [
         "APIFOOTBALL_KEY",
-        "FOOTBALL_DATA_TOKEN",
-        "optional ODDS_API_KEY",
+        "ODDS_API_KEY",
         "FILECOIN_SEAL_UPSTREAM_URL",
         "FILECOIN_SEAL_TOKEN",
         "ALLOW_ORIGIN"
       ],
       "missingEnv": [
         "APIFOOTBALL_KEY",
-        "FOOTBALL_DATA_TOKEN",
         "FILECOIN_SEAL_UPSTREAM_URL",
         "FILECOIN_SEAL_TOKEN"
       ],
@@ -88,7 +84,7 @@
         "same-origin /data-proxy/health",
         "same-origin /seal health"
       ],
-      "detail": "APIFOOTBALL_KEY is missing for same-origin /data-proxy enrichment. FOOTBALL_DATA_TOKEN is missing for proxied Football-Data.org matches and standings. FILECOIN_SEAL_UPSTREAM_URL is missing. FILECOIN_SEAL_TOKEN is missing for same-origin /seal token injection."
+      "detail": "APIFOOTBALL_KEY is missing for same-origin /data-proxy enrichment. FILECOIN_SEAL_UPSTREAM_URL is missing. FILECOIN_SEAL_TOKEN is missing for same-origin /seal token injection."
     },
     {
       "id": "auth",
@@ -120,7 +116,6 @@
       ],
       "missingEnv": [
         "APIFOOTBALL_KEY",
-        "FOOTBALL_DATA_TOKEN",
         "FILECOIN_SEAL_UPSTREAM_URL",
         "FILECOIN_SEAL_TOKEN",
         "CLOUDFLARE_API_TOKEN",
@@ -145,30 +140,166 @@
       "label": "Published app root",
       "url": "https://kickoff-lock-agent.pages.dev/",
       "command": "curl -sS 'https://kickoff-lock-agent.pages.dev/'",
-      "ready": false
+      "ready": false,
+      "responseExpectation": {
+        "responseType": "html",
+        "requiredFields": [
+          "Kickoff Lock Agent",
+          "runtime-config.js",
+          "site.webmanifest",
+          "assets/kickoff-lock-icon"
+        ]
+      }
     },
     {
       "id": "runtime-config",
       "label": "Published runtime config",
       "url": "https://kickoff-lock-agent.pages.dev/runtime-config.js",
       "command": "curl -sS 'https://kickoff-lock-agent.pages.dev/runtime-config.js'",
-      "ready": false
+      "ready": false,
+      "responseExpectation": {
+        "responseType": "runtime-config-js",
+        "requiredFields": [
+          "window.__KICKOFF_RUNTIME_CONFIG__",
+          "VITE_PUBLIC_APP_URL",
+          "VITE_SUPABASE_URL",
+          "VITE_DATA_PROXY_SAME_ORIGIN",
+          "VITE_FILECOIN_SEAL_SAME_ORIGIN"
+        ],
+        "forbiddenFields": [
+          "APIFOOTBALL_KEY",
+          "API_FOOTBALL_KEY",
+          "ODDS_API_KEY",
+          "THE_ODDS_API_KEY",
+          "FILECOIN_SEAL_TOKEN",
+          "SEAL_PROXY_TOKEN",
+          "CLOUDFLARE_API_TOKEN",
+          "SUPABASE_SERVICE_ROLE_KEY",
+          "SYNAPSE_PRIVATE_KEY"
+        ]
+      }
     },
     {
       "id": "data-proxy-health",
       "label": "Same-origin data proxy health",
       "url": "https://kickoff-lock-agent.pages.dev/data-proxy/health",
       "command": "curl -sS 'https://kickoff-lock-agent.pages.dev/data-proxy/health'",
-      "ready": false
+      "ready": false,
+      "responseExpectation": {
+        "responseType": "json",
+        "expectedService": "kickoff-data-proxy",
+        "expectedSameOrigin": true,
+        "requiredFields": [
+          "ok",
+          "service",
+          "allowedHosts",
+          "allowedRoutes",
+          "providerCapabilities",
+          "apiFootballServerKey",
+          "oddsApiServerKey",
+          "footballDataServerToken"
+        ]
+      }
     },
     {
       "id": "seal-health",
       "label": "Same-origin Filecoin seal health",
       "url": "https://kickoff-lock-agent.pages.dev/seal/health",
       "command": "curl -sS 'https://kickoff-lock-agent.pages.dev/seal/health'",
-      "ready": false
+      "ready": false,
+      "responseExpectation": {
+        "responseType": "json",
+        "expectedService": "kickoff-lock-filecoin-seal-proxy",
+        "expectedSameOrigin": true,
+        "requiredFields": [
+          "ok",
+          "service",
+          "tokenInjected",
+          "proxyCapabilities",
+          "asyncUpload",
+          "uploadStatus",
+          "cidQuery",
+          "verificationPolling"
+        ]
+      }
     }
   ],
-  "nextAction": "Set Pages runtime secrets: APIFOOTBALL_KEY is missing for same-origin /data-proxy enrichment. FOOTBALL_DATA_TOKEN is missing for proxied Football-Data.org matches and standings. FILECOIN_SEAL_UPSTREAM_URL is missing. FILECOIN_SEAL_TOKEN is missing for same-origin /seal token injection.",
-  "copyText": "Kickoff Lock Agent Cloudflare Pages deploy plan\nReady: no\nProject: kickoff-lock-agent\nBranch: main\nPlanned URL: https://kickoff-lock-agent.pages.dev/\nSame-origin data proxy: yes\nSame-origin Filecoin seal proxy: yes\nNext action: Set Pages runtime secrets: APIFOOTBALL_KEY is missing for same-origin /data-proxy enrichment. FOOTBALL_DATA_TOKEN is missing for proxied Football-Data.org matches and standings. FILECOIN_SEAL_UPSTREAM_URL is missing. FILECOIN_SEAL_TOKEN is missing for same-origin /seal token injection.\nCommands:\n- bun run pages:functions:build\n- bun run pages:cf:check\n- bun run pages:cf:deploy\nRead-back commands:\n- Published app root: curl -sS 'https://kickoff-lock-agent.pages.dev/'\n- Published runtime config: curl -sS 'https://kickoff-lock-agent.pages.dev/runtime-config.js'\n- Same-origin data proxy health: curl -sS 'https://kickoff-lock-agent.pages.dev/data-proxy/health'\n- Same-origin Filecoin seal health: curl -sS 'https://kickoff-lock-agent.pages.dev/seal/health'\nStages:\n- Build Cloudflare Pages Functions bundle [done]\n  command: bun run pages:functions:build\n  missing: none\n  detail: Cloudflare Pages Functions bundle compiled with Wrangler.\n- Set Pages runtime secrets [blocked]\n  command: Set Cloudflare Pages environment variables: APIFOOTBALL_KEY, FOOTBALL_DATA_TOKEN, ODDS_API_KEY, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN, ALLOW_ORIGIN\n  missing: APIFOOTBALL_KEY, FOOTBALL_DATA_TOKEN, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN\n  detail: APIFOOTBALL_KEY is missing for same-origin /data-proxy enrichment. FOOTBALL_DATA_TOKEN is missing for proxied Football-Data.org matches and standings. FILECOIN_SEAL_UPSTREAM_URL is missing. FILECOIN_SEAL_TOKEN is missing for same-origin /seal token injection.\n- Authenticate Cloudflare deploy [blocked]\n  command: bun run pages:cf:check\n  missing: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID\n  detail: Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, or run bunx wrangler login and set CLOUDFLARE_WRANGLER_LOGIN=1.\n- Deploy app and same-origin backend routes [blocked]\n  command: bun run pages:cf:deploy\n  missing: APIFOOTBALL_KEY, FOOTBALL_DATA_TOKEN, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID\n  detail: Complete Functions, runtime secrets and Cloudflare auth before deploying the same-origin backend routes."
+  "secretExposureChecks": [
+    {
+      "id": "runtime-config-public-safe",
+      "label": "Published runtime config excludes server secrets",
+      "passed": true,
+      "detail": "runtime-config.js only needs public VITE values"
+    },
+    {
+      "id": "readback-commands-public-safe",
+      "label": "Read-back commands exclude secret values",
+      "passed": true,
+      "detail": "curl commands use public health/read-back URLs only"
+    },
+    {
+      "id": "browser-api-keys-not-required",
+      "label": "Browser API keys are not required for enrichment",
+      "passed": true,
+      "detail": "same-origin /data-proxy injects API-Football/Odds credentials server-side"
+    },
+    {
+      "id": "browser-seal-token-not-required",
+      "label": "Browser seal token is not required",
+      "passed": true,
+      "detail": "same-origin /seal injects FILECOIN_SEAL_TOKEN server-side"
+    }
+  ],
+  "proxyCapabilityChecks": [
+    {
+      "id": "data-free-feeds",
+      "service": "data-proxy",
+      "label": "Free schedule/score feeds",
+      "passed": true,
+      "detail": "same-origin proxy exposes ESPN, openfootball, TheSportsDB and worldcup26 allowlisted reads",
+      "readBackCommand": "curl -sS 'https://kickoff-lock-agent.pages.dev/data-proxy/health'"
+    },
+    {
+      "id": "data-api-football-enrichment",
+      "service": "data-proxy",
+      "label": "API-Football lineups/injuries/rankings",
+      "passed": false,
+      "detail": "set APIFOOTBALL_KEY as a Pages runtime secret",
+      "readBackCommand": "curl -sS 'https://kickoff-lock-agent.pages.dev/data-proxy/health'"
+    },
+    {
+      "id": "data-odds-enrichment",
+      "service": "data-proxy",
+      "label": "Odds/handicap enrichment",
+      "passed": false,
+      "detail": "set ODDS_API_KEY as a Pages runtime secret",
+      "readBackCommand": "curl -sS 'https://kickoff-lock-agent.pages.dev/data-proxy/health'"
+    },
+    {
+      "id": "filecoin-async-upload",
+      "service": "filecoin-seal",
+      "label": "Async Filecoin upload",
+      "passed": false,
+      "detail": "set FILECOIN_SEAL_UPSTREAM_URL and FILECOIN_SEAL_TOKEN",
+      "readBackCommand": "curl -sS 'https://kickoff-lock-agent.pages.dev/seal/health'"
+    },
+    {
+      "id": "filecoin-job-polling",
+      "service": "filecoin-seal",
+      "label": "Upload status polling",
+      "passed": false,
+      "detail": "deploy /jobs/:id Pages Function and upstream seal API",
+      "readBackCommand": "curl -sS 'https://kickoff-lock-agent.pages.dev/seal/health'"
+    },
+    {
+      "id": "filecoin-cid-readback",
+      "service": "filecoin-seal",
+      "label": "CID proof read-back",
+      "passed": false,
+      "detail": "deploy /proof/:cid and /verify routes",
+      "readBackCommand": "curl -sS 'https://kickoff-lock-agent.pages.dev/seal/health'"
+    }
+  ],
+  "nextAction": "Set Pages runtime secrets: APIFOOTBALL_KEY is missing for same-origin /data-proxy enrichment. FILECOIN_SEAL_UPSTREAM_URL is missing. FILECOIN_SEAL_TOKEN is missing for same-origin /seal token injection.",
+  "copyText": "Kickoff Lock Agent Cloudflare Pages deploy plan\nReady: no\nProject: kickoff-lock-agent\nBranch: main\nPlanned URL: https://kickoff-lock-agent.pages.dev/\nSame-origin data proxy: yes\nSame-origin Filecoin seal proxy: yes\nNext action: Set Pages runtime secrets: APIFOOTBALL_KEY is missing for same-origin /data-proxy enrichment. FILECOIN_SEAL_UPSTREAM_URL is missing. FILECOIN_SEAL_TOKEN is missing for same-origin /seal token injection.\nCommands:\n- bun run pages:functions:build\n- bun run pages:cf:check\n- bun run pages:cf:deploy\nRead-back commands:\n- Published app root: curl -sS 'https://kickoff-lock-agent.pages.dev/'\n- Published runtime config: curl -sS 'https://kickoff-lock-agent.pages.dev/runtime-config.js'\n- Same-origin data proxy health: curl -sS 'https://kickoff-lock-agent.pages.dev/data-proxy/health'\n- Same-origin Filecoin seal health: curl -sS 'https://kickoff-lock-agent.pages.dev/seal/health'\nSecret exposure checks:\n- Published runtime config excludes server secrets: passed · runtime-config.js only needs public VITE values\n- Read-back commands exclude secret values: passed · curl commands use public health/read-back URLs only\n- Browser API keys are not required for enrichment: passed · same-origin /data-proxy injects API-Football/Odds credentials server-side\n- Browser seal token is not required: passed · same-origin /seal injects FILECOIN_SEAL_TOKEN server-side\nProxy capability checks:\n- Free schedule/score feeds: passed · same-origin proxy exposes ESPN, openfootball, TheSportsDB and worldcup26 allowlisted reads\n- API-Football lineups/injuries/rankings: pending · set APIFOOTBALL_KEY as a Pages runtime secret\n- Odds/handicap enrichment: pending · set ODDS_API_KEY as a Pages runtime secret\n- Async Filecoin upload: pending · set FILECOIN_SEAL_UPSTREAM_URL and FILECOIN_SEAL_TOKEN\n- Upload status polling: pending · deploy /jobs/:id Pages Function and upstream seal API\n- CID proof read-back: pending · deploy /proof/:cid and /verify routes\nStages:\n- Build Cloudflare Pages Functions bundle [done]\n  command: bun run pages:functions:build\n  missing: none\n  detail: Cloudflare Pages Functions bundle compiled with Wrangler.\n- Set Pages runtime secrets [blocked]\n  command: Set Cloudflare Pages environment variables: APIFOOTBALL_KEY, ODDS_API_KEY, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN, ALLOW_ORIGIN\n  missing: APIFOOTBALL_KEY, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN\n  detail: APIFOOTBALL_KEY is missing for same-origin /data-proxy enrichment. FILECOIN_SEAL_UPSTREAM_URL is missing. FILECOIN_SEAL_TOKEN is missing for same-origin /seal token injection.\n- Authenticate Cloudflare deploy [blocked]\n  command: bun run pages:cf:check\n  missing: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID\n  detail: Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, or run bunx wrangler login and set CLOUDFLARE_WRANGLER_LOGIN=1.\n- Deploy app and same-origin backend routes [blocked]\n  command: bun run pages:cf:deploy\n  missing: APIFOOTBALL_KEY, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID\n  detail: Complete Functions, runtime secrets and Cloudflare auth before deploying the same-origin backend routes."
 }

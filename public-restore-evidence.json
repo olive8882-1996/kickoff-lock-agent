@@ -92,9 +92,16 @@
       "id": "clean-session-restore",
       "label": "Clean-session account restore",
       "required": true,
-      "detail": "clean-session cloud restore missing profile:kickoff-production-seed (fixture fallback or local-only page rendered); proof:cap-prod-73dc2618d1f9 (fixture fallback or local-only page rendered); mode:mode-prod-bracket-f90d6276 (fixture fallback or local-only page rendered); mode:mode-prod-parlay-77bf4ef2 (fixture fallback or local-only page rendered); mode:mode-prod-agent-vs-human-f8b27b3a (fixture fallback or local-only page rendered); mode:mode-prod-upset-9f6dd619 (fixture fallback or local-only page rendered); mode:mode-prod-group-path-b533c118 (fixture fallback or local-only page rendered)",
+      "detail": "clean-session cloud restore missing profile:kickoff-production-seed (fixture fallback or local-only page rendered)",
       "action": "Render profile, proof and every mode proof page from the deployed app with cloud-loaded Supabase content in a clean browser context.",
-      "sampleIds": [],
+      "sampleIds": [
+        "cap-prod-73dc2618d1f9",
+        "mode-prod-bracket-f90d6276",
+        "mode-prod-parlay-77bf4ef2",
+        "mode-prod-agent-vs-human-f8b27b3a",
+        "mode-prod-upset-9f6dd619",
+        "mode-prod-group-path-b533c118"
+      ],
       "status": "failed"
     },
     {
@@ -121,17 +128,431 @@
       "id": "clean-session-restore",
       "label": "Clean-session account restore",
       "required": true,
-      "detail": "clean-session cloud restore missing profile:kickoff-production-seed (fixture fallback or local-only page rendered); proof:cap-prod-73dc2618d1f9 (fixture fallback or local-only page rendered); mode:mode-prod-bracket-f90d6276 (fixture fallback or local-only page rendered); mode:mode-prod-parlay-77bf4ef2 (fixture fallback or local-only page rendered); mode:mode-prod-agent-vs-human-f8b27b3a (fixture fallback or local-only page rendered); mode:mode-prod-upset-9f6dd619 (fixture fallback or local-only page rendered); mode:mode-prod-group-path-b533c118 (fixture fallback or local-only page rendered)",
+      "detail": "clean-session cloud restore missing profile:kickoff-production-seed (fixture fallback or local-only page rendered)",
       "action": "Render profile, proof and every mode proof page from the deployed app with cloud-loaded Supabase content in a clean browser context.",
-      "sampleIds": [],
+      "sampleIds": [
+        "cap-prod-73dc2618d1f9",
+        "mode-prod-bracket-f90d6276",
+        "mode-prod-parlay-77bf4ef2",
+        "mode-prod-agent-vs-human-f8b27b3a",
+        "mode-prod-upset-9f6dd619",
+        "mode-prod-group-path-b533c118"
+      ],
       "status": "failed"
     }
   ],
-  "generatedAt": "2026-07-06T16:42:08.753Z",
+  "generatedAt": "2026-07-06T22:31:42.822Z",
   "envFiles": [
     ".env.production.local"
   ],
   "artifactVersion": 1,
+  "readBackCommands": [
+    {
+      "id": "public-page:profile:kickoff-production-seed",
+      "label": "profile kickoff-production-seed public page",
+      "kind": "public-page",
+      "targetKind": "profile",
+      "targetId": "kickoff-production-seed",
+      "expectedSource": "cloud",
+      "authMode": "public-page",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?profile=kickoff-production-seed",
+      "ready": true,
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?profile=kickoff-production-seed'",
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetKind": "profile",
+        "targetId": "kickoff-production-seed",
+        "expectedSource": "cloud",
+        "requiredFields": [
+          "canonical-url",
+          "og:title",
+          "twitter:card",
+          "json-ld",
+          "public-kind",
+          "public-target",
+          "public-source-cloud"
+        ]
+      }
+    },
+    {
+      "id": "public-page:proof:cap-prod-73dc2618d1f9",
+      "label": "proof cap-prod-73dc2618d1f9 public page",
+      "kind": "public-page",
+      "targetKind": "proof",
+      "targetId": "cap-prod-73dc2618d1f9",
+      "expectedSource": "cloud",
+      "authMode": "public-page",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9",
+      "ready": true,
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9'",
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetKind": "proof",
+        "targetId": "cap-prod-73dc2618d1f9",
+        "expectedSource": "cloud",
+        "requiredFields": [
+          "canonical-url",
+          "og:title",
+          "twitter:card",
+          "json-ld",
+          "public-kind",
+          "public-target",
+          "public-source-cloud"
+        ]
+      }
+    },
+    {
+      "id": "public-page:mode:mode-prod-bracket-f90d6276",
+      "label": "mode mode-prod-bracket-f90d6276 public page",
+      "kind": "public-page",
+      "targetKind": "mode",
+      "targetId": "mode-prod-bracket-f90d6276",
+      "expectedSource": "cloud",
+      "authMode": "public-page",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276",
+      "ready": true,
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276'",
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetKind": "mode",
+        "targetId": "mode-prod-bracket-f90d6276",
+        "expectedSource": "cloud",
+        "requiredFields": [
+          "canonical-url",
+          "og:title",
+          "twitter:card",
+          "json-ld",
+          "public-kind",
+          "public-target",
+          "public-source-cloud"
+        ]
+      }
+    },
+    {
+      "id": "public-page:mode:mode-prod-parlay-77bf4ef2",
+      "label": "mode mode-prod-parlay-77bf4ef2 public page",
+      "kind": "public-page",
+      "targetKind": "mode",
+      "targetId": "mode-prod-parlay-77bf4ef2",
+      "expectedSource": "cloud",
+      "authMode": "public-page",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2",
+      "ready": true,
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2'",
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetKind": "mode",
+        "targetId": "mode-prod-parlay-77bf4ef2",
+        "expectedSource": "cloud",
+        "requiredFields": [
+          "canonical-url",
+          "og:title",
+          "twitter:card",
+          "json-ld",
+          "public-kind",
+          "public-target",
+          "public-source-cloud"
+        ]
+      }
+    },
+    {
+      "id": "public-page:mode:mode-prod-agent-vs-human-f8b27b3a",
+      "label": "mode mode-prod-agent-vs-human-f8b27b3a public page",
+      "kind": "public-page",
+      "targetKind": "mode",
+      "targetId": "mode-prod-agent-vs-human-f8b27b3a",
+      "expectedSource": "cloud",
+      "authMode": "public-page",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a",
+      "ready": true,
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a'",
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetKind": "mode",
+        "targetId": "mode-prod-agent-vs-human-f8b27b3a",
+        "expectedSource": "cloud",
+        "requiredFields": [
+          "canonical-url",
+          "og:title",
+          "twitter:card",
+          "json-ld",
+          "public-kind",
+          "public-target",
+          "public-source-cloud"
+        ]
+      }
+    },
+    {
+      "id": "public-page:mode:mode-prod-upset-9f6dd619",
+      "label": "mode mode-prod-upset-9f6dd619 public page",
+      "kind": "public-page",
+      "targetKind": "mode",
+      "targetId": "mode-prod-upset-9f6dd619",
+      "expectedSource": "cloud",
+      "authMode": "public-page",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619",
+      "ready": true,
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619'",
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetKind": "mode",
+        "targetId": "mode-prod-upset-9f6dd619",
+        "expectedSource": "cloud",
+        "requiredFields": [
+          "canonical-url",
+          "og:title",
+          "twitter:card",
+          "json-ld",
+          "public-kind",
+          "public-target",
+          "public-source-cloud"
+        ]
+      }
+    },
+    {
+      "id": "public-page:mode:mode-prod-group-path-b533c118",
+      "label": "mode mode-prod-group-path-b533c118 public page",
+      "kind": "public-page",
+      "targetKind": "mode",
+      "targetId": "mode-prod-group-path-b533c118",
+      "expectedSource": "cloud",
+      "authMode": "public-page",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118",
+      "ready": true,
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118'",
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetKind": "mode",
+        "targetId": "mode-prod-group-path-b533c118",
+        "expectedSource": "cloud",
+        "requiredFields": [
+          "canonical-url",
+          "og:title",
+          "twitter:card",
+          "json-ld",
+          "public-kind",
+          "public-target",
+          "public-source-cloud"
+        ]
+      }
+    },
+    {
+      "id": "supabase-row:profile:kickoff-production-seed",
+      "label": "profile kickoff-production-seed Supabase row",
+      "kind": "supabase-row",
+      "targetKind": "profile",
+      "targetId": "kickoff-production-seed",
+      "expectedSource": "cloud",
+      "queryPath": "kickoff_profiles?select=id%2Cemail%2Cdisplay_name%2Clocation%2Cfriend_code%2Cseason_key%2Cupdated_at&id=eq.kickoff-production-seed&limit=1",
+      "authMode": "anon",
+      "table": "kickoff_profiles",
+      "url": "",
+      "ready": false,
+      "command": "Set VITE_SUPABASE_URL and KICKOFF_VERIFY_PROFILE_ID before Supabase row read-back.",
+      "responseExpectation": {
+        "responseType": "supabase-array",
+        "targetKind": "profile",
+        "targetId": "kickoff-production-seed",
+        "expectedSource": "cloud",
+        "minRows": 1,
+        "requiredFields": [
+          "id",
+          "email",
+          "display_name",
+          "location",
+          "friend_code",
+          "season_key",
+          "updated_at"
+        ],
+        "table": "kickoff_profiles"
+      }
+    },
+    {
+      "id": "supabase-row:proof:cap-prod-73dc2618d1f9",
+      "label": "proof cap-prod-73dc2618d1f9 Supabase row",
+      "kind": "supabase-row",
+      "targetKind": "proof",
+      "targetId": "cap-prod-73dc2618d1f9",
+      "expectedSource": "cloud",
+      "queryPath": "kickoff_records?select=id%2Cuser_id%2Ccapsule%2Cresult%2Cseal_job%2Cupdated_at&id=eq.cap-prod-73dc2618d1f9&limit=1",
+      "authMode": "anon",
+      "table": "kickoff_records",
+      "url": "",
+      "ready": false,
+      "command": "Set VITE_SUPABASE_URL and KICKOFF_VERIFY_PROOF_ID before Supabase row read-back.",
+      "responseExpectation": {
+        "responseType": "supabase-array",
+        "targetKind": "proof",
+        "targetId": "cap-prod-73dc2618d1f9",
+        "expectedSource": "cloud",
+        "minRows": 1,
+        "requiredFields": [
+          "id",
+          "user_id",
+          "capsule",
+          "result",
+          "seal_job",
+          "updated_at"
+        ],
+        "table": "kickoff_records"
+      }
+    },
+    {
+      "id": "supabase-row:mode:mode-prod-bracket-f90d6276",
+      "label": "mode mode-prod-bracket-f90d6276 Supabase row",
+      "kind": "supabase-row",
+      "targetKind": "mode",
+      "targetId": "mode-prod-bracket-f90d6276",
+      "expectedSource": "cloud",
+      "queryPath": "kickoff_mode_runs?select=id%2Cuser_id%2Cmode_id%2Cstatus%2Cscore%2Cmode_run%2Cupdated_at&id=eq.mode-prod-bracket-f90d6276&limit=1",
+      "authMode": "anon",
+      "table": "kickoff_mode_runs",
+      "url": "",
+      "ready": false,
+      "command": "Set VITE_SUPABASE_URL and KICKOFF_VERIFY_MODE_ID before Supabase row read-back.",
+      "responseExpectation": {
+        "responseType": "supabase-array",
+        "targetKind": "mode",
+        "targetId": "mode-prod-bracket-f90d6276",
+        "expectedSource": "cloud",
+        "minRows": 1,
+        "requiredFields": [
+          "id",
+          "user_id",
+          "mode_id",
+          "status",
+          "score",
+          "mode_run",
+          "updated_at"
+        ],
+        "table": "kickoff_mode_runs"
+      }
+    },
+    {
+      "id": "supabase-row:mode:mode-prod-parlay-77bf4ef2",
+      "label": "mode mode-prod-parlay-77bf4ef2 Supabase row",
+      "kind": "supabase-row",
+      "targetKind": "mode",
+      "targetId": "mode-prod-parlay-77bf4ef2",
+      "expectedSource": "cloud",
+      "queryPath": "kickoff_mode_runs?select=id%2Cuser_id%2Cmode_id%2Cstatus%2Cscore%2Cmode_run%2Cupdated_at&id=eq.mode-prod-parlay-77bf4ef2&limit=1",
+      "authMode": "anon",
+      "table": "kickoff_mode_runs",
+      "url": "",
+      "ready": false,
+      "command": "Set VITE_SUPABASE_URL and KICKOFF_VERIFY_MODE_ID before Supabase row read-back.",
+      "responseExpectation": {
+        "responseType": "supabase-array",
+        "targetKind": "mode",
+        "targetId": "mode-prod-parlay-77bf4ef2",
+        "expectedSource": "cloud",
+        "minRows": 1,
+        "requiredFields": [
+          "id",
+          "user_id",
+          "mode_id",
+          "status",
+          "score",
+          "mode_run",
+          "updated_at"
+        ],
+        "table": "kickoff_mode_runs"
+      }
+    },
+    {
+      "id": "supabase-row:mode:mode-prod-agent-vs-human-f8b27b3a",
+      "label": "mode mode-prod-agent-vs-human-f8b27b3a Supabase row",
+      "kind": "supabase-row",
+      "targetKind": "mode",
+      "targetId": "mode-prod-agent-vs-human-f8b27b3a",
+      "expectedSource": "cloud",
+      "queryPath": "kickoff_mode_runs?select=id%2Cuser_id%2Cmode_id%2Cstatus%2Cscore%2Cmode_run%2Cupdated_at&id=eq.mode-prod-agent-vs-human-f8b27b3a&limit=1",
+      "authMode": "anon",
+      "table": "kickoff_mode_runs",
+      "url": "",
+      "ready": false,
+      "command": "Set VITE_SUPABASE_URL and KICKOFF_VERIFY_MODE_ID before Supabase row read-back.",
+      "responseExpectation": {
+        "responseType": "supabase-array",
+        "targetKind": "mode",
+        "targetId": "mode-prod-agent-vs-human-f8b27b3a",
+        "expectedSource": "cloud",
+        "minRows": 1,
+        "requiredFields": [
+          "id",
+          "user_id",
+          "mode_id",
+          "status",
+          "score",
+          "mode_run",
+          "updated_at"
+        ],
+        "table": "kickoff_mode_runs"
+      }
+    },
+    {
+      "id": "supabase-row:mode:mode-prod-upset-9f6dd619",
+      "label": "mode mode-prod-upset-9f6dd619 Supabase row",
+      "kind": "supabase-row",
+      "targetKind": "mode",
+      "targetId": "mode-prod-upset-9f6dd619",
+      "expectedSource": "cloud",
+      "queryPath": "kickoff_mode_runs?select=id%2Cuser_id%2Cmode_id%2Cstatus%2Cscore%2Cmode_run%2Cupdated_at&id=eq.mode-prod-upset-9f6dd619&limit=1",
+      "authMode": "anon",
+      "table": "kickoff_mode_runs",
+      "url": "",
+      "ready": false,
+      "command": "Set VITE_SUPABASE_URL and KICKOFF_VERIFY_MODE_ID before Supabase row read-back.",
+      "responseExpectation": {
+        "responseType": "supabase-array",
+        "targetKind": "mode",
+        "targetId": "mode-prod-upset-9f6dd619",
+        "expectedSource": "cloud",
+        "minRows": 1,
+        "requiredFields": [
+          "id",
+          "user_id",
+          "mode_id",
+          "status",
+          "score",
+          "mode_run",
+          "updated_at"
+        ],
+        "table": "kickoff_mode_runs"
+      }
+    },
+    {
+      "id": "supabase-row:mode:mode-prod-group-path-b533c118",
+      "label": "mode mode-prod-group-path-b533c118 Supabase row",
+      "kind": "supabase-row",
+      "targetKind": "mode",
+      "targetId": "mode-prod-group-path-b533c118",
+      "expectedSource": "cloud",
+      "queryPath": "kickoff_mode_runs?select=id%2Cuser_id%2Cmode_id%2Cstatus%2Cscore%2Cmode_run%2Cupdated_at&id=eq.mode-prod-group-path-b533c118&limit=1",
+      "authMode": "anon",
+      "table": "kickoff_mode_runs",
+      "url": "",
+      "ready": false,
+      "command": "Set VITE_SUPABASE_URL and KICKOFF_VERIFY_MODE_ID before Supabase row read-back.",
+      "responseExpectation": {
+        "responseType": "supabase-array",
+        "targetKind": "mode",
+        "targetId": "mode-prod-group-path-b533c118",
+        "expectedSource": "cloud",
+        "minRows": 1,
+        "requiredFields": [
+          "id",
+          "user_id",
+          "mode_id",
+          "status",
+          "score",
+          "mode_run",
+          "updated_at"
+        ],
+        "table": "kickoff_mode_runs"
+      }
+    }
+  ],
   "pageTargets": [
     {
       "kind": "profile",

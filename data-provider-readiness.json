@@ -1,6 +1,6 @@
 {
   "ready": false,
-  "passed": 2,
+  "passed": 3,
   "total": 8,
   "checks": [
     {
@@ -12,10 +12,10 @@
     },
     {
       "id": "football-data-backup",
-      "label": "Football-Data.org matches and standings backup",
-      "passed": false,
-      "detail": "missing",
-      "action": "Set FOOTBALL_DATA_TOKEN on the Worker/Pages runtime, or VITE_FOOTBALL_DATA_TOKEN for direct diagnostics, so matches and standings can be read back as the stable schedule/ranking backup."
+      "label": "Stable schedule and score backup",
+      "passed": true,
+      "detail": "openfootball/TheSportsDB public feeds configured",
+      "action": "Keep openfootball/TheSportsDB public feeds reachable for no-key schedule and score continuity; add FOOTBALL_DATA_TOKEN when you want a second server-side matches/standings backup."
     },
     {
       "id": "fixture-targets",
@@ -69,13 +69,6 @@
       "action": "Set VITE_APIFOOTBALL_KEY for direct browser calls, or deploy the data proxy with APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back without exposing the key."
     },
     {
-      "id": "football-data-backup",
-      "label": "Football-Data.org matches and standings backup",
-      "passed": false,
-      "detail": "missing",
-      "action": "Set FOOTBALL_DATA_TOKEN on the Worker/Pages runtime, or VITE_FOOTBALL_DATA_TOKEN for direct diagnostics, so matches and standings can be read back as the stable schedule/ranking backup."
-    },
-    {
       "id": "fixture-targets",
       "label": "Production fixture targets",
       "passed": false,
@@ -104,7 +97,7 @@
       "action": "Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1."
     }
   ],
-  "generatedAt": "2026-07-06T15:40:32.715Z",
+  "generatedAt": "2026-07-06T18:36:57.645Z",
   "envFiles": [
     ".env.production.local"
   ],
@@ -123,6 +116,8 @@
       "footballData": false,
       "odds": false
     },
+    "footballDataCredentialConfigured": false,
+    "freeFeedBackupConfigured": true,
     "dataProxyHealthProof": {
       "checked": false,
       "ok": false,
@@ -138,7 +133,7 @@
   },
   "acceptance": {
     "apiFootballKey": false,
-    "footballDataBackup": false,
+    "footballDataBackup": true,
     "fixtureTargets": false,
     "fixtureSignalMatrix": false,
     "oddsProvider": false,
@@ -151,6 +146,10 @@
       "FOOTBALL_DATA_TOKEN",
       "FOOTBALL_DATA_ORG_TOKEN",
       "VITE_FOOTBALL_DATA_TOKEN",
+      "VITE_THESPORTSDB_KEY",
+      "VITE_THESPORTSDB_LEAGUE_ID",
+      "VITE_THESPORTSDB_SEASON",
+      "KICKOFF_DISABLE_PUBLIC_FREE_FEEDS",
       "VITE_DATA_PROXY_URL",
       "VITE_DATA_PROXY_SAME_ORIGIN",
       "KICKOFF_DATA_PROXY_API_FOOTBALL_READY",

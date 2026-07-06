@@ -9,7 +9,7 @@
     "imageByteLength": 238857,
     "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0"
   },
-  "generatedAt": "2026-07-04T23:02:11.827Z",
+  "generatedAt": "2026-07-06T22:41:25.929Z",
   "envFiles": [
     ".env.production.local"
   ],
@@ -22,6 +22,7 @@
     "fileName": "kickoff-production-mode-share.png",
     "imageMime": "image/png"
   },
+  "readBackCommands": [],
   "acceptance": {
     "uploaded": false,
     "publicReadBack": false,

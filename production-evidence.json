@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T18:21:06.913Z",
+  "generatedAt": "2026-07-06T23:57:11.379Z",
   "source": "local-script",
   "strict": false,
   "envFiles": [
@@ -7,7 +7,7 @@
   ],
   "checks": [
     {
-      "checkedAt": "2026-07-06T18:20:51.690Z",
+      "checkedAt": "2026-07-06T23:56:53.735Z",
       "id": "runtime-supabase-core",
       "category": "runtime",
       "label": "Supabase auth + REST",
@@ -17,7 +17,7 @@
       "action": "Set Supabase project URL and anon key before claiming cross-device account sync."
     },
     {
-      "checkedAt": "2026-07-06T18:20:51.690Z",
+      "checkedAt": "2026-07-06T23:56:53.735Z",
       "id": "runtime-supabase-redirect",
       "category": "runtime",
       "label": "OAuth redirect",
@@ -27,7 +27,7 @@
       "action": "Configured."
     },
     {
-      "checkedAt": "2026-07-06T18:20:51.690Z",
+      "checkedAt": "2026-07-06T23:56:53.735Z",
       "id": "runtime-thesportsdb-free",
       "category": "runtime",
       "label": "Free schedule source",
@@ -37,7 +37,7 @@
       "action": "Configured."
     },
     {
-      "checkedAt": "2026-07-06T18:20:51.690Z",
+      "checkedAt": "2026-07-06T23:56:53.735Z",
       "id": "runtime-data-proxy",
       "category": "runtime",
       "label": "Free feed CORS proxy",
@@ -47,7 +47,7 @@
       "action": "Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Cloudflare Pages function at /data-proxy/proxy and set VITE_DATA_PROXY_SAME_ORIGIN=1."
     },
     {
-      "checkedAt": "2026-07-06T18:20:51.690Z",
+      "checkedAt": "2026-07-06T23:56:53.735Z",
       "id": "runtime-api-football-enrichment",
       "category": "runtime",
       "label": "Lineups + injuries",
@@ -57,7 +57,7 @@
       "action": "Configure API-Football directly for diagnostics, or deploy the data proxy with server-side APIFOOTBALL_KEY to fetch fixture lineups, injuries and richer odds without exposing the key."
     },
     {
-      "checkedAt": "2026-07-06T18:20:51.690Z",
+      "checkedAt": "2026-07-06T23:56:53.735Z",
       "id": "runtime-odds-enrichment",
       "category": "runtime",
       "label": "Odds /盘口",
@@ -67,17 +67,17 @@
       "action": "Configure API-Football odds directly, deploy the data proxy with server-side APIFOOTBALL_KEY/ODDS_API_KEY, or set VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY for diagnostics."
     },
     {
-      "checkedAt": "2026-07-06T18:20:51.690Z",
+      "checkedAt": "2026-07-06T23:56:53.735Z",
       "id": "runtime-football-data-backup",
       "category": "runtime",
       "label": "Paid/free backup feed",
       "required": false,
       "status": "warning",
-      "detail": "Optional VITE_FOOTBALL_DATA_TOKEN missing",
-      "action": "Add Football-Data.org as a backup fixture and score route if quota allows."
+      "detail": "Optional VITE_FOOTBALL_DATA_TOKEN missing, or deploy data proxy with server-side FOOTBALL_DATA_TOKEN",
+      "action": "Add Football-Data.org as a backup fixture, score and standings route through server-side FOOTBALL_DATA_TOKEN when quota allows."
     },
     {
-      "checkedAt": "2026-07-06T18:20:51.690Z",
+      "checkedAt": "2026-07-06T23:56:53.735Z",
       "id": "runtime-filecoin-seal-api",
       "category": "runtime",
       "label": "Browser seal endpoint",
@@ -87,7 +87,7 @@
       "action": "Deploy the seal API as an HTTPS /seal endpoint, or mount it behind the app origin at /seal and set VITE_FILECOIN_SEAL_SAME_ORIGIN=1; clients use POST /seal?async=1 and GET /jobs/:id."
     },
     {
-      "checkedAt": "2026-07-06T18:20:51.690Z",
+      "checkedAt": "2026-07-06T23:56:53.735Z",
       "id": "runtime-filecoin-seal-token",
       "category": "runtime",
       "label": "Upload token",
@@ -97,7 +97,7 @@
       "action": "Require a bearer token before browser uploads can spend backend sealing resources."
     },
     {
-      "checkedAt": "2026-07-06T18:20:51.690Z",
+      "checkedAt": "2026-07-06T23:56:53.735Z",
       "id": "runtime-public-app-url",
       "category": "runtime",
       "label": "Public HTTPS app URL",
@@ -107,7 +107,7 @@
       "action": "Configured."
     },
     {
-      "checkedAt": "2026-07-06T18:20:51.690Z",
+      "checkedAt": "2026-07-06T23:56:53.735Z",
       "id": "runtime-share-storage-bucket",
       "category": "runtime",
       "label": "Public share image bucket",
@@ -117,7 +117,7 @@
       "action": "Configured."
     },
     {
-      "checkedAt": "2026-07-06T18:20:51.690Z",
+      "checkedAt": "2026-07-06T23:56:53.735Z",
       "id": "runtime-public-base-path",
       "category": "runtime",
       "label": "Build base path",
@@ -127,7 +127,7 @@
       "action": "Keep BASE_URL aligned with the deployed path so static assets resolve correctly."
     },
     {
-      "checkedAt": "2026-07-06T18:20:52.164Z",
+      "checkedAt": "2026-07-06T23:56:54.220Z",
       "id": "public-app-root",
       "category": "public-app",
       "label": "Public app root",
@@ -138,24 +138,24 @@
       "action": "Deploy the final dist folder to the configured HTTPS URL."
     },
     {
-      "checkedAt": "2026-07-06T18:20:52.499Z",
+      "checkedAt": "2026-07-06T23:56:54.548Z",
       "id": "public-acceptance-evidence",
       "category": "public-app",
       "label": "Published acceptance evidence",
       "required": true,
-      "status": "passed",
-      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/acceptance-evidence.json?_kickoff_evidence=1783362052164",
-      "detail": "9/9 suites, acceptance-v1-cd1688d3930d716d",
-      "action": "Published acceptance evidence matches the current suite manifest."
+      "status": "failed",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/acceptance-evidence.json?_kickoff_evidence=1783382214220",
+      "detail": "9/9 suites, manifest mismatch: expected acceptance-v1-233cd8a382d97dd2, published acceptance-v1-cd1688d3930d716d",
+      "action": "Run bun run verify:acceptance, then build and deploy the updated dist/acceptance-evidence.json."
     },
     {
-      "checkedAt": "2026-07-06T18:20:52.829Z",
+      "checkedAt": "2026-07-06T23:56:54.890Z",
       "id": "public-runtime-config",
       "category": "public-app",
       "label": "Published runtime config",
       "required": true,
       "status": "failed",
-      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/runtime-config.js?_kickoff_evidence=1783362052499",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/runtime-config.js?_kickoff_evidence=1783382214549",
       "detail": "missing VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_TOKEN",
       "action": "Run bun run runtime:config, bun run runtime:config:check, build and redeploy dist/runtime-config.js.",
       "sampleIds": [
@@ -165,24 +165,24 @@
       ]
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.173Z",
+      "checkedAt": "2026-07-06T23:56:55.230Z",
       "id": "public-deployment-evidence",
       "category": "public-app",
       "label": "Published deployment evidence",
       "required": true,
       "status": "passed",
-      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/public-deployment-evidence.json?_kickoff_evidence=1783362052829",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/public-deployment-evidence.json?_kickoff_evidence=1783382214891",
       "detail": "8/8 public deployment checks passed · assets/index-CxLcM3al.js",
       "action": "Run bun run deploy:pages && bun run deploy:evidence, then publish public-deployment-evidence.json.",
       "sampleIds": [
         "assets/index-CxLcM3al.js",
         "assets/index-CxLcM3al.js",
         "built",
-        "6e815757350273fbc1d34bb55e7eac82587ea062"
+        "b9f5d33785f727e9b01aba2c0930e584a29aa8b5"
       ]
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.611Z",
+      "checkedAt": "2026-07-06T23:56:55.670Z",
       "id": "public-logo-asset",
       "category": "public-app",
       "label": "Published logo asset",
@@ -193,7 +193,7 @@
       "action": "Deploy static assets from dist/assets."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.612Z",
+      "checkedAt": "2026-07-06T23:56:55.671Z",
       "id": "supabase-backend-health",
       "category": "supabase",
       "label": "Backend schema health",
@@ -203,13 +203,13 @@
       "action": "Apply supabase.schema.sql and verify grants/RLS policies."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.613Z",
+      "checkedAt": "2026-07-06T23:56:55.672Z",
       "id": "production-target-env-contract",
       "category": "supabase",
       "label": "Production target env contract",
       "required": true,
       "status": "passed",
-      "detail": "Target env binds profile kickoff-production-seed, 6 share artifact ids and global/friend/season leaderboard scopes.",
+      "detail": "Target env binds profile kickoff-production-seed, 7 share artifact ids and global/friend/season leaderboard scopes.",
       "action": "Copy the Account view production env block after cloud sync/share card generation, then keep public profile URL, share artifact ids and leaderboard scopes aligned with the target profile.",
       "sampleIds": [
         "kickoff-production-seed",
@@ -219,16 +219,18 @@
         "mode-prod-agent-vs-human-f8b27b3a",
         "mode-prod-upset-9f6dd619",
         "mode-prod-group-path-b533c118",
+        "mode-prod-penalty-pressure-f7632967",
         "record:cap-prod-73dc2618d1f9",
         "mode:mode-prod-bracket-f90d6276",
         "mode:mode-prod-parlay-77bf4ef2",
         "mode:mode-prod-agent-vs-human-f8b27b3a",
         "mode:mode-prod-upset-9f6dd619",
-        "mode:mode-prod-group-path-b533c118"
+        "mode:mode-prod-group-path-b533c118",
+        "mode:mode-prod-penalty-pressure-f7632967"
       ]
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.613Z",
+      "checkedAt": "2026-07-06T23:56:55.672Z",
       "id": "supabase-auth-user-target",
       "category": "supabase",
       "label": "Supabase Auth target user",
@@ -238,7 +240,7 @@
       "action": "Set KICKOFF_VERIFY_USER_ID and local-only SUPABASE_SERVICE_ROLE_KEY, then rerun verify:production."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.614Z",
+      "checkedAt": "2026-07-06T23:56:55.673Z",
       "id": "supabase-auth-profile-identity",
       "category": "supabase",
       "label": "Supabase Auth/profile identity match",
@@ -248,7 +250,7 @@
       "action": "Sync the signed-in Supabase profile, then rerun verify:production with SUPABASE_SERVICE_ROLE_KEY set locally."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.614Z",
+      "checkedAt": "2026-07-06T23:56:55.673Z",
       "id": "leaderboard-global-current-user",
       "category": "supabase",
       "label": "Global leaderboard current user",
@@ -258,7 +260,7 @@
       "action": "Set KICKOFF_VERIFY_USER_ID to a synced user that appears in kickoff_leaderboard."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.614Z",
+      "checkedAt": "2026-07-06T23:56:55.673Z",
       "id": "leaderboard-friend-current-user",
       "category": "supabase",
       "label": "Friend leaderboard current user",
@@ -268,7 +270,7 @@
       "action": "Set KICKOFF_VERIFY_USER_ID and KICKOFF_VERIFY_FRIEND_CODE for a synced leaderboard row."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.614Z",
+      "checkedAt": "2026-07-06T23:56:55.673Z",
       "id": "leaderboard-season-current-user",
       "category": "supabase",
       "label": "Season leaderboard current user",
@@ -278,7 +280,7 @@
       "action": "Set KICKOFF_VERIFY_USER_ID and KICKOFF_VERIFY_SEASON_KEY for a synced leaderboard row."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.614Z",
+      "checkedAt": "2026-07-06T23:56:55.673Z",
       "id": "leaderboard-global-board",
       "category": "supabase",
       "label": "Global leaderboard board rows",
@@ -288,7 +290,7 @@
       "action": "Read back the public global leaderboard ordered by global_rank."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.614Z",
+      "checkedAt": "2026-07-06T23:56:55.673Z",
       "id": "leaderboard-friend-board",
       "category": "supabase",
       "label": "Friend leaderboard board rows",
@@ -298,7 +300,7 @@
       "action": "Read back the public friend leaderboard ordered by friend_rank with the configured friend_code."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.614Z",
+      "checkedAt": "2026-07-06T23:56:55.673Z",
       "id": "leaderboard-season-board",
       "category": "supabase",
       "label": "Season leaderboard board rows",
@@ -308,7 +310,7 @@
       "action": "Read back the public season leaderboard ordered by season_rank with the configured season_key."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.614Z",
+      "checkedAt": "2026-07-06T23:56:55.673Z",
       "id": "supabase-profile-target",
       "category": "supabase",
       "label": "Public profile target row",
@@ -318,7 +320,7 @@
       "action": "Set KICKOFF_VERIFY_PROFILE_ID to a synced public profile id."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.614Z",
+      "checkedAt": "2026-07-06T23:56:55.673Z",
       "id": "supabase-record-target",
       "category": "supabase",
       "label": "Public prediction target row",
@@ -328,7 +330,7 @@
       "action": "Set KICKOFF_VERIFY_PROOF_ID to a synced prediction capsule id."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.614Z",
+      "checkedAt": "2026-07-06T23:56:55.673Z",
       "id": "supabase-mode-target",
       "category": "supabase",
       "label": "Public mode proof target rows",
@@ -338,7 +340,7 @@
       "action": "Set KICKOFF_VERIFY_MODE_IDS to synced mode proof run ids."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.614Z",
+      "checkedAt": "2026-07-06T23:56:55.673Z",
       "id": "supabase-share-artifact-target",
       "category": "supabase",
       "label": "Public record share artifact target row",
@@ -348,7 +350,7 @@
       "action": "Generate a record share card, upload it to Supabase Storage, and sync kickoff_share_artifacts."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.614Z",
+      "checkedAt": "2026-07-06T23:56:55.673Z",
       "id": "supabase-mode-share-artifact-target",
       "category": "supabase",
       "label": "Public mode share artifact target rows",
@@ -358,7 +360,7 @@
       "action": "Generate mode proof share cards, upload them to Supabase Storage, and sync kickoff_share_artifacts."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.614Z",
+      "checkedAt": "2026-07-06T23:56:55.673Z",
       "id": "supabase-share-channel-target",
       "category": "supabase",
       "label": "Public record share channel target row",
@@ -368,7 +370,7 @@
       "action": "Open the X intent or native share for the record proof card, then sync kickoff_share_artifacts."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.614Z",
+      "checkedAt": "2026-07-06T23:56:55.673Z",
       "id": "supabase-mode-share-channel-target",
       "category": "supabase",
       "label": "Public mode share channel target rows",
@@ -378,7 +380,7 @@
       "action": "Open the X intent or native share for every mode proof card, then sync kickoff_share_artifacts."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.616Z",
+      "checkedAt": "2026-07-06T23:56:55.675Z",
       "id": "data-proxy-health",
       "category": "data",
       "label": "Static hosting data proxy health",
@@ -388,30 +390,40 @@
       "action": "Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Cloudflare Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1."
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.840Z",
+      "checkedAt": "2026-07-06T23:56:56.094Z",
       "id": "thesportsdb-season",
       "category": "data",
       "label": "TheSportsDB season feed",
       "required": false,
-      "status": "warning",
+      "status": "passed",
       "url": "https://www.thesportsdb.com/api/v1/json/123/eventsseason.php?id=4429&s=2026",
-      "detail": "HTTP 429, World Cup payload missing",
+      "detail": "HTTP 200",
       "action": "Configure VITE_DATA_PROXY_URL or keep direct public feed access healthy for continuity.",
-      "sampleIds": []
+      "sampleIds": [
+        "2391728",
+        "2461103",
+        "2461104",
+        "2391729",
+        "2391730"
+      ]
     },
     {
-      "checkedAt": "2026-07-06T18:20:53.980Z",
+      "checkedAt": "2026-07-06T23:56:56.847Z",
       "id": "espn-world-cup-scoreboard",
       "category": "data",
       "label": "ESPN World Cup scoreboard",
       "required": false,
-      "status": "warning",
+      "status": "passed",
       "url": "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=40",
-      "detail": "Error: unknown certificate verification error",
-      "action": "Configure VITE_DATA_PROXY_URL or keep direct public feed access healthy for continuity."
+      "detail": "HTTP 200",
+      "action": "Configure VITE_DATA_PROXY_URL or keep direct public feed access healthy for continuity.",
+      "sampleIds": [
+        "760506",
+        "760507"
+      ]
     },
     {
-      "checkedAt": "2026-07-06T18:20:54.771Z",
+      "checkedAt": "2026-07-06T23:56:57.839Z",
       "id": "worldcup26-games",
       "category": "data",
       "label": "worldcup26 games feed",
@@ -429,27 +441,27 @@
       ]
     },
     {
-      "checkedAt": "2026-07-06T18:20:54.771Z",
+      "checkedAt": "2026-07-06T23:56:57.839Z",
       "id": "public-football-feed-continuity",
       "category": "data",
       "label": "Free public football feed continuity",
       "required": true,
       "status": "passed",
-      "detail": "TheSportsDB season feed:HTTP 429, World Cup payload missing · ESPN World Cup scoreboard:Error: unknown certificate verification error · worldcup26 games feed:ok",
+      "detail": "TheSportsDB season feed:ok · ESPN World Cup scoreboard:ok · worldcup26 games feed:ok",
       "action": "Keep TheSportsDB or ESPN reachable so schedule/score continuity does not depend on seed data."
     },
     {
-      "checkedAt": "2026-07-06T18:20:54.771Z",
+      "checkedAt": "2026-07-06T23:56:57.839Z",
       "id": "football-data-readback",
       "category": "data",
       "label": "Football-Data.org matches/standings read-back",
       "required": true,
       "status": "failed",
-      "detail": "Missing VITE_FOOTBALL_DATA_TOKEN or deployed data proxy with server-side FOOTBALL_DATA_TOKEN",
-      "action": "Configure direct VITE_FOOTBALL_DATA_TOKEN for diagnostics, or deploy the data proxy with server-side FOOTBALL_DATA_TOKEN and verify matches plus standings."
+      "detail": "Missing FOOTBALL_DATA_TOKEN or deployed data proxy with server-side FOOTBALL_DATA_TOKEN",
+      "action": "Configure direct FOOTBALL_DATA_TOKEN for local diagnostics, or deploy the data proxy with server-side FOOTBALL_DATA_TOKEN and verify matches plus standings."
     },
     {
-      "checkedAt": "2026-07-06T18:20:54.771Z",
+      "checkedAt": "2026-07-06T23:56:57.839Z",
       "id": "api-football-enrichment-live",
       "category": "data",
       "label": "API-Football enrichment read-back",
@@ -459,7 +471,7 @@
       "action": "Configure direct VITE_APIFOOTBALL_KEY for diagnostics, or deploy the data proxy with server-side APIFOOTBALL_KEY and set KICKOFF_VERIFY_FIXTURE_IDS to verify lineups, injuries, odds and standings."
     },
     {
-      "checkedAt": "2026-07-06T18:20:54.772Z",
+      "checkedAt": "2026-07-06T23:56:57.840Z",
       "id": "filecoin-seal-health",
       "category": "filecoin",
       "label": "Seal API production health",
@@ -469,7 +481,7 @@
       "action": "Deploy the seal API and configure VITE_FILECOIN_SEAL_API, or mount it on Cloudflare Pages Functions at /seal and set VITE_FILECOIN_SEAL_SAME_ORIGIN=1."
     },
     {
-      "checkedAt": "2026-07-06T18:20:54.772Z",
+      "checkedAt": "2026-07-06T23:56:57.840Z",
       "id": "filecoin-seal-contract",
       "category": "filecoin",
       "label": "Seal API async endpoint contract",
@@ -479,7 +491,7 @@
       "action": "Deploy the seal API with POST /seal?async=1, GET /jobs/:id, GET /verify?cid= and GET /proof/:cid."
     },
     {
-      "checkedAt": "2026-07-06T18:20:54.773Z",
+      "checkedAt": "2026-07-06T23:56:57.840Z",
       "id": "filecoin-record-proof-readback",
       "category": "filecoin",
       "label": "Record CID proof read-back",
@@ -489,7 +501,7 @@
       "action": "Run a production one-click seal for one prediction capsule and set KICKOFF_VERIFY_FILECOIN_RECORD_CID plus KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH."
     },
     {
-      "checkedAt": "2026-07-06T18:20:54.773Z",
+      "checkedAt": "2026-07-06T23:56:57.841Z",
       "id": "filecoin-mode-proof-readback",
       "category": "filecoin",
       "label": "Mode CID proof read-back",
@@ -499,7 +511,7 @@
       "action": "Run production one-click seals for every required tournament mode proof and set KICKOFF_VERIFY_FILECOIN_MODE_CIDS plus KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES."
     },
     {
-      "checkedAt": "2026-07-06T18:20:57.187Z",
+      "checkedAt": "2026-07-06T23:57:00.691Z",
       "id": "public-profile-link",
       "category": "sharing",
       "label": "Public profile link",
@@ -513,7 +525,7 @@
       ]
     },
     {
-      "checkedAt": "2026-07-06T18:20:58.983Z",
+      "checkedAt": "2026-07-06T23:57:02.212Z",
       "id": "public-proof-link",
       "category": "sharing",
       "label": "Public prediction proof link",
@@ -527,32 +539,33 @@
       ]
     },
     {
-      "checkedAt": "2026-07-06T18:21:06.767Z",
+      "checkedAt": "2026-07-06T23:57:11.234Z",
       "id": "public-mode-link",
       "category": "sharing",
       "label": "Public mode proof links",
       "required": true,
-      "status": "passed",
+      "status": "failed",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276",
-      "detail": "rendered 5/5 mode proof pages",
+      "detail": "mode-prod-penalty-pressure-f7632967: missing Mode proof facts, Proof timeline, Verifier packet, Social metadata, mode-prod-penalty-pressure-f7632967",
       "action": "Set KICKOFF_VERIFY_MODE_IDS to synced mode proof run ids.",
       "sampleIds": [
         "mode-prod-bracket-f90d6276",
         "mode-prod-parlay-77bf4ef2",
         "mode-prod-agent-vs-human-f8b27b3a",
         "mode-prod-upset-9f6dd619",
-        "mode-prod-group-path-b533c118"
+        "mode-prod-group-path-b533c118",
+        "mode-prod-penalty-pressure-f7632967"
       ]
     },
     {
-      "checkedAt": "2026-07-06T18:21:06.769Z",
+      "checkedAt": "2026-07-06T23:57:11.235Z",
       "id": "public-clean-session-restore",
       "category": "sharing",
       "label": "Clean-session account restore",
       "required": true,
       "status": "failed",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/",
-      "detail": "clean-session cloud restore missing profile:kickoff-production-seed (fixture fallback or local-only page rendered); proof:cap-prod-73dc2618d1f9 (fixture fallback or local-only page rendered); mode:mode-prod-bracket-f90d6276 (fixture fallback or local-only page rendered); mode:mode-prod-parlay-77bf4ef2 (fixture fallback or local-only page rendered); mode:mode-prod-agent-vs-human-f8b27b3a (fixture fallback or local-only page rendered); mode:mode-prod-upset-9f6dd619 (fixture fallback or local-only page rendered); mode:mode-prod-group-path-b533c118 (fixture fallback or local-only page rendered)",
+      "detail": "clean-session cloud restore missing profile:kickoff-production-seed (fixture fallback or local-only page rendered); proof:cap-prod-73dc2618d1f9 (fixture fallback or local-only page rendered); mode:mode-prod-bracket-f90d6276 (fixture fallback or local-only page rendered); mode:mode-prod-parlay-77bf4ef2 (fixture fallback or local-only page rendered); mode:mode-prod-agent-vs-human-f8b27b3a (fixture fallback or local-only page rendered); mode:mode-prod-upset-9f6dd619 (fixture fallback or local-only page rendered); mode:mode-prod-group-path-b533c118 (fixture fallback or local-only page rendered); mode:mode-prod-penalty-pressure-f7632967 (fixture fallback or local-only page rendered)",
       "action": "Set profile/proof/mode verification ids to real Supabase targets, deploy public pages, then render Cloud-loaded pages in a clean browser context without relying on localStorage.",
       "sampleIds": [
         "kickoff-production-seed",
@@ -561,11 +574,12 @@
         "mode-prod-parlay-77bf4ef2",
         "mode-prod-agent-vs-human-f8b27b3a",
         "mode-prod-upset-9f6dd619",
-        "mode-prod-group-path-b533c118"
+        "mode-prod-group-path-b533c118",
+        "mode-prod-penalty-pressure-f7632967"
       ]
     },
     {
-      "checkedAt": "2026-07-06T18:21:06.841Z",
+      "checkedAt": "2026-07-06T23:57:11.308Z",
       "id": "public-share-image",
       "category": "sharing",
       "label": "Public share image URL",
@@ -576,7 +590,7 @@
       "action": "Set KICKOFF_VERIFY_SHARE_IMAGE_URL to a deployed HTTPS PNG/JPEG/WebP share-card URL that reads back as a production-sized image."
     },
     {
-      "checkedAt": "2026-07-06T18:21:06.913Z",
+      "checkedAt": "2026-07-06T23:57:11.379Z",
       "id": "public-mode-share-image",
       "category": "sharing",
       "label": "Public mode share image URL",

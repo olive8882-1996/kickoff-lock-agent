@@ -118,7 +118,47 @@
       "targetId": "cap-prod-73dc2618d1f9",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9",
       "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9'",
-      "ready": true
+      "ready": true,
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetId": "cap-prod-73dc2618d1f9",
+        "targetKind": "record",
+        "requiredFields": [
+          "canonical-url",
+          "og:title",
+          "og:image",
+          "twitter:card",
+          "json-ld",
+          "public-source-cloud"
+        ],
+        "expectedProofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9"
+      }
+    },
+    {
+      "id": "record-share-channel-open",
+      "label": "Open record X intent",
+      "kind": "share-channel-open",
+      "targetId": "cap-prod-73dc2618d1f9",
+      "url": "https://twitter.com/intent/tweet?text=Kickoff+Lock+prediction+proof+locked.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "command": "open 'https://twitter.com/intent/tweet?text=Kickoff+Lock+prediction+proof+locked.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&hashtags=KickoffLock%2CFilecoin%2CWorldCup'",
+      "ready": true,
+      "responseExpectation": {
+        "responseType": "x-intent",
+        "targetId": "cap-prod-73dc2618d1f9",
+        "targetKind": "record",
+        "requiredFields": [
+          "url",
+          "text",
+          "hashtags"
+        ],
+        "expectedProofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9",
+        "expectedHost": "twitter.com",
+        "expectedHashtags": [
+          "KickoffLock",
+          "Filecoin",
+          "WorldCup"
+        ]
+      }
     },
     {
       "id": "public-mode-page:mode-prod-bracket-f90d6276",
@@ -127,7 +167,47 @@
       "targetId": "mode-prod-bracket-f90d6276",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276",
       "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276'",
-      "ready": true
+      "ready": true,
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetId": "mode-prod-bracket-f90d6276",
+        "targetKind": "mode",
+        "requiredFields": [
+          "canonical-url",
+          "og:title",
+          "og:image",
+          "twitter:card",
+          "json-ld",
+          "public-source-cloud"
+        ],
+        "expectedProofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276"
+      }
+    },
+    {
+      "id": "mode-share-channel-open:mode-prod-bracket-f90d6276",
+      "label": "Open mode X intent mode-prod-bracket-f90d6276",
+      "kind": "share-channel-open",
+      "targetId": "mode-prod-bracket-f90d6276",
+      "url": "https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "command": "open 'https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&hashtags=KickoffLock%2CFilecoin%2CWorldCup'",
+      "ready": true,
+      "responseExpectation": {
+        "responseType": "x-intent",
+        "targetId": "mode-prod-bracket-f90d6276",
+        "targetKind": "mode",
+        "requiredFields": [
+          "url",
+          "text",
+          "hashtags"
+        ],
+        "expectedProofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276",
+        "expectedHost": "twitter.com",
+        "expectedHashtags": [
+          "KickoffLock",
+          "Filecoin",
+          "WorldCup"
+        ]
+      }
     },
     {
       "id": "public-mode-page:mode-prod-parlay-77bf4ef2",
@@ -136,7 +216,47 @@
       "targetId": "mode-prod-parlay-77bf4ef2",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2",
       "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2'",
-      "ready": true
+      "ready": true,
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetId": "mode-prod-parlay-77bf4ef2",
+        "targetKind": "mode",
+        "requiredFields": [
+          "canonical-url",
+          "og:title",
+          "og:image",
+          "twitter:card",
+          "json-ld",
+          "public-source-cloud"
+        ],
+        "expectedProofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2"
+      }
+    },
+    {
+      "id": "mode-share-channel-open:mode-prod-parlay-77bf4ef2",
+      "label": "Open mode X intent mode-prod-parlay-77bf4ef2",
+      "kind": "share-channel-open",
+      "targetId": "mode-prod-parlay-77bf4ef2",
+      "url": "https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "command": "open 'https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&hashtags=KickoffLock%2CFilecoin%2CWorldCup'",
+      "ready": true,
+      "responseExpectation": {
+        "responseType": "x-intent",
+        "targetId": "mode-prod-parlay-77bf4ef2",
+        "targetKind": "mode",
+        "requiredFields": [
+          "url",
+          "text",
+          "hashtags"
+        ],
+        "expectedProofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2",
+        "expectedHost": "twitter.com",
+        "expectedHashtags": [
+          "KickoffLock",
+          "Filecoin",
+          "WorldCup"
+        ]
+      }
     },
     {
       "id": "public-mode-page:mode-prod-agent-vs-human-f8b27b3a",
@@ -145,7 +265,47 @@
       "targetId": "mode-prod-agent-vs-human-f8b27b3a",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a",
       "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a'",
-      "ready": true
+      "ready": true,
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetId": "mode-prod-agent-vs-human-f8b27b3a",
+        "targetKind": "mode",
+        "requiredFields": [
+          "canonical-url",
+          "og:title",
+          "og:image",
+          "twitter:card",
+          "json-ld",
+          "public-source-cloud"
+        ],
+        "expectedProofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a"
+      }
+    },
+    {
+      "id": "mode-share-channel-open:mode-prod-agent-vs-human-f8b27b3a",
+      "label": "Open mode X intent mode-prod-agent-vs-human-f8b27b3a",
+      "kind": "share-channel-open",
+      "targetId": "mode-prod-agent-vs-human-f8b27b3a",
+      "url": "https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "command": "open 'https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&hashtags=KickoffLock%2CFilecoin%2CWorldCup'",
+      "ready": true,
+      "responseExpectation": {
+        "responseType": "x-intent",
+        "targetId": "mode-prod-agent-vs-human-f8b27b3a",
+        "targetKind": "mode",
+        "requiredFields": [
+          "url",
+          "text",
+          "hashtags"
+        ],
+        "expectedProofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a",
+        "expectedHost": "twitter.com",
+        "expectedHashtags": [
+          "KickoffLock",
+          "Filecoin",
+          "WorldCup"
+        ]
+      }
     },
     {
       "id": "public-mode-page:mode-prod-upset-9f6dd619",
@@ -154,7 +314,47 @@
       "targetId": "mode-prod-upset-9f6dd619",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619",
       "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619'",
-      "ready": true
+      "ready": true,
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetId": "mode-prod-upset-9f6dd619",
+        "targetKind": "mode",
+        "requiredFields": [
+          "canonical-url",
+          "og:title",
+          "og:image",
+          "twitter:card",
+          "json-ld",
+          "public-source-cloud"
+        ],
+        "expectedProofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619"
+      }
+    },
+    {
+      "id": "mode-share-channel-open:mode-prod-upset-9f6dd619",
+      "label": "Open mode X intent mode-prod-upset-9f6dd619",
+      "kind": "share-channel-open",
+      "targetId": "mode-prod-upset-9f6dd619",
+      "url": "https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "command": "open 'https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&hashtags=KickoffLock%2CFilecoin%2CWorldCup'",
+      "ready": true,
+      "responseExpectation": {
+        "responseType": "x-intent",
+        "targetId": "mode-prod-upset-9f6dd619",
+        "targetKind": "mode",
+        "requiredFields": [
+          "url",
+          "text",
+          "hashtags"
+        ],
+        "expectedProofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619",
+        "expectedHost": "twitter.com",
+        "expectedHashtags": [
+          "KickoffLock",
+          "Filecoin",
+          "WorldCup"
+        ]
+      }
     },
     {
       "id": "public-mode-page:mode-prod-group-path-b533c118",
@@ -163,7 +363,47 @@
       "targetId": "mode-prod-group-path-b533c118",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118",
       "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118'",
-      "ready": true
+      "ready": true,
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetId": "mode-prod-group-path-b533c118",
+        "targetKind": "mode",
+        "requiredFields": [
+          "canonical-url",
+          "og:title",
+          "og:image",
+          "twitter:card",
+          "json-ld",
+          "public-source-cloud"
+        ],
+        "expectedProofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118"
+      }
+    },
+    {
+      "id": "mode-share-channel-open:mode-prod-group-path-b533c118",
+      "label": "Open mode X intent mode-prod-group-path-b533c118",
+      "kind": "share-channel-open",
+      "targetId": "mode-prod-group-path-b533c118",
+      "url": "https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-group-path-b533c118&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-group-path-b533c118&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "command": "open 'https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-group-path-b533c118&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-group-path-b533c118&hashtags=KickoffLock%2CFilecoin%2CWorldCup'",
+      "ready": true,
+      "responseExpectation": {
+        "responseType": "x-intent",
+        "targetId": "mode-prod-group-path-b533c118",
+        "targetKind": "mode",
+        "requiredFields": [
+          "url",
+          "text",
+          "hashtags"
+        ],
+        "expectedProofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118",
+        "expectedHost": "twitter.com",
+        "expectedHashtags": [
+          "KickoffLock",
+          "Filecoin",
+          "WorldCup"
+        ]
+      }
     },
     {
       "id": "record-share-image",
@@ -172,7 +412,18 @@
       "targetId": "cap-prod-73dc2618d1f9",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
       "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png' -o /tmp/kickoff-record-share-card.png",
-      "ready": true
+      "ready": true,
+      "responseExpectation": {
+        "responseType": "public-image",
+        "targetId": "cap-prod-73dc2618d1f9",
+        "targetKind": "record",
+        "requiredFields": [
+          "content-type:image",
+          "content-length",
+          "sha256"
+        ],
+        "expectedImageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png"
+      }
     },
     {
       "id": "mode-share-image",
@@ -181,12 +432,23 @@
       "targetId": "mode-prod-bracket-f90d6276",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
       "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png' -o /tmp/kickoff-mode-share-card.png",
-      "ready": true
+      "ready": true,
+      "responseExpectation": {
+        "responseType": "public-image",
+        "targetId": "mode-prod-bracket-f90d6276",
+        "targetKind": "mode",
+        "requiredFields": [
+          "content-type:image",
+          "content-length",
+          "sha256"
+        ],
+        "expectedImageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png"
+      }
     }
   ],
   "nextAction": "Verify public sharing surfaces: run bun run doctor:sharing.",
-  "copyText": "Kickoff Lock Agent public sharing production bootstrap\nMode: plan\nStages: 5/5 ready or done\nMissing env: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\nNext action: Verify public sharing surfaces: run bun run doctor:sharing.\nCommands:\n- bun run doctor:sharing\nRead-back commands:\n- [ready] Read deployed record proof page: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9'\n- [ready] Read deployed mode proof page mode-prod-bracket-f90d6276: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276'\n- [ready] Read deployed mode proof page mode-prod-parlay-77bf4ef2: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2'\n- [ready] Read deployed mode proof page mode-prod-agent-vs-human-f8b27b3a: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a'\n- [ready] Read deployed mode proof page mode-prod-upset-9f6dd619: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619'\n- [ready] Read deployed mode proof page mode-prod-group-path-b533c118: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118'\n- [ready] Read public record share image: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png' -o /tmp/kickoff-record-share-card.png\n- [ready] Read public mode share image: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png' -o /tmp/kickoff-mode-share-card.png\nStages:\n- Generate record share image [done]\n  command: bun run share:production-image\n  execute: bun run share:production-image\n  requires: VITE_PUBLIC_APP_URL\n  missing: none\n  outputs: public/generated/kickoff-production-share.png, KICKOFF_SEED_SHARE_IMAGE_URL, KICKOFF_VERIFY_SHARE_IMAGE_URL\n  detail: Record proof PNG already exists in public/generated.\n- Generate mode share image [done]\n  command: bun run share:production-image -- --kind=mode --out=public/generated/kickoff-production-mode-share.png\n  execute: bun run share:production-image -- --kind=mode --out=public/generated/kickoff-production-mode-share.png\n  requires: VITE_PUBLIC_APP_URL\n  missing: none\n  outputs: public/generated/kickoff-production-mode-share.png, KICKOFF_SEED_MODE_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  detail: Mode proof PNG already exists in public/generated.\n- Upload record share image [done]\n  command: bun run share:upload-image\n  execute: bun run share:upload-image\n  requires: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/generated/kickoff-production-share.png\n  missing: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\n  outputs: KICKOFF_SEED_SHARE_IMAGE_URL, KICKOFF_VERIFY_SHARE_IMAGE_URL\n  detail: Record share image URL target is a public HTTPS bitmap image.\n- Upload mode share image [done]\n  command: bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  execute: bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  requires: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/generated/kickoff-production-mode-share.png\n  missing: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\n  outputs: KICKOFF_SEED_MODE_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  detail: Mode share image URL target is a public HTTPS bitmap image.\n- Verify public sharing surfaces [ready]\n  command: bun run doctor:sharing\n  execute: bun run doctor:sharing\n  requires: VITE_PUBLIC_APP_URL, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  missing: none\n  outputs: public proof/profile/mode render evidence, public image read-back evidence\n  detail: Render deployed profile, proof and mode pages; verify canonical URLs, social metadata, JSON-LD and public share image reads.",
-  "generatedAt": "2026-07-06T18:13:45.385Z",
+  "copyText": "Kickoff Lock Agent public sharing production bootstrap\nMode: plan\nStages: 5/5 ready or done\nMissing env: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\nNext action: Verify public sharing surfaces: run bun run doctor:sharing.\nCommands:\n- bun run doctor:sharing\nRead-back commands:\n- [ready] Read deployed record proof page: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9'\n- [ready] Open record X intent: open 'https://twitter.com/intent/tweet?text=Kickoff+Lock+prediction+proof+locked.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&hashtags=KickoffLock%2CFilecoin%2CWorldCup'\n- [ready] Read deployed mode proof page mode-prod-bracket-f90d6276: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276'\n- [ready] Open mode X intent mode-prod-bracket-f90d6276: open 'https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&hashtags=KickoffLock%2CFilecoin%2CWorldCup'\n- [ready] Read deployed mode proof page mode-prod-parlay-77bf4ef2: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2'\n- [ready] Open mode X intent mode-prod-parlay-77bf4ef2: open 'https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&hashtags=KickoffLock%2CFilecoin%2CWorldCup'\n- [ready] Read deployed mode proof page mode-prod-agent-vs-human-f8b27b3a: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a'\n- [ready] Open mode X intent mode-prod-agent-vs-human-f8b27b3a: open 'https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&hashtags=KickoffLock%2CFilecoin%2CWorldCup'\n- [ready] Read deployed mode proof page mode-prod-upset-9f6dd619: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619'\n- [ready] Open mode X intent mode-prod-upset-9f6dd619: open 'https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&hashtags=KickoffLock%2CFilecoin%2CWorldCup'\n- [ready] Read deployed mode proof page mode-prod-group-path-b533c118: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118'\n- [ready] Open mode X intent mode-prod-group-path-b533c118: open 'https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-group-path-b533c118&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-group-path-b533c118&hashtags=KickoffLock%2CFilecoin%2CWorldCup'\n- [ready] Read public record share image: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png' -o /tmp/kickoff-record-share-card.png\n- [ready] Read public mode share image: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png' -o /tmp/kickoff-mode-share-card.png\nStages:\n- Generate record share image [done]\n  command: bun run share:production-image\n  execute: bun run share:production-image\n  requires: VITE_PUBLIC_APP_URL\n  missing: none\n  outputs: public/generated/kickoff-production-share.png, KICKOFF_SEED_SHARE_IMAGE_URL, KICKOFF_VERIFY_SHARE_IMAGE_URL\n  detail: Record proof PNG already exists in public/generated.\n- Generate mode share image [done]\n  command: bun run share:production-image -- --kind=mode --out=public/generated/kickoff-production-mode-share.png\n  execute: bun run share:production-image -- --kind=mode --out=public/generated/kickoff-production-mode-share.png\n  requires: VITE_PUBLIC_APP_URL\n  missing: none\n  outputs: public/generated/kickoff-production-mode-share.png, KICKOFF_SEED_MODE_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  detail: Mode proof PNG already exists in public/generated.\n- Upload record share image [done]\n  command: bun run share:upload-image\n  execute: bun run share:upload-image\n  requires: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/generated/kickoff-production-share.png\n  missing: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\n  outputs: KICKOFF_SEED_SHARE_IMAGE_URL, KICKOFF_VERIFY_SHARE_IMAGE_URL\n  detail: Record share image URL target is a public HTTPS bitmap image.\n- Upload mode share image [done]\n  command: bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  execute: bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  requires: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/generated/kickoff-production-mode-share.png\n  missing: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\n  outputs: KICKOFF_SEED_MODE_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  detail: Mode share image URL target is a public HTTPS bitmap image.\n- Verify public sharing surfaces [ready]\n  command: bun run doctor:sharing\n  execute: bun run doctor:sharing\n  requires: VITE_PUBLIC_APP_URL, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  missing: none\n  outputs: public proof/profile/mode render evidence, public image read-back evidence\n  detail: Render deployed profile, proof and mode pages; verify canonical URLs, social metadata, JSON-LD and public share image reads.",
+  "generatedAt": "2026-07-06T22:27:25.290Z",
   "envFiles": [
     ".env.production.local"
   ],
@@ -195,6 +457,7 @@
     "publicAppUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/",
     "proofId": "cap-prod-73dc2618d1f9",
     "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9",
+    "proofXIntentUrl": "https://twitter.com/intent/tweet?text=Kickoff+Lock+prediction+proof+locked.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
     "modeIds": [
       "mode-prod-bracket-f90d6276",
       "mode-prod-parlay-77bf4ef2",
@@ -208,6 +471,13 @@
       "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a",
       "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619",
       "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118"
+    ],
+    "modeXIntentUrls": [
+      "https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "https://twitter.com/intent/tweet?text=Kickoff+Lock+mode+proof+sealed.%0AVerify%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-group-path-b533c118&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-group-path-b533c118&hashtags=KickoffLock%2CFilecoin%2CWorldCup"
     ],
     "shareArtifactIds": [
       "record:cap-prod-73dc2618d1f9",

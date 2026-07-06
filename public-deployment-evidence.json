@@ -4,15 +4,15 @@
   ],
   "outputPath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/public-deployment-evidence.json",
   "wrote": true,
-  "generatedAt": "2026-07-06T06:19:37.073Z",
+  "generatedAt": "2026-07-06T06:29:07.860Z",
   "source": "local-script",
   "ready": true,
   "publicAppUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/",
   "pagesBuildStatus": "built",
-  "pagesBuildCommit": "9cc4573b577337c3c33132e025b8bcbc21ce4999",
+  "pagesBuildCommit": "4567d70e9355b3554d56645eba61c9efcb6bf6b5",
   "pagesBuildError": null,
-  "liveBundle": "assets/index-viejUDOP.js",
-  "expectedBundle": "assets/index-viejUDOP.js",
+  "liveBundle": "assets/index-Dgr64Jgm.js",
+  "expectedBundle": "assets/index-Dgr64Jgm.js",
   "liveStylesheet": "assets/index-DxIgsgSF.css",
   "expectedStylesheet": "assets/index-DxIgsgSF.css",
   "checks": [
@@ -33,28 +33,28 @@
       "key": "pages-commit",
       "label": "Pages commit",
       "passed": true,
-      "detail": "Pages 9cc4573b577337c3c33132e025b8bcbc21ce4999"
+      "detail": "Pages 4567d70e9355b3554d56645eba61c9efcb6bf6b5"
     },
     {
       "key": "live-index",
       "label": "Live index",
       "passed": true,
-      "detail": "HTTP 200 · bundle assets/index-viejUDOP.js · css assets/index-DxIgsgSF.css",
+      "detail": "HTTP 200 · bundle assets/index-Dgr64Jgm.js · css assets/index-DxIgsgSF.css",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/"
     },
     {
       "key": "bundle-match",
       "label": "Bundle hash",
       "passed": true,
-      "detail": "expected assets/index-viejUDOP.js · live assets/index-viejUDOP.js",
-      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-viejUDOP.js"
+      "detail": "expected assets/index-Dgr64Jgm.js · live assets/index-Dgr64Jgm.js",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-Dgr64Jgm.js"
     },
     {
       "key": "bundle-http",
       "label": "Bundle asset",
       "passed": true,
-      "detail": "HTTP 200 · assets/index-viejUDOP.js",
-      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-viejUDOP.js"
+      "detail": "HTTP 200 · assets/index-Dgr64Jgm.js",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-Dgr64Jgm.js"
     },
     {
       "key": "stylesheet-match",
@@ -71,7 +71,7 @@
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-DxIgsgSF.css"
     }
   ],
-  "summary": "Live deployment matches assets/index-viejUDOP.js.",
+  "summary": "Live deployment matches assets/index-Dgr64Jgm.js.",
   "nextAction": "Public deployment is live: Pages build status or published assets, commit and hashed assets all match.",
-  "copyText": "Kickoff Lock Agent public deployment evidence\nReady: yes\nPublic app: https://olive8882-1996.github.io/kickoff-lock-agent/\nExpected commit: unknown\nPages build: built 9cc4573b577337c3c33132e025b8bcbc21ce4999\nExpected bundle: assets/index-viejUDOP.js\nLive bundle: assets/index-viejUDOP.js\nExpected stylesheet: assets/index-DxIgsgSF.css\nLive stylesheet: assets/index-DxIgsgSF.css\nNext action: Public deployment is live: Pages build status or published assets, commit and hashed assets all match.\nChecks:\n- Public app URL: passed · https://olive8882-1996.github.io/kickoff-lock-agent/\n- GitHub Pages build: passed · built\n- Pages commit: passed · Pages 9cc4573b577337c3c33132e025b8bcbc21ce4999\n- Live index: passed · HTTP 200 · bundle assets/index-viejUDOP.js · css assets/index-DxIgsgSF.css\n- Bundle hash: passed · expected assets/index-viejUDOP.js · live assets/index-viejUDOP.js\n- Bundle asset: passed · HTTP 200 · assets/index-viejUDOP.js\n- Stylesheet hash: passed · expected assets/index-DxIgsgSF.css · live assets/index-DxIgsgSF.css\n- Stylesheet asset: passed · HTTP 200 · assets/index-DxIgsgSF.css"
+  "copyText": "Kickoff Lock Agent public deployment evidence\nReady: yes\nPublic app: https://olive8882-1996.github.io/kickoff-lock-agent/\nExpected commit: unknown\nPages build: built 4567d70e9355b3554d56645eba61c9efcb6bf6b5\nExpected bundle: assets/index-Dgr64Jgm.js\nLive bundle: assets/index-Dgr64Jgm.js\nExpected stylesheet: assets/index-DxIgsgSF.css\nLive stylesheet: assets/index-DxIgsgSF.css\nNext action: Public deployment is live: Pages build status or published assets, commit and hashed assets all match.\nChecks:\n- Public app URL: passed · https://olive8882-1996.github.io/kickoff-lock-agent/\n- GitHub Pages build: passed · built\n- Pages commit: passed · Pages 4567d70e9355b3554d56645eba61c9efcb6bf6b5\n- Live index: passed · HTTP 200 · bundle assets/index-Dgr64Jgm.js · css assets/index-DxIgsgSF.css\n- Bundle hash: passed · expected assets/index-Dgr64Jgm.js · live assets/index-Dgr64Jgm.js\n- Bundle asset: passed · HTTP 200 · assets/index-Dgr64Jgm.js\n- Stylesheet hash: passed · expected assets/index-DxIgsgSF.css · live assets/index-DxIgsgSF.css\n- Stylesheet asset: passed · HTTP 200 · assets/index-DxIgsgSF.css"
 }

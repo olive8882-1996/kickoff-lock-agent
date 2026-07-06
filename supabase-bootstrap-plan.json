@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T08:58:21.821Z",
+  "generatedAt": "2026-07-06T09:11:12.600Z",
   "source": "local-script",
   "envFiles": [
     ".env.production.local"
@@ -117,6 +117,164 @@
       "detail": "Verify public REST reads, target rows, share artifacts and global/friend/season leaderboard scopes."
     }
   ],
+  "setup": {
+    "ready": false,
+    "projectRef": "",
+    "projectDashboardUrl": "https://supabase.com/dashboard/projects",
+    "apiSettingsUrl": "",
+    "authRedirectUrlConfigUrl": "",
+    "storageUrl": "",
+    "redirectUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/",
+    "envTemplateText": "VITE_SUPABASE_URL=\nVITE_SUPABASE_ANON_KEY=\nVITE_SUPABASE_REDIRECT_URL=https://olive8882-1996.github.io/kickoff-lock-agent/\nVITE_SUPABASE_SHARE_BUCKET=kickoff-share-cards\nSUPABASE_DB_URL=\nSUPABASE_SERVICE_ROLE_KEY=\nVITE_PUBLIC_APP_URL=https://olive8882-1996.github.io/kickoff-lock-agent/",
+    "checklist": [
+      {
+        "id": "create-project",
+        "label": "Create or select Supabase project",
+        "status": "blocked",
+        "requiredEnv": [
+          "VITE_SUPABASE_URL or SUPABASE_DB_URL"
+        ],
+        "missingEnv": [
+          "Supabase project ref"
+        ],
+        "url": "https://supabase.com/dashboard/projects",
+        "detail": "Create a hosted Supabase project, then copy its project URL and database connection string.",
+        "action": "Open Supabase dashboard, create a project, then fill VITE_SUPABASE_URL and SUPABASE_DB_URL."
+      },
+      {
+        "id": "env-keys",
+        "label": "Copy project API and database keys",
+        "status": "blocked",
+        "requiredEnv": [
+          "VITE_SUPABASE_URL",
+          "VITE_SUPABASE_ANON_KEY",
+          "SUPABASE_DB_URL",
+          "SUPABASE_SERVICE_ROLE_KEY"
+        ],
+        "missingEnv": [
+          "VITE_SUPABASE_URL",
+          "VITE_SUPABASE_ANON_KEY",
+          "SUPABASE_DB_URL",
+          "SUPABASE_SERVICE_ROLE_KEY"
+        ],
+        "url": "",
+        "detail": "Browser code uses only the project URL and anon key; schema apply and production seed use local-only database/service role secrets.",
+        "action": "Fill the missing Supabase keys in .env.production.local."
+      },
+      {
+        "id": "auth-redirect",
+        "label": "Allow deployed OAuth and magic-link redirect",
+        "status": "blocked",
+        "requiredEnv": [
+          "VITE_PUBLIC_APP_URL",
+          "VITE_SUPABASE_URL",
+          "VITE_SUPABASE_ANON_KEY",
+          "VITE_SUPABASE_REDIRECT_URL"
+        ],
+        "missingEnv": [
+          "VITE_SUPABASE_ANON_KEY",
+          "VITE_SUPABASE_URL"
+        ],
+        "url": "",
+        "detail": "Add https://olive8882-1996.github.io/kickoff-lock-agent/ to Supabase Auth redirect allow-list.",
+        "action": "Set VITE_SUPABASE_REDIRECT_URL to VITE_PUBLIC_APP_URL and allow-list it in Supabase."
+      },
+      {
+        "id": "schema",
+        "label": "Apply production tables, RLS, storage and views",
+        "status": "blocked",
+        "requiredEnv": [
+          "SUPABASE_DB_URL"
+        ],
+        "missingEnv": [
+          "SUPABASE_DB_URL"
+        ],
+        "command": "bun run supabase:schema:apply",
+        "url": "",
+        "detail": "Applies kickoff_profiles, records, mode runs, share artifacts, kickoff_leaderboard, backend health, RLS and Storage policy contract.",
+        "action": "Set SUPABASE_DB_URL first, then run bun run supabase:schema:check."
+      },
+      {
+        "id": "runtime-config",
+        "label": "Publish browser runtime config",
+        "status": "blocked",
+        "requiredEnv": [
+          "VITE_SUPABASE_URL",
+          "VITE_SUPABASE_ANON_KEY",
+          "VITE_SUPABASE_REDIRECT_URL"
+        ],
+        "missingEnv": [
+          "VITE_SUPABASE_URL",
+          "VITE_SUPABASE_ANON_KEY"
+        ],
+        "command": "bun run runtime:config && bun run deploy:pages",
+        "detail": "Writes public/runtime-config.js without leaking service-role or database secrets, then publishes it with the app.",
+        "action": "Run runtime:config and deploy after Supabase browser keys are present."
+      },
+      {
+        "id": "share-storage",
+        "label": "Upload record and mode share-card images",
+        "status": "ready",
+        "requiredEnv": [
+          "VITE_SUPABASE_URL",
+          "SUPABASE_SERVICE_ROLE_KEY"
+        ],
+        "missingEnv": [
+          "SUPABASE_SERVICE_ROLE_KEY",
+          "VITE_SUPABASE_URL"
+        ],
+        "command": "bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png",
+        "url": "",
+        "detail": "Uploads production PNG share cards to the public kickoff-share-cards bucket and records public URL/hash read-back evidence.",
+        "action": "Upload both record and mode cards before seeding production target rows."
+      },
+      {
+        "id": "seed-targets",
+        "label": "Seed profile, proof, modes, shares and leaderboard rows",
+        "status": "blocked",
+        "requiredEnv": [
+          "VITE_PUBLIC_APP_URL",
+          "VITE_SUPABASE_URL",
+          "VITE_SUPABASE_ANON_KEY",
+          "SUPABASE_SERVICE_ROLE_KEY",
+          "KICKOFF_SEED_SHARE_IMAGE_URL or KICKOFF_VERIFY_SHARE_IMAGE_URL",
+          "KICKOFF_SEED_MODE_SHARE_IMAGE_URL or KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL"
+        ],
+        "missingEnv": [
+          "VITE_SUPABASE_ANON_KEY",
+          "SUPABASE_SERVICE_ROLE_KEY",
+          "VITE_SUPABASE_URL"
+        ],
+        "command": "bun run seed:production-targets --upload-share-image --upload-mode-share-image",
+        "detail": "Creates the Auth-bound production profile, prediction proof row, required mode proof rows, share artifacts and leaderboard scope evidence.",
+        "action": "Complete Supabase keys and share image URLs first."
+      },
+      {
+        "id": "doctor",
+        "label": "Prove Supabase read-back",
+        "status": "blocked",
+        "requiredEnv": [
+          "VITE_SUPABASE_URL",
+          "VITE_SUPABASE_ANON_KEY",
+          "KICKOFF_VERIFY_USER_ID",
+          "KICKOFF_VERIFY_PROFILE_ID",
+          "KICKOFF_VERIFY_PROOF_ID",
+          "KICKOFF_VERIFY_MODE_IDS",
+          "KICKOFF_VERIFY_FRIEND_CODE",
+          "KICKOFF_VERIFY_SEASON_KEY"
+        ],
+        "missingEnv": [
+          "VITE_SUPABASE_ANON_KEY",
+          "VITE_SUPABASE_URL"
+        ],
+        "command": "bun run doctor:supabase",
+        "detail": "Verifies Auth target user, backend health, public target rows, share artifacts/channels and global/friend/season leaderboard scopes.",
+        "action": "Collect KICKOFF_VERIFY_* targets, then run doctor:supabase."
+      }
+    ],
+    "nextAction": "Open Supabase dashboard, create a project, then fill VITE_SUPABASE_URL and SUPABASE_DB_URL.",
+    "copyText": "Kickoff Lock Agent Supabase setup packet\nReady: no\nProject ref: missing\nRedirect URL: https://olive8882-1996.github.io/kickoff-lock-agent/\nNext action: Open Supabase dashboard, create a project, then fill VITE_SUPABASE_URL and SUPABASE_DB_URL.\nEnv template:\nVITE_SUPABASE_URL=\nVITE_SUPABASE_ANON_KEY=\nVITE_SUPABASE_REDIRECT_URL=https://olive8882-1996.github.io/kickoff-lock-agent/\nVITE_SUPABASE_SHARE_BUCKET=kickoff-share-cards\nSUPABASE_DB_URL=\nSUPABASE_SERVICE_ROLE_KEY=\nVITE_PUBLIC_APP_URL=https://olive8882-1996.github.io/kickoff-lock-agent/\nChecklist:\n- Create or select Supabase project [blocked]\n  url: https://supabase.com/dashboard/projects\n  missing: Supabase project ref\n  action: Open Supabase dashboard, create a project, then fill VITE_SUPABASE_URL and SUPABASE_DB_URL.\n- Copy project API and database keys [blocked]\n  missing: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_DB_URL, SUPABASE_SERVICE_ROLE_KEY\n  action: Fill the missing Supabase keys in .env.production.local.\n- Allow deployed OAuth and magic-link redirect [blocked]\n  missing: VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL\n  action: Set VITE_SUPABASE_REDIRECT_URL to VITE_PUBLIC_APP_URL and allow-list it in Supabase.\n- Apply production tables, RLS, storage and views [blocked]\n  command: bun run supabase:schema:apply\n  missing: SUPABASE_DB_URL\n  action: Set SUPABASE_DB_URL first, then run bun run supabase:schema:check.\n- Publish browser runtime config [blocked]\n  command: bun run runtime:config && bun run deploy:pages\n  missing: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY\n  action: Run runtime:config and deploy after Supabase browser keys are present.\n- Upload record and mode share-card images [ready]\n  command: bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  missing: SUPABASE_SERVICE_ROLE_KEY, VITE_SUPABASE_URL\n  action: Upload both record and mode cards before seeding production target rows.\n- Seed profile, proof, modes, shares and leaderboard rows [blocked]\n  command: bun run seed:production-targets --upload-share-image --upload-mode-share-image\n  missing: VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, VITE_SUPABASE_URL\n  action: Complete Supabase keys and share image URLs first.\n- Prove Supabase read-back [blocked]\n  command: bun run doctor:supabase\n  missing: VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL\n  action: Collect KICKOFF_VERIFY_* targets, then run doctor:supabase."
+  },
   "commands": [
     "bun run supabase:schema:check",
     "bun run runtime:config:check",

@@ -5,12 +5,12 @@
   "expectedIndexPath": "dist/index.html",
   "outputPath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/public-deployment-evidence.json",
   "wrote": true,
-  "generatedAt": "2026-07-06T18:18:41.833Z",
+  "generatedAt": "2026-07-06T18:20:44.458Z",
   "source": "local-script",
   "ready": true,
   "publicAppUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/",
   "pagesBuildStatus": "built",
-  "pagesBuildCommit": "6e815757350273fbc1d34bb55e7eac82587ea062",
+  "pagesBuildCommit": "b9f5d33785f727e9b01aba2c0930e584a29aa8b5",
   "pagesBuildError": null,
   "liveBundle": "assets/index-CxLcM3al.js",
   "expectedBundle": "assets/index-CxLcM3al.js",
@@ -34,7 +34,7 @@
       "key": "pages-commit",
       "label": "Pages commit",
       "passed": true,
-      "detail": "Pages 6e815757350273fbc1d34bb55e7eac82587ea062"
+      "detail": "Pages b9f5d33785f727e9b01aba2c0930e584a29aa8b5"
     },
     {
       "key": "live-index",
@@ -74,5 +74,5 @@
   ],
   "summary": "Live deployment matches assets/index-CxLcM3al.js.",
   "nextAction": "Public deployment is live: Pages build status or published assets, commit and hashed assets all match.",
-  "copyText": "Kickoff Lock Agent public deployment evidence\nReady: yes\nPublic app: https://olive8882-1996.github.io/kickoff-lock-agent/\nExpected commit: unknown\nPages build: built 6e815757350273fbc1d34bb55e7eac82587ea062\nExpected bundle: assets/index-CxLcM3al.js\nLive bundle: assets/index-CxLcM3al.js\nExpected stylesheet: assets/index-BSklbIja.css\nLive stylesheet: assets/index-BSklbIja.css\nNext action: Public deployment is live: Pages build status or published assets, commit and hashed assets all match.\nChecks:\n- Public app URL: passed · https://olive8882-1996.github.io/kickoff-lock-agent/\n- GitHub Pages build: passed · built\n- Pages commit: passed · Pages 6e815757350273fbc1d34bb55e7eac82587ea062\n- Live index: passed · HTTP 200 · bundle assets/index-CxLcM3al.js · css assets/index-BSklbIja.css\n- Bundle hash: passed · expected assets/index-CxLcM3al.js · live assets/index-CxLcM3al.js\n- Bundle asset: passed · HTTP 200 · assets/index-CxLcM3al.js\n- Stylesheet hash: passed · expected assets/index-BSklbIja.css · live assets/index-BSklbIja.css\n- Stylesheet asset: passed · HTTP 200 · assets/index-BSklbIja.css"
+  "copyText": "Kickoff Lock Agent public deployment evidence\nReady: yes\nPublic app: https://olive8882-1996.github.io/kickoff-lock-agent/\nExpected commit: unknown\nPages build: built b9f5d33785f727e9b01aba2c0930e584a29aa8b5\nExpected bundle: assets/index-CxLcM3al.js\nLive bundle: assets/index-CxLcM3al.js\nExpected stylesheet: assets/index-BSklbIja.css\nLive stylesheet: assets/index-BSklbIja.css\nNext action: Public deployment is live: Pages build status or published assets, commit and hashed assets all match.\nChecks:\n- Public app URL: passed · https://olive8882-1996.github.io/kickoff-lock-agent/\n- GitHub Pages build: passed · built\n- Pages commit: passed · Pages b9f5d33785f727e9b01aba2c0930e584a29aa8b5\n- Live index: passed · HTTP 200 · bundle assets/index-CxLcM3al.js · css assets/index-BSklbIja.css\n- Bundle hash: passed · expected assets/index-CxLcM3al.js · live assets/index-CxLcM3al.js\n- Bundle asset: passed · HTTP 200 · assets/index-CxLcM3al.js\n- Stylesheet hash: passed · expected assets/index-BSklbIja.css · live assets/index-BSklbIja.css\n- Stylesheet asset: passed · HTTP 200 · assets/index-BSklbIja.css"
 }

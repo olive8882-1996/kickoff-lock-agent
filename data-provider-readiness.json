@@ -104,7 +104,7 @@
       "action": "Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1."
     }
   ],
-  "generatedAt": "2026-07-06T13:51:24.022Z",
+  "generatedAt": "2026-07-06T15:40:32.715Z",
   "envFiles": [
     ".env.production.local"
   ],
@@ -114,9 +114,23 @@
     "requiredFixtureCount": 3,
     "fixtureSignalMatrix": "",
     "dataProxyUrl": "",
+    "dataProxyHealthUrl": "",
     "apiFootballConfigured": false,
     "footballDataBackupConfigured": false,
     "oddsProviderConfigured": false,
+    "dataProxyCredentials": {
+      "apiFootball": false,
+      "footballData": false,
+      "odds": false
+    },
+    "dataProxyHealthProof": {
+      "checked": false,
+      "ok": false,
+      "service": "",
+      "apiFootballServerKey": false,
+      "footballDataServerToken": false,
+      "oddsApiServerKey": false
+    },
     "fixtureSignalRows": [],
     "apiFootballEnrichmentLimit": "12",
     "scoutLimit": "12",
@@ -139,6 +153,9 @@
       "VITE_FOOTBALL_DATA_TOKEN",
       "VITE_DATA_PROXY_URL",
       "VITE_DATA_PROXY_SAME_ORIGIN",
+      "KICKOFF_DATA_PROXY_API_FOOTBALL_READY",
+      "KICKOFF_DATA_PROXY_FOOTBALL_DATA_READY",
+      "KICKOFF_DATA_PROXY_ODDS_READY",
       "KICKOFF_VERIFY_FIXTURE_IDS",
       "KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX",
       "VITE_APIFOOTBALL_ENRICHMENT_LIMIT",

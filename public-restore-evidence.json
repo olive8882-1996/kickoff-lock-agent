@@ -98,21 +98,21 @@
       "status": "failed"
     },
     {
-      "id": "mode-share-image-public-read",
-      "label": "Public mode share image read",
-      "required": true,
-      "detail": "image/png · 238857 bytes · 1200x675",
-      "action": "Generate a mode proof share card PNG, publish it as a public HTTPS image and set KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL.",
-      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
-      "status": "passed"
-    },
-    {
       "id": "share-image-public-read",
       "label": "Public share image read",
       "required": true,
       "detail": "image/png · 231266 bytes · 1200x675",
       "action": "Generate a record share card PNG, publish it as a public HTTPS image and set KICKOFF_VERIFY_SHARE_IMAGE_URL.",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
+      "status": "passed"
+    },
+    {
+      "id": "mode-share-image-public-read",
+      "label": "Public mode share image read",
+      "required": true,
+      "detail": "image/png · 238857 bytes · 1200x675",
+      "action": "Generate a mode proof share card PNG, publish it as a public HTTPS image and set KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL.",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
       "status": "passed"
     }
   ],
@@ -127,11 +127,62 @@
       "status": "failed"
     }
   ],
-  "generatedAt": "2026-07-06T03:38:33.395Z",
+  "generatedAt": "2026-07-06T16:42:08.753Z",
   "envFiles": [
     ".env.production.local"
   ],
   "artifactVersion": 1,
+  "pageTargets": [
+    {
+      "kind": "profile",
+      "targetId": "kickoff-production-seed",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?profile=kickoff-production-seed",
+      "ready": true,
+      "expectedSource": "cloud"
+    },
+    {
+      "kind": "proof",
+      "targetId": "cap-prod-73dc2618d1f9",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9",
+      "ready": true,
+      "expectedSource": "cloud"
+    },
+    {
+      "kind": "mode",
+      "targetId": "mode-prod-bracket-f90d6276",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276",
+      "ready": true,
+      "expectedSource": "cloud"
+    },
+    {
+      "kind": "mode",
+      "targetId": "mode-prod-parlay-77bf4ef2",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2",
+      "ready": true,
+      "expectedSource": "cloud"
+    },
+    {
+      "kind": "mode",
+      "targetId": "mode-prod-agent-vs-human-f8b27b3a",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a",
+      "ready": true,
+      "expectedSource": "cloud"
+    },
+    {
+      "kind": "mode",
+      "targetId": "mode-prod-upset-9f6dd619",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619",
+      "ready": true,
+      "expectedSource": "cloud"
+    },
+    {
+      "kind": "mode",
+      "targetId": "mode-prod-group-path-b533c118",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118",
+      "ready": true,
+      "expectedSource": "cloud"
+    }
+  ],
   "targets": {
     "publicAppUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/",
     "profileId": "kickoff-production-seed",

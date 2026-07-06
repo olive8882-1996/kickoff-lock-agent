@@ -1,10 +1,11 @@
 {
-  "generatedAt": "2026-07-06T10:54:50.623Z",
+  "generatedAt": "2026-07-06T18:13:44.728Z",
   "source": "local-script",
   "envFiles": [
     ".env.production.local"
   ],
   "includeExample": false,
+  "dataProxyHealthUrl": "",
   "outputPath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/data-bootstrap-plan.json",
   "wrote": true,
   "ready": false,
@@ -15,6 +16,7 @@
   "missingEnv": [
     "VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL",
     "APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY",
+    "FOOTBALL_DATA_TOKEN or FOOTBALL_DATA_ORG_TOKEN or VITE_FOOTBALL_DATA_TOKEN or deployed data proxy with FOOTBALL_DATA_TOKEN",
     "APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY",
     "VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1",
     "KICKOFF_VERIFY_FIXTURE_IDS",
@@ -56,13 +58,14 @@
       ],
       "missingEnv": [
         "APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY",
+        "FOOTBALL_DATA_TOKEN or FOOTBALL_DATA_ORG_TOKEN or VITE_FOOTBALL_DATA_TOKEN or deployed data proxy with FOOTBALL_DATA_TOKEN",
         "APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY",
         "VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1"
       ],
       "outputEnv": [
         "provider readiness evidence"
       ],
-      "detail": "API-Football key: Set VITE_APIFOOTBALL_KEY for direct browser calls, or deploy the data proxy with APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back without exposing the key. Odds provider: Configure API-Football odds through VITE_APIFOOTBALL_KEY or the data proxy APIFOOTBALL_KEY, or set VITE_ODDS_API_SPORT_KEY with server-side ODDS_API_KEY on the data proxy. Static hosting data proxy: Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1."
+      "detail": "API-Football key: Set VITE_APIFOOTBALL_KEY for direct browser calls, or deploy the data proxy with APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back without exposing the key. Football-Data.org matches and standings backup: Set FOOTBALL_DATA_TOKEN on the Worker/Pages runtime, or VITE_FOOTBALL_DATA_TOKEN for direct diagnostics, so matches and standings can be read back as the stable schedule/ranking backup. Odds provider: Configure API-Football odds through VITE_APIFOOTBALL_KEY or the data proxy APIFOOTBALL_KEY, or set VITE_ODDS_API_SPORT_KEY with server-side ODDS_API_KEY on the data proxy. Static hosting data proxy: Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1."
     },
     {
       "id": "scout",
@@ -98,6 +101,7 @@
       ],
       "missingEnv": [
         "APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY",
+        "FOOTBALL_DATA_TOKEN or FOOTBALL_DATA_ORG_TOKEN or VITE_FOOTBALL_DATA_TOKEN or deployed data proxy with FOOTBALL_DATA_TOKEN",
         "APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY",
         "VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1",
         "KICKOFF_VERIFY_FIXTURE_IDS",
@@ -109,6 +113,64 @@
       "detail": "Verify free feed continuity, API-Football lineups/injuries/odds/standings read-back and optional The Odds API H2H read-back."
     }
   ],
+  "readBackCommands": [
+    {
+      "id": "data-proxy-health",
+      "label": "Data proxy health",
+      "source": "data-proxy",
+      "ready": false,
+      "url": "",
+      "command": "Set VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 before reading data proxy health."
+    },
+    {
+      "id": "openfootball-worldcup-2026",
+      "label": "openfootball World Cup 2026 JSON",
+      "source": "openfootball",
+      "ready": true,
+      "url": "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json",
+      "command": "curl -sS 'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json'"
+    },
+    {
+      "id": "thesportsdb-worldcup-season",
+      "label": "TheSportsDB World Cup season feed",
+      "source": "thesportsdb",
+      "ready": true,
+      "url": "https://www.thesportsdb.com/api/v1/json/123/eventsseason.php?id=4429&s=2026",
+      "command": "curl -sS 'https://www.thesportsdb.com/api/v1/json/123/eventsseason.php?id=4429&s=2026'"
+    },
+    {
+      "id": "api-football-standings",
+      "label": "API-Football standings",
+      "source": "api-football",
+      "ready": false,
+      "url": "",
+      "command": "Set VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 before reading API-Football standings."
+    },
+    {
+      "id": "football-data-matches",
+      "label": "Football-Data matches",
+      "source": "football-data",
+      "ready": false,
+      "url": "",
+      "command": "Set VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 before reading Football-Data matches."
+    },
+    {
+      "id": "football-data-standings",
+      "label": "Football-Data standings",
+      "source": "football-data",
+      "ready": false,
+      "url": "",
+      "command": "Set VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 before reading Football-Data standings."
+    },
+    {
+      "id": "odds-api-h2h",
+      "label": "The Odds API H2H",
+      "source": "odds-api",
+      "ready": false,
+      "url": "",
+      "command": "Set VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 before reading The Odds API H2H."
+    }
+  ],
   "commands": [
     "bun run data:proxy:deploy",
     "bun run data:providers:check",
@@ -116,5 +178,5 @@
     "bun run doctor:data"
   ],
   "nextAction": "Deploy free feed CORS proxy: run bun run data:proxy:deploy.",
-  "copyText": "Kickoff Lock Agent realtime data production bootstrap\nMode: plan\nStages: 1/4 ready or done\nMissing env: VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\nNext action: Deploy free feed CORS proxy: run bun run data:proxy:deploy.\nCommands:\n- bun run data:proxy:deploy\n- bun run data:providers:check\n- bun run scout:data-targets\n- bun run doctor:data\nStages:\n- Deploy free feed CORS proxy [ready]\n  command: bun run data:proxy:deploy\n  execute: bun run data:proxy:deploy\n  requires: wrangler login or CLOUDFLARE_API_TOKEN\n  missing: VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL\n  outputs: VITE_DATA_PROXY_URL, VITE_DATA_PROXY_SAME_ORIGIN\n  detail: Deploy server/data-proxy-worker.mjs to Cloudflare Workers, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1.\n- Preflight realtime data providers [blocked]\n  command: bun run data:providers:check\n  execute: bun run data:providers:check\n  requires: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, VITE_APIFOOTBALL_ENRICHMENT_LIMIT, KICKOFF_DATA_SCOUT_LIMIT, KICKOFF_DATA_SCOUT_FIXTURE_IDS, KICKOFF_DATA_SCOUT_TARGETS, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY\n  missing: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1\n  outputs: provider readiness evidence\n  detail: API-Football key: Set VITE_APIFOOTBALL_KEY for direct browser calls, or deploy the data proxy with APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back without exposing the key. Odds provider: Configure API-Football odds through VITE_APIFOOTBALL_KEY or the data proxy APIFOOTBALL_KEY, or set VITE_ODDS_API_SPORT_KEY with server-side ODDS_API_KEY on the data proxy. Static hosting data proxy: Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1.\n- Scout realtime fixture targets [blocked]\n  command: bun run scout:data-targets\n  execute: bun run scout:data-targets\n  requires: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, optional KICKOFF_DATA_SCOUT_FIXTURE_IDS\n  missing: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY\n  outputs: KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\n  detail: Find 3 World Cup fixtures where lineups, injuries, odds and standings all return live rows; set KICKOFF_DATA_SCOUT_FIXTURE_IDS to validate known candidates directly.\n- Verify realtime production data [blocked]\n  command: bun run doctor:data\n  execute: bun run doctor:data\n  requires: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\n  missing: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\n  outputs: realtime production evidence\n  detail: Verify free feed continuity, API-Football lineups/injuries/odds/standings read-back and optional The Odds API H2H read-back."
+  "copyText": "Kickoff Lock Agent realtime data production bootstrap\nMode: plan\nStages: 1/4 ready or done\nMissing env: VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, FOOTBALL_DATA_TOKEN or FOOTBALL_DATA_ORG_TOKEN or VITE_FOOTBALL_DATA_TOKEN or deployed data proxy with FOOTBALL_DATA_TOKEN, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\nNext action: Deploy free feed CORS proxy: run bun run data:proxy:deploy.\nCommands:\n- bun run data:proxy:deploy\n- bun run data:providers:check\n- bun run scout:data-targets\n- bun run doctor:data\nRealtime data read-back commands:\n- Data proxy health: Set VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 before reading data proxy health.\n- openfootball World Cup 2026 JSON: curl -sS 'https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json'\n- TheSportsDB World Cup season feed: curl -sS 'https://www.thesportsdb.com/api/v1/json/123/eventsseason.php?id=4429&s=2026'\n- API-Football standings: Set VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 before reading API-Football standings.\n- Football-Data matches: Set VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 before reading Football-Data matches.\n- Football-Data standings: Set VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 before reading Football-Data standings.\n- The Odds API H2H: Set VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 before reading The Odds API H2H.\nStages:\n- Deploy free feed CORS proxy [ready]\n  command: bun run data:proxy:deploy\n  execute: bun run data:proxy:deploy\n  requires: wrangler login or CLOUDFLARE_API_TOKEN\n  missing: VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL\n  outputs: VITE_DATA_PROXY_URL, VITE_DATA_PROXY_SAME_ORIGIN\n  detail: Deploy server/data-proxy-worker.mjs to Cloudflare Workers, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1.\n- Preflight realtime data providers [blocked]\n  command: bun run data:providers:check\n  execute: bun run data:providers:check\n  requires: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, VITE_APIFOOTBALL_ENRICHMENT_LIMIT, KICKOFF_DATA_SCOUT_LIMIT, KICKOFF_DATA_SCOUT_FIXTURE_IDS, KICKOFF_DATA_SCOUT_TARGETS, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY\n  missing: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, FOOTBALL_DATA_TOKEN or FOOTBALL_DATA_ORG_TOKEN or VITE_FOOTBALL_DATA_TOKEN or deployed data proxy with FOOTBALL_DATA_TOKEN, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1\n  outputs: provider readiness evidence\n  detail: API-Football key: Set VITE_APIFOOTBALL_KEY for direct browser calls, or deploy the data proxy with APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back without exposing the key. Football-Data.org matches and standings backup: Set FOOTBALL_DATA_TOKEN on the Worker/Pages runtime, or VITE_FOOTBALL_DATA_TOKEN for direct diagnostics, so matches and standings can be read back as the stable schedule/ranking backup. Odds provider: Configure API-Football odds through VITE_APIFOOTBALL_KEY or the data proxy APIFOOTBALL_KEY, or set VITE_ODDS_API_SPORT_KEY with server-side ODDS_API_KEY on the data proxy. Static hosting data proxy: Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1.\n- Scout realtime fixture targets [blocked]\n  command: bun run scout:data-targets\n  execute: bun run scout:data-targets\n  requires: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, optional KICKOFF_DATA_SCOUT_FIXTURE_IDS\n  missing: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY\n  outputs: KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\n  detail: Find 3 World Cup fixtures where lineups, injuries, odds and standings all return live rows; set KICKOFF_DATA_SCOUT_FIXTURE_IDS to validate known candidates directly.\n- Verify realtime production data [blocked]\n  command: bun run doctor:data\n  execute: bun run doctor:data\n  requires: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\n  missing: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, FOOTBALL_DATA_TOKEN or FOOTBALL_DATA_ORG_TOKEN or VITE_FOOTBALL_DATA_TOKEN or deployed data proxy with FOOTBALL_DATA_TOKEN, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\n  outputs: realtime production evidence\n  detail: Verify free feed continuity, API-Football lineups/injuries/odds/standings read-back and optional The Odds API H2H read-back."
 }

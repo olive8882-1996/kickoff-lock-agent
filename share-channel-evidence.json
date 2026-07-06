@@ -110,9 +110,83 @@
   "commands": [
     "bun run doctor:sharing"
   ],
+  "readBackCommands": [
+    {
+      "id": "public-proof-page",
+      "label": "Read deployed record proof page",
+      "kind": "proof-page",
+      "targetId": "cap-prod-73dc2618d1f9",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9",
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9'",
+      "ready": true
+    },
+    {
+      "id": "public-mode-page:mode-prod-bracket-f90d6276",
+      "label": "Read deployed mode proof page mode-prod-bracket-f90d6276",
+      "kind": "proof-page",
+      "targetId": "mode-prod-bracket-f90d6276",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276",
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276'",
+      "ready": true
+    },
+    {
+      "id": "public-mode-page:mode-prod-parlay-77bf4ef2",
+      "label": "Read deployed mode proof page mode-prod-parlay-77bf4ef2",
+      "kind": "proof-page",
+      "targetId": "mode-prod-parlay-77bf4ef2",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2",
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2'",
+      "ready": true
+    },
+    {
+      "id": "public-mode-page:mode-prod-agent-vs-human-f8b27b3a",
+      "label": "Read deployed mode proof page mode-prod-agent-vs-human-f8b27b3a",
+      "kind": "proof-page",
+      "targetId": "mode-prod-agent-vs-human-f8b27b3a",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a",
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a'",
+      "ready": true
+    },
+    {
+      "id": "public-mode-page:mode-prod-upset-9f6dd619",
+      "label": "Read deployed mode proof page mode-prod-upset-9f6dd619",
+      "kind": "proof-page",
+      "targetId": "mode-prod-upset-9f6dd619",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619",
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619'",
+      "ready": true
+    },
+    {
+      "id": "public-mode-page:mode-prod-group-path-b533c118",
+      "label": "Read deployed mode proof page mode-prod-group-path-b533c118",
+      "kind": "proof-page",
+      "targetId": "mode-prod-group-path-b533c118",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118",
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118'",
+      "ready": true
+    },
+    {
+      "id": "record-share-image",
+      "label": "Read public record share image",
+      "kind": "share-image",
+      "targetId": "cap-prod-73dc2618d1f9",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png' -o /tmp/kickoff-record-share-card.png",
+      "ready": true
+    },
+    {
+      "id": "mode-share-image",
+      "label": "Read public mode share image",
+      "kind": "share-image",
+      "targetId": "mode-prod-bracket-f90d6276",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png' -o /tmp/kickoff-mode-share-card.png",
+      "ready": true
+    }
+  ],
   "nextAction": "Verify public sharing surfaces: run bun run doctor:sharing.",
-  "copyText": "Kickoff Lock Agent public sharing production bootstrap\nMode: plan\nStages: 5/5 ready or done\nMissing env: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\nNext action: Verify public sharing surfaces: run bun run doctor:sharing.\nCommands:\n- bun run doctor:sharing\nStages:\n- Generate record share image [done]\n  command: bun run share:production-image\n  execute: bun run share:production-image\n  requires: VITE_PUBLIC_APP_URL\n  missing: none\n  outputs: public/generated/kickoff-production-share.png, KICKOFF_SEED_SHARE_IMAGE_URL, KICKOFF_VERIFY_SHARE_IMAGE_URL\n  detail: Record proof PNG already exists in public/generated.\n- Generate mode share image [done]\n  command: bun run share:production-image -- --kind=mode --out=public/generated/kickoff-production-mode-share.png\n  execute: bun run share:production-image -- --kind=mode --out=public/generated/kickoff-production-mode-share.png\n  requires: VITE_PUBLIC_APP_URL\n  missing: none\n  outputs: public/generated/kickoff-production-mode-share.png, KICKOFF_SEED_MODE_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  detail: Mode proof PNG already exists in public/generated.\n- Upload record share image [done]\n  command: bun run share:upload-image\n  execute: bun run share:upload-image\n  requires: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/generated/kickoff-production-share.png\n  missing: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\n  outputs: KICKOFF_SEED_SHARE_IMAGE_URL, KICKOFF_VERIFY_SHARE_IMAGE_URL\n  detail: Record share image URL target is a public HTTPS bitmap image.\n- Upload mode share image [done]\n  command: bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  execute: bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  requires: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/generated/kickoff-production-mode-share.png\n  missing: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\n  outputs: KICKOFF_SEED_MODE_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  detail: Mode share image URL target is a public HTTPS bitmap image.\n- Verify public sharing surfaces [ready]\n  command: bun run doctor:sharing\n  execute: bun run doctor:sharing\n  requires: VITE_PUBLIC_APP_URL, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  missing: none\n  outputs: public proof/profile/mode render evidence, public image read-back evidence\n  detail: Render deployed profile, proof and mode pages; verify canonical URLs, social metadata, JSON-LD and public share image reads.",
-  "generatedAt": "2026-07-06T10:54:51.212Z",
+  "copyText": "Kickoff Lock Agent public sharing production bootstrap\nMode: plan\nStages: 5/5 ready or done\nMissing env: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\nNext action: Verify public sharing surfaces: run bun run doctor:sharing.\nCommands:\n- bun run doctor:sharing\nRead-back commands:\n- [ready] Read deployed record proof page: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9'\n- [ready] Read deployed mode proof page mode-prod-bracket-f90d6276: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276'\n- [ready] Read deployed mode proof page mode-prod-parlay-77bf4ef2: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2'\n- [ready] Read deployed mode proof page mode-prod-agent-vs-human-f8b27b3a: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a'\n- [ready] Read deployed mode proof page mode-prod-upset-9f6dd619: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619'\n- [ready] Read deployed mode proof page mode-prod-group-path-b533c118: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118'\n- [ready] Read public record share image: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png' -o /tmp/kickoff-record-share-card.png\n- [ready] Read public mode share image: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png' -o /tmp/kickoff-mode-share-card.png\nStages:\n- Generate record share image [done]\n  command: bun run share:production-image\n  execute: bun run share:production-image\n  requires: VITE_PUBLIC_APP_URL\n  missing: none\n  outputs: public/generated/kickoff-production-share.png, KICKOFF_SEED_SHARE_IMAGE_URL, KICKOFF_VERIFY_SHARE_IMAGE_URL\n  detail: Record proof PNG already exists in public/generated.\n- Generate mode share image [done]\n  command: bun run share:production-image -- --kind=mode --out=public/generated/kickoff-production-mode-share.png\n  execute: bun run share:production-image -- --kind=mode --out=public/generated/kickoff-production-mode-share.png\n  requires: VITE_PUBLIC_APP_URL\n  missing: none\n  outputs: public/generated/kickoff-production-mode-share.png, KICKOFF_SEED_MODE_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  detail: Mode proof PNG already exists in public/generated.\n- Upload record share image [done]\n  command: bun run share:upload-image\n  execute: bun run share:upload-image\n  requires: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/generated/kickoff-production-share.png\n  missing: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\n  outputs: KICKOFF_SEED_SHARE_IMAGE_URL, KICKOFF_VERIFY_SHARE_IMAGE_URL\n  detail: Record share image URL target is a public HTTPS bitmap image.\n- Upload mode share image [done]\n  command: bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  execute: bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  requires: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/generated/kickoff-production-mode-share.png\n  missing: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\n  outputs: KICKOFF_SEED_MODE_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  detail: Mode share image URL target is a public HTTPS bitmap image.\n- Verify public sharing surfaces [ready]\n  command: bun run doctor:sharing\n  execute: bun run doctor:sharing\n  requires: VITE_PUBLIC_APP_URL, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  missing: none\n  outputs: public proof/profile/mode render evidence, public image read-back evidence\n  detail: Render deployed profile, proof and mode pages; verify canonical URLs, social metadata, JSON-LD and public share image reads.",
+  "generatedAt": "2026-07-06T18:13:45.385Z",
   "envFiles": [
     ".env.production.local"
   ],
@@ -135,13 +209,21 @@
       "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619",
       "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118"
     ],
+    "shareArtifactIds": [
+      "record:cap-prod-73dc2618d1f9",
+      "mode:mode-prod-bracket-f90d6276",
+      "mode:mode-prod-parlay-77bf4ef2",
+      "mode:mode-prod-agent-vs-human-f8b27b3a",
+      "mode:mode-prod-upset-9f6dd619",
+      "mode:mode-prod-group-path-b533c118"
+    ],
     "shareImageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
     "modeShareImageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png"
   },
   "doctor": {
     "ready": false,
     "requiredPassed": 4,
-    "requiredTotal": 24,
+    "requiredTotal": 27,
     "shareChannelCheckIds": [
       "target-share-channel-row",
       "target-mode-share-channel-row"
@@ -157,13 +239,14 @@
     "modeChannelCount": 0,
     "requiredModeChannelCount": 5,
     "passedTargetCount": 0,
-    "requiredTargetCount": 5,
+    "requiredTargetCount": 6,
     "targetEnvReady": true,
     "publicTargetUrlsReady": true,
     "outputEnvKeys": [
       "VITE_PUBLIC_APP_URL",
       "KICKOFF_VERIFY_PROOF_ID",
       "KICKOFF_VERIFY_MODE_IDS",
+      "KICKOFF_VERIFY_SHARE_ARTIFACT_IDS",
       "KICKOFF_VERIFY_SHARE_IMAGE_URL",
       "KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL"
     ]

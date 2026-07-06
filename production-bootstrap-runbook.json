@@ -1,13 +1,13 @@
 {
   "artifactVersion": 1,
-  "generatedAt": "2026-07-06T08:36:07.566Z",
+  "generatedAt": "2026-07-06T08:49:55.337Z",
   "source": "local-script",
   "execute": false,
   "ready": false,
   "passedSteps": 3,
   "totalSteps": 11,
   "failedSteps": 8,
-  "nextAction": "Plan or execute Supabase account bootstrap: resolve the reported blockers, then rerun bun run production:bootstrap.",
+  "nextAction": "Plan or execute Supabase account bootstrap: Apply Supabase schema: set SUPABASE_DB_URL first.",
   "steps": [
     {
       "id": "env-plan",
@@ -15,6 +15,31 @@
       "command": "bun scripts/run-production-env-plan.mjs --json",
       "status": "passed",
       "exitCode": 0,
+      "parsedReady": false,
+      "parsedNextAction": "bun run supabase:bootstrap: Set Supabase project URL and anon key before claiming cross-device account sync.",
+      "parsedCommands": [],
+      "parsedMissingEnv": [
+        "VITE_SUPABASE_URL",
+        "VITE_SUPABASE_ANON_KEY",
+        "VITE_DATA_PROXY_URL_OR_SAME_ORIGIN",
+        "APIFOOTBALL_KEY_OR_VITE_APIFOOTBALL_KEY_OR_DATA_PROXY",
+        "API_FOOTBALL_OR_ODDS_PROVIDER",
+        "VITE_FILECOIN_SEAL_API_OR_SAME_ORIGIN",
+        "VITE_FILECOIN_SEAL_TOKEN",
+        "SUPABASE_DB_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "SYNAPSE_PRIVATE_KEY",
+        "FILECOIN_SEAL_TOKEN",
+        "KICKOFF_VERIFY_FILECOIN_RECORD_CID",
+        "KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CID",
+        "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CIDS",
+        "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES",
+        "KICKOFF_VERIFY_FIXTURE_ID",
+        "KICKOFF_VERIFY_FIXTURE_IDS",
+        "KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX"
+      ],
       "stdoutTail": "      \"group\": \"deployment\",\n      \"label\": \"Deployment\",\n      \"ready\": false,\n      \"filled\": 0,\n      \"total\": 0\n    },\n    {\n      \"group\": \"verification\",\n      \"label\": \"Production targets\",\n      \"ready\": false,\n      \"filled\": 8,\n      \"total\": 17\n    }\n  ],\n  \"templateText\": \"# Browser runtime\\nVITE_SUPABASE_URL=\\nVITE_SUPABASE_ANON_KEY=\\nVITE_DATA_PROXY_URL=\\nVITE_DATA_PROXY_SAME_ORIGIN=0\\nAPIFOOTBALL_KEY=\\nVITE_APIFOOTBALL_KEY=\\nODDS_API_KEY=\\nVITE_ODDS_API_KEY=\\nVITE_ODDS_API_SPORT_KEY=\\nVITE_FILECOIN_SEAL_API=\\nVITE_FILECOIN_SEAL_SAME_ORIGIN=0\\nVITE_FILECOIN_SEAL_TOKEN=\\n\\n# Server/service\\nSUPABASE_DB_URL=\\nSUPABASE_SERVICE_ROLE_KEY=\\nSYNAPSE_PRIVATE_KEY=\\nFILECOIN_SEAL_TOKEN=\\n\\n# Production targets\\nKICKOFF_VERIFY_FILECOIN_RECORD_CID=\\nKICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH=\\nKICKOFF_VERIFY_FILECOIN_MODE_CID=\\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH=\\nKICKOFF_VERIFY_FILECOIN_MODE_CIDS=\\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES=\\nKICKOFF_VERIFY_FIXTURE_ID=\\nKICKOFF_VERIFY_FIXTURE_IDS=\\nKICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX=\\n\",\n  \"copyText\": \"Kickoff Lock Agent production env plan\\nReady: no\\nMissing required: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_DATA_PROXY_URL_OR_SAME_ORIGIN, APIFOOTBALL_KEY_OR_VITE_APIFOOTBALL_KEY_OR_DATA_PROXY, API_FOOTBALL_OR_ODDS_PROVIDER, VITE_FILECOIN_SEAL_API_OR_SAME_ORIGIN, VITE_FILECOIN_SEAL_TOKEN, SUPABASE_DB_URL, SUPABASE_SERVICE_ROLE_KEY, SYNAPSE_PRIVATE_KEY, FILECOIN_SEAL_TOKEN, KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CID, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES, KICKOFF_VERIFY_FIXTURE_ID, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\\nInvalid required: none\\nNext action: bun run supabase:bootstrap · Set Supabase project URL and anon key before claiming cross-device account sync.\\n\\n# Browser runtime\\nVITE_SUPABASE_URL=\\nVITE_SUPABASE_ANON_KEY=\\nVITE_DATA_PROXY_URL=\\nVITE_DATA_PROXY_SAME_ORIGIN=0\\nAPIFOOTBALL_KEY=\\nVITE_APIFOOTBALL_KEY=\\nODDS_API_KEY=\\nVITE_ODDS_API_KEY=\\nVITE_ODDS_API_SPORT_KEY=\\nVITE_FILECOIN_SEAL_API=\\nVITE_FILECOIN_SEAL_SAME_ORIGIN=0\\nVITE_FILECOIN_SEAL_TOKEN=\\n\\n# Server/service\\nSUPABASE_DB_URL=\\nSUPABASE_SERVICE_ROLE_KEY=\\nSYNAPSE_PRIVATE_KEY=\\nFILECOIN_SEAL_TOKEN=\\n\\n# Production targets\\nKICKOFF_VERIFY_FILECOIN_RECORD_CID=\\nKICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH=\\nKICKOFF_VERIFY_FILECOIN_MODE_CID=\\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH=\\nKICKOFF_VERIFY_FILECOIN_MODE_CIDS=\\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES=\\nKICKOFF_VERIFY_FIXTURE_ID=\\nKICKOFF_VERIFY_FIXTURE_IDS=\\nKICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX=\",\n  \"nextAction\": \"bun run supabase:bootstrap: Set Supabase project URL and anon key before claiming cross-device account sync.\"\n}",
       "stderrTail": ""
     },
@@ -24,6 +49,9 @@
       "command": "bun scripts/write-runtime-config.mjs --json",
       "status": "passed",
       "exitCode": 0,
+      "parsedReady": false,
+      "parsedCommands": [],
+      "parsedMissingEnv": [],
       "stdoutTail": "    \"VITE_DATA_PROXY_URL\": \"\",\n    \"VITE_DATA_PROXY_SAME_ORIGIN\": \"0\",\n    \"VITE_APIFOOTBALL_KEY\": \"\",\n    \"VITE_APIFOOTBALL_ENRICHMENT_LIMIT\": \"12\",\n    \"VITE_FOOTBALL_DATA_TOKEN\": \"\",\n    \"VITE_FOOTBALL_DATA_COMPETITION\": \"WC\",\n    \"VITE_THESPORTSDB_KEY\": \"123\",\n    \"VITE_THESPORTSDB_LEAGUE_ID\": \"4429\",\n    \"VITE_THESPORTSDB_SEASON\": \"2026\",\n    \"VITE_THESPORTSDB_ENRICHMENT_LIMIT\": \"8\",\n    \"VITE_ODDS_API_KEY\": \"\",\n    \"VITE_ODDS_API_SPORT_KEY\": \"\",\n    \"VITE_FILECOIN_SEAL_API\": \"\",\n    \"VITE_FILECOIN_SEAL_SAME_ORIGIN\": \"0\",\n    \"VITE_FILECOIN_SEAL_TOKEN\": \"\"\n  },\n  \"detail\": \"missing recommended VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_TOKEN\"\n}",
       "stderrTail": ""
     },
@@ -33,6 +61,32 @@
       "command": "bun scripts/run-supabase-production-bootstrap.mjs --json",
       "status": "failed",
       "exitCode": 1,
+      "parsedReady": false,
+      "parsedNextAction": "Apply Supabase schema: set SUPABASE_DB_URL first.",
+      "parsedCommands": [
+        "bun run supabase:schema:check",
+        "bun run runtime:config:check",
+        "bun run seed:production-targets --dry-run",
+        "bun run doctor:supabase"
+      ],
+      "parsedMissingEnv": [
+        "SUPABASE_DB_URL",
+        "VITE_SUPABASE_ANON_KEY",
+        "VITE_SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ],
+      "parsedStageReadyCount": 0,
+      "parsedTotalStages": 4,
+      "parsedBlockedStage": {
+        "id": "schema",
+        "label": "Apply Supabase schema",
+        "status": "blocked",
+        "command": "bun run supabase:schema:check",
+        "missingEnv": [
+          "SUPABASE_DB_URL"
+        ],
+        "detail": "Set SUPABASE_DB_URL to the Supabase project Postgres connection string, for example postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres."
+      },
       "stdoutTail": "        \"VITE_SUPABASE_ANON_KEY\",\n        \"VITE_SUPABASE_URL\"\n      ],\n      \"outputEnv\": [\n        \"supabase production evidence\"\n      ],\n      \"detail\": \"Verify public REST reads, target rows, share artifacts and global/friend/season leaderboard scopes.\"\n    }\n  ],\n  \"commands\": [\n    \"bun run supabase:schema:check\",\n    \"bun run runtime:config:check\",\n    \"bun run seed:production-targets --dry-run\",\n    \"bun run doctor:supabase\"\n  ],\n  \"nextAction\": \"Apply Supabase schema: set SUPABASE_DB_URL first.\",\n  \"copyText\": \"Kickoff Lock Agent Supabase production bootstrap\\nMode: plan\\nStages: 0/4 ready or done\\nMissing env: SUPABASE_DB_URL, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\\nNext action: Apply Supabase schema: set SUPABASE_DB_URL first.\\nCommands:\\n- bun run supabase:schema:check\\n- bun run runtime:config:check\\n- bun run seed:production-targets --dry-run\\n- bun run doctor:supabase\\nStages:\\n- Apply Supabase schema [blocked]\\n  command: bun run supabase:schema:check\\n  execute: bun run supabase:schema:apply\\n  requires: SUPABASE_DB_URL\\n  missing: SUPABASE_DB_URL\\n  outputs: kickoff_profiles, kickoff_records, kickoff_mode_runs, kickoff_share_artifacts, kickoff_leaderboard\\n  detail: Set SUPABASE_DB_URL to the Supabase project Postgres connection string, for example postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres.\\n- Verify account auth redirect [blocked]\\n  command: bun run runtime:config:check\\n  execute: bun run runtime:config:check\\n  requires: VITE_PUBLIC_APP_URL, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_REDIRECT_URL\\n  missing: VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL\\n  outputs: Google OAuth authorize URL, magic-link redirect URL\\n  detail: Google OAuth and magic links redirect to https://olive8882-1996.github.io/kickoff-lock-agent/.\\n- Seed account, proof and leaderboard rows [blocked]\\n  command: bun run seed:production-targets --dry-run\\n  execute: bun run seed:production-targets --upload-share-image --upload-mode-share-image\\n  requires: VITE_PUBLIC_APP_URL, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, KICKOFF_SEED_SHARE_IMAGE_URL or KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_SEED_MODE_SHARE_IMAGE_URL or KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\\n  missing: VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, VITE_SUPABASE_URL\\n  outputs: KICKOFF_VERIFY_USER_ID, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_FRIEND_CODE, KICKOFF_VERIFY_SEASON_KEY\\n  detail: 6/6 Supabase target env keys collected; waiting for write prerequisites.\\n- Verify Supabase read-back [blocked]\\n  command: bun run doctor:supabase\\n  execute: bun run doctor:supabase\\n  requires: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, KICKOFF_VERIFY_USER_ID, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_FRIEND_CODE, KICKOFF_VERIFY_SEASON_KEY\\n  missing: VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL\\n  outputs: supabase production evidence\\n  detail: Verify public REST reads, target rows, share artifacts and global/friend/season leaderboard scopes.\"\n}",
       "stderrTail": ""
     },
@@ -42,6 +96,36 @@
       "command": "bun scripts/run-data-production-bootstrap.mjs --json",
       "status": "failed",
       "exitCode": 1,
+      "parsedReady": false,
+      "parsedNextAction": "Deploy free feed CORS proxy: run bun run data:proxy:deploy.",
+      "parsedCommands": [
+        "bun run data:proxy:deploy",
+        "bun run data:providers:check",
+        "bun run scout:data-targets",
+        "bun run doctor:data"
+      ],
+      "parsedMissingEnv": [
+        "VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL",
+        "APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY",
+        "APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY",
+        "VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1",
+        "KICKOFF_VERIFY_FIXTURE_IDS",
+        "KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX"
+      ],
+      "parsedStageReadyCount": 1,
+      "parsedTotalStages": 4,
+      "parsedBlockedStage": {
+        "id": "providers",
+        "label": "Preflight realtime data providers",
+        "status": "blocked",
+        "command": "bun run data:providers:check",
+        "missingEnv": [
+          "APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY",
+          "APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY",
+          "VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1"
+        ],
+        "detail": "API-Football key: Set VITE_APIFOOTBALL_KEY for direct browser calls, or deploy the data proxy with APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back without exposing the key. Odds provider: Configure API-Football odds through VITE_APIFOOTBALL_KEY or the data proxy APIFOOTBALL_KEY, or set VITE_ODDS_API_SPORT_KEY with server-side ODDS_API_KEY on the data proxy. Static hosting data proxy: Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1."
+      },
       "stdoutTail": "        \"KICKOFF_VERIFY_FIXTURE_IDS\",\n        \"KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\"\n      ],\n      \"outputEnv\": [\n        \"realtime production evidence\"\n      ],\n      \"detail\": \"Verify free feed continuity, API-Football lineups/injuries/odds/standings read-back and optional The Odds API H2H read-back.\"\n    }\n  ],\n  \"commands\": [\n    \"bun run data:proxy:deploy\",\n    \"bun run data:providers:check\",\n    \"bun run scout:data-targets\",\n    \"bun run doctor:data\"\n  ],\n  \"nextAction\": \"Deploy free feed CORS proxy: run bun run data:proxy:deploy.\",\n  \"copyText\": \"Kickoff Lock Agent realtime data production bootstrap\\nMode: plan\\nStages: 1/4 ready or done\\nMissing env: VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\\nNext action: Deploy free feed CORS proxy: run bun run data:proxy:deploy.\\nCommands:\\n- bun run data:proxy:deploy\\n- bun run data:providers:check\\n- bun run scout:data-targets\\n- bun run doctor:data\\nStages:\\n- Deploy free feed CORS proxy [ready]\\n  command: bun run data:proxy:deploy\\n  execute: bun run data:proxy:deploy\\n  requires: wrangler login or CLOUDFLARE_API_TOKEN\\n  missing: VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL\\n  outputs: VITE_DATA_PROXY_URL, VITE_DATA_PROXY_SAME_ORIGIN\\n  detail: Deploy server/data-proxy-worker.mjs to Cloudflare Workers, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1.\\n- Preflight realtime data providers [blocked]\\n  command: bun run data:providers:check\\n  execute: bun run data:providers:check\\n  requires: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, VITE_APIFOOTBALL_ENRICHMENT_LIMIT, KICKOFF_DATA_SCOUT_LIMIT, KICKOFF_DATA_SCOUT_FIXTURE_IDS, KICKOFF_DATA_SCOUT_TARGETS, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY\\n  missing: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1\\n  outputs: provider readiness evidence\\n  detail: API-Football key: Set VITE_APIFOOTBALL_KEY for direct browser calls, or deploy the data proxy with APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back without exposing the key. Odds provider: Configure API-Football odds through VITE_APIFOOTBALL_KEY or the data proxy APIFOOTBALL_KEY, or set VITE_ODDS_API_SPORT_KEY with server-side ODDS_API_KEY on the data proxy. Static hosting data proxy: Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1.\\n- Scout realtime fixture targets [blocked]\\n  command: bun run scout:data-targets\\n  execute: bun run scout:data-targets\\n  requires: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, optional KICKOFF_DATA_SCOUT_FIXTURE_IDS\\n  missing: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY\\n  outputs: KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\\n  detail: Find 3 World Cup fixtures where lineups, injuries, odds and standings all return live rows; set KICKOFF_DATA_SCOUT_FIXTURE_IDS to validate known candidates directly.\\n- Verify realtime production data [blocked]\\n  command: bun run doctor:data\\n  execute: bun run doctor:data\\n  requires: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\\n  missing: APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY or deployed data proxy with APIFOOTBALL_KEY/ODDS_API_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\\n  outputs: realtime production evidence\\n  detail: Verify free feed continuity, API-Football lineups/injuries/odds/standings read-back and optional The Odds API H2H read-back.\"\n}",
       "stderrTail": ""
     },
@@ -51,6 +135,43 @@
       "command": "bun scripts/run-filecoin-production-bootstrap.mjs --json",
       "status": "failed",
       "exitCode": 1,
+      "parsedReady": false,
+      "parsedNextAction": "Preflight production seal API: set Synapse private key, Server upload token, Browser token matches server, Browser seal endpoint first.",
+      "parsedCommands": [
+        "bun run filecoin:api:check",
+        "bun run seal:production-targets -- --dry-run",
+        "bun run seal:production-targets",
+        "bun run doctor:filecoin"
+      ],
+      "parsedMissingEnv": [
+        "Synapse private key",
+        "Server upload token",
+        "Browser token matches server",
+        "Browser seal endpoint",
+        "VITE_SUPABASE_URL",
+        "production-ready seal API",
+        "VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL",
+        "VITE_FILECOIN_SEAL_TOKEN",
+        "KICKOFF_VERIFY_FILECOIN_RECORD_CID",
+        "KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CIDS",
+        "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES"
+      ],
+      "parsedStageReadyCount": 0,
+      "parsedTotalStages": 4,
+      "parsedBlockedStage": {
+        "id": "api",
+        "label": "Preflight production seal API",
+        "status": "blocked",
+        "command": "bun run filecoin:api:check",
+        "missingEnv": [
+          "Synapse private key",
+          "Server upload token",
+          "Browser token matches server",
+          "Browser seal endpoint"
+        ],
+        "detail": "Synapse private key: Set SYNAPSE_PRIVATE_KEY to a funded 0x-prefixed 32-byte Filecoin/Synapse private key. Server upload token: Set FILECOIN_SEAL_TOKEN to a strong bearer token before exposing POST /seal. Browser token matches server: Set VITE_FILECOIN_SEAL_TOKEN to the same value expected by FILECOIN_SEAL_TOKEN in the deployed seal API. Browser seal endpoint: Set VITE_FILECOIN_SEAL_API to the deployed HTTPS /seal endpoint, or set VITE_FILECOIN_SEAL_SAME_ORIGIN=1 when the production API is mounted at /seal on the app origin."
+      },
       "stdoutTail": "        \"KICKOFF_VERIFY_FILECOIN_MODE_CIDS\",\n        \"KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES\"\n      ],\n      \"outputEnv\": [\n        \"Filecoin production evidence\"\n      ],\n      \"detail\": \"Verify health, contract readiness, record CID read-back and every required mode CID/hash pair.\"\n    }\n  ],\n  \"commands\": [\n    \"bun run filecoin:api:check\",\n    \"bun run seal:production-targets -- --dry-run\",\n    \"bun run seal:production-targets\",\n    \"bun run doctor:filecoin\"\n  ],\n  \"nextAction\": \"Preflight production seal API: set Synapse private key, Server upload token, Browser token matches server, Browser seal endpoint first.\",\n  \"copyText\": \"Kickoff Lock Agent Filecoin production bootstrap\\nMode: plan\\nStages: 0/4 ready or done\\nMissing env: Synapse private key, Server upload token, Browser token matches server, Browser seal endpoint, VITE_SUPABASE_URL, production-ready seal API, VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL, VITE_FILECOIN_SEAL_TOKEN, KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES\\nNext action: Preflight production seal API: set Synapse private key, Server upload token, Browser token matches server, Browser seal endpoint first.\\nCommands:\\n- bun run filecoin:api:check\\n- bun run seal:production-targets -- --dry-run\\n- bun run seal:production-targets\\n- bun run doctor:filecoin\\nStages:\\n- Preflight production seal API [blocked]\\n  command: bun run filecoin:api:check\\n  execute: bun run filecoin:api:check\\n  requires: SYNAPSE_PRIVATE_KEY, FILECOIN_SEAL_TOKEN, VITE_FILECOIN_SEAL_TOKEN unless VITE_FILECOIN_SEAL_SAME_ORIGIN=1, FILECOIN_PROOF_STORE_PATH, ALLOW_ORIGIN, VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN, FILECOIN_SEAL_UPSTREAM_URL when VITE_FILECOIN_SEAL_SAME_ORIGIN=1\\n  missing: Synapse private key, Server upload token, Browser token matches server, Browser seal endpoint\\n  outputs: production-ready /health response\\n  detail: Synapse private key: Set SYNAPSE_PRIVATE_KEY to a funded 0x-prefixed 32-byte Filecoin/Synapse private key. Server upload token: Set FILECOIN_SEAL_TOKEN to a strong bearer token before exposing POST /seal. Browser token matches server: Set VITE_FILECOIN_SEAL_TOKEN to the same value expected by FILECOIN_SEAL_TOKEN in the deployed seal API. Browser seal endpoint: Set VITE_FILECOIN_SEAL_API to the deployed HTTPS /seal endpoint, or set VITE_FILECOIN_SEAL_SAME_ORIGIN=1 when the production API is mounted at /seal on the app origin.\\n- Build seal target payloads [blocked]\\n  command: bun run seal:production-targets -- --dry-run\\n  execute: bun run seal:production-targets -- --dry-run\\n  requires: VITE_PUBLIC_APP_URL, VITE_SUPABASE_URL, KICKOFF_SEED_SHARE_IMAGE_URL or KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_SEED_MODE_SHARE_IMAGE_URL or KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\\n  missing: VITE_SUPABASE_URL\\n  outputs: record payload hash, mode payload hashes, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS\\n  detail: Build deterministic production record and mode payloads before submitting them to the seal API.\\n- Seal production proof targets [blocked]\\n  command: bun run seal:production-targets\\n  execute: bun run seal:production-targets\\n  requires: production-ready seal API, VITE_PUBLIC_APP_URL, VITE_SUPABASE_URL, KICKOFF_SEED_SHARE_IMAGE_URL or KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_SEED_MODE_SHARE_IMAGE_URL or KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\\n  missing: production-ready seal API, VITE_SUPABASE_URL\\n  outputs: KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES\\n  detail: POST the record target and all 5 mode targets to /seal?async=1, poll /jobs/:id, then verify /verify and /proof read-back.\\n- Verify Filecoin read-back [blocked]\\n  command: bun run doctor:filecoin\\n  execute: bun run doctor:filecoin\\n  requires: VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN, VITE_FILECOIN_SEAL_TOKEN, KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES\\n  missing: VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1 with VITE_PUBLIC_APP_URL, VITE_FILECOIN_SEAL_TOKEN, KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES\\n  outputs: Filecoin production evidence\\n  detail: Verify health, contract readiness, record CID read-back and every required mode CID/hash pair.\"\n}",
       "stderrTail": ""
     },
@@ -60,6 +181,21 @@
       "command": "bun scripts/run-sharing-production-bootstrap.mjs --json",
       "status": "failed",
       "exitCode": 1,
+      "parsedReady": false,
+      "parsedNextAction": "Verify public sharing surfaces: run bun run doctor:sharing.",
+      "parsedCommands": [
+        "bun run doctor:sharing",
+        "bun run share:production-image",
+        "bun run share:production-image -- --kind=mode --out=public/generated/kickoff-production-mode-share.png",
+        "bun run share:upload-image",
+        "bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png"
+      ],
+      "parsedMissingEnv": [
+        "VITE_SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ],
+      "parsedStageReadyCount": 5,
+      "parsedTotalStages": 5,
       "stdoutTail": "  },\n  \"acceptance\": {\n    \"recordChannelOpened\": false,\n    \"modeChannelCount\": 0,\n    \"requiredModeChannelCount\": 5,\n    \"passedTargetCount\": 0,\n    \"requiredTargetCount\": 5,\n    \"targetEnvReady\": true,\n    \"publicTargetUrlsReady\": true,\n    \"outputEnvKeys\": [\n      \"VITE_PUBLIC_APP_URL\",\n      \"KICKOFF_VERIFY_PROOF_ID\",\n      \"KICKOFF_VERIFY_MODE_IDS\",\n      \"KICKOFF_VERIFY_SHARE_IMAGE_URL\",\n      \"KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\"\n    ]\n  }\n}",
       "stderrTail": ""
     },
@@ -69,6 +205,32 @@
       "command": "bun scripts/run-leaderboard-production-bootstrap.mjs --json",
       "status": "failed",
       "exitCode": 1,
+      "parsedReady": false,
+      "parsedNextAction": "Seed leaderboard target rows: set VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY first.",
+      "parsedCommands": [
+        "bun run seed:production-targets --dry-run",
+        "bun run doctor:supabase",
+        "bun run verify:production"
+      ],
+      "parsedMissingEnv": [
+        "VITE_SUPABASE_URL",
+        "VITE_SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ],
+      "parsedStageReadyCount": 0,
+      "parsedTotalStages": 3,
+      "parsedBlockedStage": {
+        "id": "seed",
+        "label": "Seed leaderboard target rows",
+        "status": "blocked",
+        "command": "bun run seed:production-targets --dry-run",
+        "missingEnv": [
+          "VITE_SUPABASE_URL",
+          "VITE_SUPABASE_ANON_KEY",
+          "SUPABASE_SERVICE_ROLE_KEY"
+        ],
+        "detail": "3/3 leaderboard target env keys collected; waiting for write prerequisites."
+      },
       "stdoutTail": "      \"leaderboard-season-user\"\n    ]\n  },\n  \"acceptance\": {\n    \"globalCurrentUser\": false,\n    \"friendCurrentUser\": false,\n    \"seasonCurrentUser\": false,\n    \"passedScopeCount\": 0,\n    \"requiredScopeCount\": 3,\n    \"targetEnvReady\": true,\n    \"queryContractsReady\": true,\n    \"outputEnvKeys\": [\n      \"KICKOFF_VERIFY_USER_ID\",\n      \"KICKOFF_VERIFY_FRIEND_CODE\",\n      \"KICKOFF_VERIFY_SEASON_KEY\"\n    ]\n  }\n}",
       "stderrTail": ""
     },
@@ -78,6 +240,8 @@
       "command": "bun scripts/run-production-env-merge.mjs --json",
       "status": "passed",
       "exitCode": 0,
+      "parsedCommands": [],
+      "parsedMissingEnv": [],
       "stdoutTail": "    \"KICKOFF_VERIFY_MODE_IDS\": \"mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118\",\n    \"KICKOFF_VERIFY_FILECOIN_RECORD_CID\": \"\",\n    \"KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH\": \"\",\n    \"KICKOFF_VERIFY_FILECOIN_MODE_CID\": \"\",\n    \"KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH\": \"\",\n    \"KICKOFF_VERIFY_FILECOIN_MODE_CIDS\": \"\",\n    \"KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES\": \"\",\n    \"KICKOFF_VERIFY_FRIEND_CODE\": \"chengdu\",\n    \"KICKOFF_VERIFY_SEASON_KEY\": \"world-cup-run\",\n    \"KICKOFF_VERIFY_FIXTURE_ID\": \"\",\n    \"KICKOFF_VERIFY_FIXTURE_IDS\": \"\",\n    \"KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\": \"\",\n    \"KICKOFF_VERIFY_SHARE_IMAGE_URL\": \"https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png\",\n    \"KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\": \"https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png\",\n    \"KICKOFF_VERIFY_ALLOW_FAILURES\": \"0\"\n  },\n  \"text\": \"KICKOFF_VERIFY_USER_ID=kickoff-production-seed\\nKICKOFF_VERIFY_PROFILE_ID=kickoff-production-seed\\nKICKOFF_VERIFY_PROOF_ID=cap-prod-73dc2618d1f9\\nKICKOFF_VERIFY_MODE_ID=mode-prod-bracket-f90d6276\\nKICKOFF_VERIFY_MODE_IDS=\\\"mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118\\\"\\nKICKOFF_VERIFY_FILECOIN_RECORD_CID=\\nKICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH=\\nKICKOFF_VERIFY_FILECOIN_MODE_CID=\\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH=\\nKICKOFF_VERIFY_FILECOIN_MODE_CIDS=\\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES=\\nKICKOFF_VERIFY_FRIEND_CODE=chengdu\\nKICKOFF_VERIFY_SEASON_KEY=world-cup-run\\nKICKOFF_VERIFY_FIXTURE_ID=\\nKICKOFF_VERIFY_FIXTURE_IDS=\\nKICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX=\\nKICKOFF_VERIFY_SHARE_IMAGE_URL=https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png\\nKICKOFF_VERIFY_MODE_SHARE_IMAGE_URL=https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png\\nKICKOFF_VERIFY_ALLOW_FAILURES=0\\n\"\n}",
       "stderrTail": ""
     },
@@ -87,6 +251,88 @@
       "command": "bun scripts/run-production-acceptance-collector.mjs --json",
       "status": "failed",
       "exitCode": 1,
+      "parsedReady": false,
+      "parsedNextAction": "Generate and upload public share images: set VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/share-image-upload-record.json not ready, public/share-image-upload-record.json upload missing, public/share-image-upload-record.json public read-back incomplete + 7 more first.",
+      "parsedCommands": [
+        "bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png",
+        "bun run supabase:bootstrap",
+        "bun run sharing:bootstrap",
+        "bun run leaderboard:bootstrap",
+        "bun run data:providers:check && bun run scout:data-targets",
+        "bun run filecoin:bootstrap",
+        "bun run env:production -- --out=.env.production.local",
+        "bun run verify:production && bun run doctor:production && bun run goal:audit"
+      ],
+      "parsedMissingEnv": [
+        "VITE_SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "public/share-image-upload-record.json not ready",
+        "public/share-image-upload-record.json upload missing",
+        "public/share-image-upload-record.json public read-back incomplete",
+        "public/share-image-upload-record.json public URL is not Supabase Storage",
+        "KICKOFF_VERIFY_SHARE_IMAGE_URL does not match public/share-image-upload-record.json publicUrl",
+        "public/share-image-upload-mode.json not ready",
+        "public/share-image-upload-mode.json upload missing",
+        "public/share-image-upload-mode.json public read-back incomplete",
+        "public/share-image-upload-mode.json public URL is not Supabase Storage",
+        "KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL does not match public/share-image-upload-mode.json publicUrl",
+        "VITE_SUPABASE_ANON_KEY",
+        "public/supabase-schema-apply.json not ready",
+        "public/supabase-schema-apply.json was generated in dry-run mode",
+        "public/supabase-schema-apply.json schema apply not executed",
+        "public/supabase-target-seed.json missing; run bun run seed:production-targets",
+        "public/share-channel-evidence.json not ready",
+        "public/share-channel-evidence.json record share channel missing",
+        "public/share-channel-evidence.json mode share channels incomplete (0/5)",
+        "public/share-channel-evidence.json share channels incomplete (0/5)",
+        "public/share-channel-evidence.json failed share-channel checks: target-share-channel-row, target-mode-share-channel-row",
+        "public/public-restore-evidence.json not ready",
+        "public/public-restore-evidence.json clean-session restore incomplete",
+        "public/public-restore-evidence.json clean-session profile target mismatch",
+        "public/public-restore-evidence.json clean-session proof target mismatch",
+        "public/public-restore-evidence.json clean-session mode target mismatch",
+        "public/leaderboard-backend.json not ready",
+        "public/leaderboard-backend.json global current-user scope missing",
+        "public/leaderboard-backend.json friend current-user scope missing",
+        "public/leaderboard-backend.json season current-user scope missing",
+        "public/leaderboard-backend.json scopes incomplete (0/3)",
+        "public/leaderboard-backend.json failed leaderboard checks: leaderboard-global-user, leaderboard-friend-user, leaderboard-season-user",
+        "KICKOFF_VERIFY_FIXTURE_IDS missing",
+        "KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX missing",
+        "public/data-provider-readiness.json not ready",
+        "public/data-provider-readiness.json API-Football key missing",
+        "public/data-provider-readiness.json fixture targets incomplete",
+        "public/data-provider-readiness.json fixture signal matrix incomplete",
+        "public/data-provider-readiness.json odds provider missing",
+        "public/data-provider-readiness.json HTTPS data proxy missing",
+        "public/data-provider-readiness.json fixtureSignalMatrix missing",
+        "public/data-provider-readiness.json fixtureSignalRows missing",
+        "public/data-target-scout.json missing; run bun run scout:data-targets",
+        "VITE_FILECOIN_SEAL_TOKEN"
+      ],
+      "parsedStageReadyCount": 1,
+      "parsedTotalStages": 8,
+      "parsedBlockedStage": {
+        "id": "share-images",
+        "label": "Generate and upload public share images",
+        "status": "blocked",
+        "command": "bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png",
+        "missingEnv": [
+          "VITE_SUPABASE_URL",
+          "SUPABASE_SERVICE_ROLE_KEY",
+          "public/share-image-upload-record.json not ready",
+          "public/share-image-upload-record.json upload missing",
+          "public/share-image-upload-record.json public read-back incomplete",
+          "public/share-image-upload-record.json public URL is not Supabase Storage",
+          "KICKOFF_VERIFY_SHARE_IMAGE_URL does not match public/share-image-upload-record.json publicUrl",
+          "public/share-image-upload-mode.json not ready",
+          "public/share-image-upload-mode.json upload missing",
+          "public/share-image-upload-mode.json public read-back incomplete",
+          "public/share-image-upload-mode.json public URL is not Supabase Storage",
+          "KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL does not match public/share-image-upload-mode.json publicUrl"
+        ],
+        "detail": "2/2 target env keys collected; waiting for VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/share-image-upload-record.json not ready, public/share-image-upload-record.json upload missing, public/share-image-upload-record.json public read-back incomplete + 7 more."
+      },
       "stdoutTail": "      \"missingEnv\": [],\n      \"producedEnv\": [],\n      \"detail\": \"Run strict production evidence, operator doctor and original goal audit once every required target env key is filled.\"\n    }\n  ],\n  \"commands\": [\n    \"bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\",\n    \"bun run supabase:bootstrap\",\n    \"bun run sharing:bootstrap\",\n    \"bun run leaderboard:bootstrap\",\n    \"bun run data:providers:check && bun run scout:data-targets\",\n    \"bun run filecoin:bootstrap\",\n    \"bun run env:production -- --out=.env.production.local\",\n    \"bun run verify:production && bun run doctor:production && bun run goal:audit\"\n  ],\n  \"nextAction\": \"Generate and upload public share images: set VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/share-image-upload-record.json not ready, public/share-image-upload-record.json upload missing, public/share-image-upload-record.json public read-back incomplete + 7 more first.\",\n  \"copyText\": \"Kickoff Lock Agent production acceptance collector\\nReady: no\\nStages: 1/8 ready or done\\nMissing runtime env: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/share-image-upload-record.json not ready, public/share-image-upload-record.json upload missing, public/share-image-upload-record.json public read-back incomplete, public/share-image-upload-record.json public URL is not Supabase Storage, KICKOFF_VERIFY_SHARE_IMAGE_URL does not match public/share-image-upload-record.json publicUrl, public/share-image-upload-mode.json not ready, public/share-image-upload-mode.json upload missing, public/share-image-upload-mode.json public read-back incomplete, public/share-image-upload-mode.json public URL is not Supabase Storage, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL does not match public/share-image-upload-mode.json publicUrl, VITE_SUPABASE_ANON_KEY, public/supabase-schema-apply.json not ready, public/supabase-schema-apply.json was generated in dry-run mode, public/supabase-schema-apply.json schema apply not executed, public/supabase-target-seed.json missing; run bun run seed:production-targets, public/share-channel-evidence.json not ready, public/share-channel-evidence.json record share channel missing, public/share-channel-evidence.json mode share channels incomplete (0/5), public/share-channel-evidence.json share channels incomplete (0/5), public/share-channel-evidence.json failed share-channel checks: target-share-channel-row, target-mode-share-channel-row, public/public-restore-evidence.json not ready, public/public-restore-evidence.json clean-session restore incomplete, public/public-restore-evidence.json clean-session profile target mismatch, public/public-restore-evidence.json clean-session proof target mismatch, public/public-restore-evidence.json clean-session mode target mismatch, public/leaderboard-backend.json not ready, public/leaderboard-backend.json global current-user scope missing, public/leaderboard-backend.json friend current-user scope missing, public/leaderboard-backend.json season current-user scope missing, public/leaderboard-backend.json scopes incomplete (0/3), public/leaderboard-backend.json failed leaderboard checks: leaderboard-global-user, leaderboard-friend-user, leaderboard-season-user, KICKOFF_VERIFY_FIXTURE_IDS missing, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX missing, public/data-provider-readiness.json not ready, public/data-provider-readiness.json API-Football key missing, public/data-provider-readiness.json fixture targets incomplete, public/data-provider-readiness.json fixture signal matrix incomplete, public/data-provider-readiness.json odds provider missing, public/data-provider-readiness.json HTTPS data proxy missing, public/data-provider-readiness.json fixtureSignalMatrix missing, public/data-provider-readiness.json fixtureSignalRows missing, public/data-target-scout.json missing; run bun run scout:data-targets, VITE_FILECOIN_SEAL_TOKEN\\nMissing verify env: KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CID, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES, KICKOFF_VERIFY_FIXTURE_ID, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\\nNext action: Generate and upload public share images: set VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/share-image-upload-record.json not ready, public/share-image-upload-record.json upload missing, public/share-image-upload-record.json public read-back incomplete + 7 more first.\\nCommands:\\n- bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\\n- bun run supabase:bootstrap\\n- bun run sharing:bootstrap\\n- bun run leaderboard:bootstrap\\n- bun run data:providers:check && bun run scout:data-targets\\n- bun run filecoin:bootstrap\\n- bun run env:production -- --out=.env.production.local\\n- bun run verify:production && bun run doctor:production && bun run goal:audit\\nStages:\\n- Generate and upload public share images [blocked]\\n  command: bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\\n  requires: VITE_PUBLIC_APP_URL, VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\\n  outputs: KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\\n  missing: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/share-image-upload-record.json not ready, public/share-image-upload-record.json upload missing, public/share-image-upload-record.json public read-back incomplete, public/share-image-upload-record.json public URL is not Supabase Storage, KICKOFF_VERIFY_SHARE_IMAGE_URL does not match public/share-image-upload-record.json publicUrl, public/share-image-upload-mode.json not ready, public/share-image-upload-mode.json upload missing, public/share-image-upload-mode.json public read-back incomplete, public/share-image-upload-mode.json public URL is not Supabase Storage, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL does not match public/share-image-upload-mode.json publicUrl\\n  detail: 2/2 target env keys collected; waiting for VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, public/share-image-upload-record.json not ready, public/share-image-upload-record.json upload missing, public/share-image-upload-record.json public read-back incomplete + 7 more.\\n- Seed Supabase proof targets [blocked]\\n  command: bun run supabase:bootstrap\\n  requires: VITE_PUBLIC_APP_URL, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_REDIRECT_URL, SUPABASE_SERVICE_ROLE_KEY, KICKOFF_SEED_SHARE_IMAGE_URL, KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_SEED_MODE_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\\n  outputs: KICKOFF_VERIFY_USER_ID, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_FRIEND_CODE, KICKOFF_VERIFY_SEASON_KEY\\n  missing: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, public/supabase-schema-apply.json not ready, public/supabase-schema-apply.json was generated in dry-run mode, public/supabase-schema-apply.json schema apply not executed, public/supabase-target-seed.json missing; run bun run seed:production-targets\\n  detail: 6/6 target env keys collected; waiting for VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, public/supabase-schema-apply.json not ready, public/supabase-schema-apply.json was generated in dry-run mode + 2 more.\\n- Verify public proof pages and share images [blocked]\\n  command: bun run sharing:bootstrap\\n  requires: VITE_PUBLIC_APP_URL, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\\n  outputs: none\\n  missing: public/share-channel-evidence.json not ready, public/share-channel-evidence.json record share channel missing, public/share-channel-evidence.json mode share channels incomplete (0/5), public/share-channel-evidence.json share channels incomplete (0/5), public/share-channel-evidence.json failed share-channel checks: target-share-channel-row, target-mode-share-channel-row, public/public-restore-evidence.json not ready, public/public-restore-evidence.json clean-session restore incomplete, public/public-restore-evidence.json clean-session profile target mismatch, public/public-restore-evidence.json clean-session proof target mismatch, public/public-restore-evidence.json clean-session mode target mismatch\\n  detail: Render deployed profile/proof/mode pages and verify canonical URLs, social metadata, JSON-LD and image read-back.\\n- Verify leaderboard backend scopes [blocked]\\n  command: bun run leaderboard:bootstrap\\n  requires: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, KICKOFF_VERIFY_USER_ID, KICKOFF_VERIFY_FRIEND_CODE, KICKOFF_VERIFY_SEASON_KEY\\n  outputs: none\\n  missing: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, public/leaderboard-backend.json not ready, public/leaderboard-backend.json global current-user scope missing, public/leaderboard-backend.json friend current-user scope missing, public/leaderboard-backend.json season current-user scope missing, public/leaderboard-backend.json scopes incomplete (0/3), public/leaderboard-backend.json failed leaderboard checks: leaderboard-global-user, leaderboard-friend-user, leaderboard-season-user\\n  detail: Verify the current user appears in kickoff_leaderboard global, friend and season REST queries.\\n- Scout realtime fixture targets [blocked]\\n  command: bun run data:providers:check && bun run scout:data-targets\\n  requires: APIFOOTBALL_KEY, API_FOOTBALL_KEY, VITE_APIFOOTBALL_KEY, VITE_DATA_PROXY_URL, VITE_DATA_PROXY_SAME_ORIGIN\\n  outputs: KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\\n  missing: KICKOFF_VERIFY_FIXTURE_IDS missing, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX missing, public/data-provider-readiness.json not ready, public/data-provider-readiness.json API-Football key missing, public/data-provider-readiness.json fixture targets incomplete, public/data-provider-readiness.json fixture signal matrix incomplete, public/data-provider-readiness.json odds provider missing, public/data-provider-readiness.json HTTPS data proxy missing, public/data-provider-readiness.json fixtureSignalMatrix missing, public/data-provider-readiness.json fixtureSignalRows missing, public/data-target-scout.json missing; run bun run scout:data-targets\\n  detail: Preflight realtime providers, find World Cup fixtures where lineups/injuries/odds all return rows, then run doctor:data.\\n- Seal Filecoin proof targets [blocked]\\n  command: bun run filecoin:bootstrap\\n  requires: VITE_FILECOIN_SEAL_API, VITE_FILECOIN_SEAL_SAME_ORIGIN\\n  outputs: KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES\\n  missing: VITE_FILECOIN_SEAL_TOKEN\\n  detail: Preflight the seal API, build deterministic target payloads, seal record/mode proofs and run Filecoin read-back doctor.\\n- Merge collected env blocks [ready]\\n  command: bun run env:production -- --out=.env.production.local\\n  requires: none\\n  outputs: none\\n  missing: none\\n  detail: Merge verify env from current env files and generated seed, data scout, share upload and Filecoin artifacts.\\n- Run final production verification [blocked]\\n  command: bun run verify:production && bun run doctor:production && bun run goal:audit\\n  requires: none\\n  outputs: none\\n  missing: none\\n  detail: Run strict production evidence, operator doctor and original goal audit once every required target env key is filled.\"\n}",
       "stderrTail": ""
     },
@@ -96,7 +342,7 @@
       "command": "bun scripts/run-production-evidence.mjs",
       "status": "failed",
       "exitCode": 1,
-      "stdoutTail": "Production evidence written to /Users/olive8882/Documents/Codex/kickoff-lock-agent/public/production-evidence.json, /Users/olive8882/Documents/Codex/kickoff-lock-agent/dist/production-evidence.json\nRequired checks: 13/40\n- runtime-supabase-core: VITE_SUPABASE_URL missing\n- runtime-api-football-enrichment: Missing VITE_APIFOOTBALL_KEY or deployed data proxy with server-side APIFOOTBALL_KEY\n- runtime-odds-enrichment: Missing odds provider keys\n- runtime-filecoin-seal-api: Missing VITE_FILECOIN_SEAL_API; set VITE_FILECOIN_SEAL_SAME_ORIGIN=1 when a production seal API is mounted at /seal on the app origin\n- runtime-filecoin-seal-token: Missing VITE_FILECOIN_SEAL_TOKEN\n- public-acceptance-evidence: 9/9 suites, manifest mismatch\n- public-runtime-config: missing VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_TOKEN\n- supabase-backend-health: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY\n- supabase-auth-user-target: Missing VITE_SUPABASE_URL\n- supabase-auth-profile-identity: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY\n- leaderboard-global-current-user: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY\n- leaderboard-friend-current-user: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY",
+      "stdoutTail": "Production evidence written to /Users/olive8882/Documents/Codex/kickoff-lock-agent/public/production-evidence.json, /Users/olive8882/Documents/Codex/kickoff-lock-agent/dist/production-evidence.json\nRequired checks: 14/40\n- runtime-supabase-core: VITE_SUPABASE_URL missing\n- runtime-api-football-enrichment: Missing VITE_APIFOOTBALL_KEY or deployed data proxy with server-side APIFOOTBALL_KEY\n- runtime-odds-enrichment: Missing odds provider keys\n- runtime-filecoin-seal-api: Missing VITE_FILECOIN_SEAL_API; set VITE_FILECOIN_SEAL_SAME_ORIGIN=1 when a production seal API is mounted at /seal on the app origin\n- runtime-filecoin-seal-token: Missing VITE_FILECOIN_SEAL_TOKEN\n- public-runtime-config: missing VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_TOKEN\n- supabase-backend-health: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY\n- supabase-auth-user-target: Missing VITE_SUPABASE_URL\n- supabase-auth-profile-identity: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY\n- leaderboard-global-current-user: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY\n- leaderboard-friend-current-user: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY\n- leaderboard-season-current-user: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY",
       "stderrTail": ""
     },
     {
@@ -105,7 +351,7 @@
       "command": "bun scripts/run-production-goal-audit.mjs",
       "status": "failed",
       "exitCode": 1,
-      "stdoutTail": "  command: bun run test src/modes.test.ts src/modePlaybook.test.ts\n  missing: Public mode proof target rows, Public mode share artifact target rows, Mode CID proof read-back\n  evidence: 3/6 checks passed · next failed check: Public mode proof target rows (Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY)\nTODO 自动化测试: 10/11\n  command: bun run verify:acceptance\n  missing: Published acceptance evidence\n  evidence: 10/11 checks passed · next failed check: Published acceptance evidence (9/9 suites, manifest mismatch)\nTODO 公开 proof 页面美化: 6/7\n  command: bun run doctor:sharing\n  missing: Clean-session account restore\n  evidence: 6/7 checks passed · next failed check: Clean-session account restore (clean-session cloud restore missing profile:kickoff-production-seed (fixture fallback or local-only page rendered); proof:cap-prod-73dc2618d1f9 (fixture fallback or local-only page rendered); mode:mode-prod-bracket-f90d6276 (fixture fallback or local-only page rendered); mode:mode-prod-parlay-77bf4ef2 (fixture fallback or local-only page rendered); mode:mode-prod-agent-vs-human-f8b27b3a (fixture fallback or local-only page rendered); mode:mode-prod-upset-9f6dd619 (fixture fallback or local-only page rendered); mode:mode-prod-group-path-b533c118 (fixture fallback or local-only page rendered))\nDONE 分享图生成: 3/3\n  command: bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  evidence: 3/3 checks passed.\nTODO 最终生产证据: 4/7\n  command: bun run collect:production\n  missing: Published runtime config, Published acceptance evidence, Strict production evidence complete\n  evidence: 4/7 checks passed · next failed check: Published runtime config (missing VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_TOKEN)",
+      "stdoutTail": "TODO 更完整的比赛模式: 3/6\n  command: bun run test src/modes.test.ts src/modePlaybook.test.ts\n  missing: Public mode proof target rows, Public mode share artifact target rows, Mode CID proof read-back\n  evidence: 3/6 checks passed · next failed check: Public mode proof target rows (Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY)\nDONE 自动化测试: 11/11\n  command: bun run verify:acceptance\n  evidence: 11/11 checks passed.\nTODO 公开 proof 页面美化: 6/7\n  command: bun run doctor:sharing\n  missing: Clean-session account restore\n  evidence: 6/7 checks passed · next failed check: Clean-session account restore (clean-session cloud restore missing profile:kickoff-production-seed (fixture fallback or local-only page rendered); proof:cap-prod-73dc2618d1f9 (fixture fallback or local-only page rendered); mode:mode-prod-bracket-f90d6276 (fixture fallback or local-only page rendered); mode:mode-prod-parlay-77bf4ef2 (fixture fallback or local-only page rendered); mode:mode-prod-agent-vs-human-f8b27b3a (fixture fallback or local-only page rendered); mode:mode-prod-upset-9f6dd619 (fixture fallback or local-only page rendered); mode:mode-prod-group-path-b533c118 (fixture fallback or local-only page rendered))\nDONE 分享图生成: 3/3\n  command: bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  evidence: 3/3 checks passed.\nTODO 最终生产证据: 5/7\n  command: bun run collect:production\n  missing: Published runtime config, Strict production evidence complete\n  evidence: 5/7 checks passed · next failed check: Published runtime config (missing VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_TOKEN)",
       "stderrTail": ""
     }
   ],

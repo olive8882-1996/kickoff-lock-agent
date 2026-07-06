@@ -4,15 +4,15 @@
   ],
   "outputPath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/public-deployment-evidence.json",
   "wrote": true,
-  "generatedAt": "2026-07-06T08:37:50.045Z",
+  "generatedAt": "2026-07-06T08:44:27.657Z",
   "source": "local-script",
   "ready": true,
   "publicAppUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/",
   "pagesBuildStatus": "built",
-  "pagesBuildCommit": "c3dcf5e97768c0723dbabc1240144dde28bca63d",
+  "pagesBuildCommit": "6d0e519a8c02d2fb46afc1890f78ee5283d99e4c",
   "pagesBuildError": null,
-  "liveBundle": "assets/index-Bi1op2AP.js",
-  "expectedBundle": "assets/index-Bi1op2AP.js",
+  "liveBundle": "assets/index-Dq3mIUM_.js",
+  "expectedBundle": "assets/index-Dq3mIUM_.js",
   "liveStylesheet": "assets/index-B1DUGO-U.css",
   "expectedStylesheet": "assets/index-B1DUGO-U.css",
   "checks": [
@@ -33,28 +33,28 @@
       "key": "pages-commit",
       "label": "Pages commit",
       "passed": true,
-      "detail": "Pages c3dcf5e97768c0723dbabc1240144dde28bca63d"
+      "detail": "Pages 6d0e519a8c02d2fb46afc1890f78ee5283d99e4c"
     },
     {
       "key": "live-index",
       "label": "Live index",
       "passed": true,
-      "detail": "HTTP 200 · bundle assets/index-Bi1op2AP.js · css assets/index-B1DUGO-U.css",
+      "detail": "HTTP 200 · bundle assets/index-Dq3mIUM_.js · css assets/index-B1DUGO-U.css",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/"
     },
     {
       "key": "bundle-match",
       "label": "Bundle hash",
       "passed": true,
-      "detail": "expected assets/index-Bi1op2AP.js · live assets/index-Bi1op2AP.js",
-      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-Bi1op2AP.js"
+      "detail": "expected assets/index-Dq3mIUM_.js · live assets/index-Dq3mIUM_.js",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-Dq3mIUM_.js"
     },
     {
       "key": "bundle-http",
       "label": "Bundle asset",
       "passed": true,
-      "detail": "HTTP 200 · assets/index-Bi1op2AP.js",
-      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-Bi1op2AP.js"
+      "detail": "HTTP 200 · assets/index-Dq3mIUM_.js",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-Dq3mIUM_.js"
     },
     {
       "key": "stylesheet-match",
@@ -71,7 +71,7 @@
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/assets/index-B1DUGO-U.css"
     }
   ],
-  "summary": "Live deployment matches assets/index-Bi1op2AP.js.",
+  "summary": "Live deployment matches assets/index-Dq3mIUM_.js.",
   "nextAction": "Public deployment is live: Pages build status or published assets, commit and hashed assets all match.",
-  "copyText": "Kickoff Lock Agent public deployment evidence\nReady: yes\nPublic app: https://olive8882-1996.github.io/kickoff-lock-agent/\nExpected commit: unknown\nPages build: built c3dcf5e97768c0723dbabc1240144dde28bca63d\nExpected bundle: assets/index-Bi1op2AP.js\nLive bundle: assets/index-Bi1op2AP.js\nExpected stylesheet: assets/index-B1DUGO-U.css\nLive stylesheet: assets/index-B1DUGO-U.css\nNext action: Public deployment is live: Pages build status or published assets, commit and hashed assets all match.\nChecks:\n- Public app URL: passed · https://olive8882-1996.github.io/kickoff-lock-agent/\n- GitHub Pages build: passed · built\n- Pages commit: passed · Pages c3dcf5e97768c0723dbabc1240144dde28bca63d\n- Live index: passed · HTTP 200 · bundle assets/index-Bi1op2AP.js · css assets/index-B1DUGO-U.css\n- Bundle hash: passed · expected assets/index-Bi1op2AP.js · live assets/index-Bi1op2AP.js\n- Bundle asset: passed · HTTP 200 · assets/index-Bi1op2AP.js\n- Stylesheet hash: passed · expected assets/index-B1DUGO-U.css · live assets/index-B1DUGO-U.css\n- Stylesheet asset: passed · HTTP 200 · assets/index-B1DUGO-U.css"
+  "copyText": "Kickoff Lock Agent public deployment evidence\nReady: yes\nPublic app: https://olive8882-1996.github.io/kickoff-lock-agent/\nExpected commit: unknown\nPages build: built 6d0e519a8c02d2fb46afc1890f78ee5283d99e4c\nExpected bundle: assets/index-Dq3mIUM_.js\nLive bundle: assets/index-Dq3mIUM_.js\nExpected stylesheet: assets/index-B1DUGO-U.css\nLive stylesheet: assets/index-B1DUGO-U.css\nNext action: Public deployment is live: Pages build status or published assets, commit and hashed assets all match.\nChecks:\n- Public app URL: passed · https://olive8882-1996.github.io/kickoff-lock-agent/\n- GitHub Pages build: passed · built\n- Pages commit: passed · Pages 6d0e519a8c02d2fb46afc1890f78ee5283d99e4c\n- Live index: passed · HTTP 200 · bundle assets/index-Dq3mIUM_.js · css assets/index-B1DUGO-U.css\n- Bundle hash: passed · expected assets/index-Dq3mIUM_.js · live assets/index-Dq3mIUM_.js\n- Bundle asset: passed · HTTP 200 · assets/index-Dq3mIUM_.js\n- Stylesheet hash: passed · expected assets/index-B1DUGO-U.css · live assets/index-B1DUGO-U.css\n- Stylesheet asset: passed · HTTP 200 · assets/index-B1DUGO-U.css"
 }

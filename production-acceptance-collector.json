@@ -1,6 +1,6 @@
 {
   "artifactVersion": 1,
-  "generatedAt": "2026-07-06T08:49:41.753Z",
+  "generatedAt": "2026-07-06T08:58:22.471Z",
   "source": "local-script",
   "envFiles": [
     ".env.production.local"

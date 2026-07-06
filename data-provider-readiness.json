@@ -8,7 +8,7 @@
       "label": "API-Football key",
       "passed": false,
       "detail": "missing",
-      "action": "Set VITE_APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back."
+      "action": "Set VITE_APIFOOTBALL_KEY for direct browser calls, or deploy the data proxy with APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back without exposing the key."
     },
     {
       "id": "fixture-targets",
@@ -29,7 +29,7 @@
       "label": "Odds provider",
       "passed": false,
       "detail": "missing",
-      "action": "Configure API-Football odds or set VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY."
+      "action": "Configure API-Football odds through VITE_APIFOOTBALL_KEY or the data proxy APIFOOTBALL_KEY, or set VITE_ODDS_API_SPORT_KEY with server-side ODDS_API_KEY on the data proxy."
     },
     {
       "id": "data-proxy",
@@ -59,7 +59,7 @@
       "label": "API-Football key",
       "passed": false,
       "detail": "missing",
-      "action": "Set VITE_APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back."
+      "action": "Set VITE_APIFOOTBALL_KEY for direct browser calls, or deploy the data proxy with APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back without exposing the key."
     },
     {
       "id": "fixture-targets",
@@ -80,7 +80,7 @@
       "label": "Odds provider",
       "passed": false,
       "detail": "missing",
-      "action": "Configure API-Football odds or set VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY."
+      "action": "Configure API-Football odds through VITE_APIFOOTBALL_KEY or the data proxy APIFOOTBALL_KEY, or set VITE_ODDS_API_SPORT_KEY with server-side ODDS_API_KEY on the data proxy."
     },
     {
       "id": "data-proxy",
@@ -90,7 +90,7 @@
       "action": "Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1."
     }
   ],
-  "generatedAt": "2026-07-04T16:52:14.131Z",
+  "generatedAt": "2026-07-06T03:08:35.275Z",
   "envFiles": [
     ".env.production.local"
   ],
@@ -102,6 +102,7 @@
     "dataProxyUrl": "",
     "apiFootballConfigured": false,
     "oddsProviderConfigured": false,
+    "fixtureSignalRows": [],
     "apiFootballEnrichmentLimit": "12",
     "scoutLimit": "12",
     "scoutTargets": "3"
@@ -115,6 +116,7 @@
     "enrichmentLimitReady": true,
     "scoutWindowReady": true,
     "outputEnvKeys": [
+      "APIFOOTBALL_KEY",
       "VITE_APIFOOTBALL_KEY",
       "VITE_DATA_PROXY_URL",
       "VITE_DATA_PROXY_SAME_ORIGIN",

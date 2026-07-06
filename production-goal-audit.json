@@ -1,0 +1,575 @@
+{
+  "artifactVersion": 1,
+  "generatedAt": "2026-07-06T11:51:30.601Z",
+  "source": "local-script",
+  "productionEvidencePath": "public/production-evidence.json",
+  "acceptanceEvidencePath": "public/acceptance-evidence.json",
+  "envPlanPath": "public/production-env-plan.json",
+  "outputPath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/production-goal-audit.json",
+  "wrote": true,
+  "ready": false,
+  "passedRequirements": 1,
+  "totalRequirements": 10,
+  "passedChecks": 36,
+  "totalChecks": 71,
+  "openCommands": 9,
+  "blockedCommands": 8,
+  "productionEvidenceLoaded": true,
+  "acceptanceEvidenceLoaded": true,
+  "envPlanLoaded": true,
+  "blankEnvDeclarations": [
+    {
+      "key": "VITE_SUPABASE_URL",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "VITE_SUPABASE_ANON_KEY",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "SUPABASE_DB_URL",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "SUPABASE_SERVICE_ROLE_KEY",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "APIFOOTBALL_KEY",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "VITE_APIFOOTBALL_KEY",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "VITE_DATA_PROXY_URL",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "VITE_ODDS_API_KEY",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "VITE_ODDS_API_SPORT_KEY",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "ODDS_API_KEY",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "VITE_FILECOIN_SEAL_API",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "VITE_FILECOIN_SEAL_TOKEN",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "SYNAPSE_PRIVATE_KEY",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "FILECOIN_SEAL_TOKEN",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "KICKOFF_VERIFY_FILECOIN_RECORD_CID",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "KICKOFF_VERIFY_FILECOIN_MODE_CID",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "KICKOFF_VERIFY_FILECOIN_MODE_CIDS",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "KICKOFF_VERIFY_FIXTURE_ID",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "KICKOFF_VERIFY_FIXTURE_IDS",
+      "fileName": ".env.production.local"
+    },
+    {
+      "key": "KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX",
+      "fileName": ".env.production.local"
+    }
+  ],
+  "commandQueue": [
+    {
+      "id": "account",
+      "label": "真实账号系统",
+      "command": "bun run supabase:bootstrap",
+      "status": "blocked",
+      "envHints": [
+        "VITE_SUPABASE_URL (.env.production.local)",
+        "VITE_SUPABASE_ANON_KEY (.env.production.local)",
+        "SUPABASE_DB_URL (.env.production.local)",
+        "SUPABASE_SERVICE_ROLE_KEY (.env.production.local)"
+      ],
+      "reason": "Fill VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_DB_URL (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local) before running this command."
+    },
+    {
+      "id": "realtime-data",
+      "label": "真实实时比赛数据",
+      "command": "bun run data:providers:check && bun run scout:data-targets && bun run doctor:data",
+      "status": "blocked",
+      "envHints": [
+        "VITE_DATA_PROXY_URL (.env.production.local)",
+        "APIFOOTBALL_KEY (.env.production.local)",
+        "VITE_APIFOOTBALL_KEY (.env.production.local)",
+        "ODDS_API_KEY (.env.production.local)",
+        "VITE_ODDS_API_KEY (.env.production.local)",
+        "VITE_ODDS_API_SPORT_KEY (.env.production.local)",
+        "KICKOFF_VERIFY_FIXTURE_ID (.env.production.local)",
+        "KICKOFF_VERIFY_FIXTURE_IDS (.env.production.local)",
+        "KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX (.env.production.local)"
+      ],
+      "reason": "Fill VITE_DATA_PROXY_URL (.env.production.local), APIFOOTBALL_KEY (.env.production.local), VITE_APIFOOTBALL_KEY (.env.production.local), ODDS_API_KEY (.env.production.local), VITE_ODDS_API_KEY (.env.production.local), VITE_ODDS_API_SPORT_KEY (.env.production.local), KICKOFF_VERIFY_FIXTURE_ID (.env.production.local), KICKOFF_VERIFY_FIXTURE_IDS (.env.production.local), KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX (.env.production.local) before running this command."
+    },
+    {
+      "id": "filecoin",
+      "label": "真实 Filecoin 自动封存流程",
+      "command": "bun run filecoin:bootstrap",
+      "status": "blocked",
+      "envHints": [
+        "VITE_FILECOIN_SEAL_API (.env.production.local)",
+        "VITE_FILECOIN_SEAL_TOKEN (.env.production.local)",
+        "SYNAPSE_PRIVATE_KEY (.env.production.local)",
+        "FILECOIN_SEAL_TOKEN (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_RECORD_CID (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES (.env.production.local)"
+      ],
+      "reason": "Fill VITE_FILECOIN_SEAL_API (.env.production.local), VITE_FILECOIN_SEAL_TOKEN (.env.production.local), SYNAPSE_PRIVATE_KEY (.env.production.local), FILECOIN_SEAL_TOKEN (.env.production.local), KICKOFF_VERIFY_FILECOIN_RECORD_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES (.env.production.local) before running this command."
+    },
+    {
+      "id": "share-cards",
+      "label": "公开分享卡片",
+      "command": "bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png && bun run sharing:bootstrap",
+      "status": "blocked",
+      "envHints": [
+        "VITE_SUPABASE_URL (.env.production.local)",
+        "VITE_SUPABASE_ANON_KEY (.env.production.local)",
+        "SUPABASE_SERVICE_ROLE_KEY (.env.production.local)"
+      ],
+      "reason": "Fill VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local) before running this command."
+    },
+    {
+      "id": "leaderboard",
+      "label": "排行榜后端",
+      "command": "bun run leaderboard:bootstrap",
+      "status": "blocked",
+      "envHints": [
+        "VITE_SUPABASE_URL (.env.production.local)",
+        "VITE_SUPABASE_ANON_KEY (.env.production.local)",
+        "SUPABASE_SERVICE_ROLE_KEY (.env.production.local)"
+      ],
+      "reason": "Fill VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local) before running this command."
+    },
+    {
+      "id": "modes",
+      "label": "更完整的比赛模式",
+      "command": "bun run test src/modes.test.ts src/modePlaybook.test.ts",
+      "status": "blocked",
+      "envHints": [
+        "VITE_SUPABASE_URL (.env.production.local)",
+        "VITE_SUPABASE_ANON_KEY (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES (.env.production.local)"
+      ],
+      "reason": "Fill VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES (.env.production.local) before running this command."
+    },
+    {
+      "id": "tests",
+      "label": "自动化测试",
+      "command": "bun run verify:acceptance",
+      "status": "ready",
+      "envHints": [],
+      "reason": "Run bun run verify:acceptance, then build and deploy the updated dist/acceptance-evidence.json."
+    },
+    {
+      "id": "public-proof-pages",
+      "label": "公开 proof 页面美化",
+      "command": "bun run doctor:sharing",
+      "status": "blocked",
+      "envHints": [
+        "VITE_SUPABASE_URL (.env.production.local)",
+        "VITE_SUPABASE_ANON_KEY (.env.production.local)"
+      ],
+      "reason": "Fill VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local) before running this command."
+    },
+    {
+      "id": "share-images",
+      "label": "分享图生成",
+      "command": "bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png",
+      "status": "done",
+      "envHints": [],
+      "reason": "Requirement already has complete evidence."
+    },
+    {
+      "id": "final-production",
+      "label": "最终生产证据",
+      "command": "bun run collect:production",
+      "status": "blocked",
+      "envHints": [
+        "VITE_SUPABASE_URL (.env.production.local)",
+        "VITE_SUPABASE_ANON_KEY (.env.production.local)",
+        "VITE_DATA_PROXY_URL (.env.production.local)",
+        "VITE_FILECOIN_SEAL_API (.env.production.local)",
+        "VITE_FILECOIN_SEAL_TOKEN (.env.production.local)"
+      ],
+      "reason": "Fill VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), VITE_DATA_PROXY_URL (.env.production.local), VITE_FILECOIN_SEAL_API (.env.production.local), VITE_FILECOIN_SEAL_TOKEN (.env.production.local) before running this command."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "account",
+      "label": "真实账号系统",
+      "status": "todo",
+      "passed": 2,
+      "total": 10,
+      "checkIds": [
+        "runtime-supabase-core",
+        "runtime-supabase-redirect",
+        "supabase-auth-user-target",
+        "supabase-auth-profile-identity",
+        "supabase-backend-health",
+        "supabase-profile-target",
+        "supabase-record-target",
+        "supabase-mode-target",
+        "public-clean-session-restore"
+      ],
+      "coverage": [
+        "cloud-readback"
+      ],
+      "missing": [
+        "Supabase auth + REST",
+        "Supabase Auth target user",
+        "Supabase Auth/profile identity match",
+        "Backend schema health",
+        "Public profile target row",
+        "Public prediction target row",
+        "Public mode proof target rows",
+        "Clean-session account restore"
+      ],
+      "envHints": [
+        "VITE_SUPABASE_URL (.env.production.local)",
+        "VITE_SUPABASE_ANON_KEY (.env.production.local)",
+        "SUPABASE_DB_URL (.env.production.local)",
+        "SUPABASE_SERVICE_ROLE_KEY (.env.production.local)"
+      ],
+      "evidence": "2/10 checks passed · next failed check: Supabase auth + REST (VITE_SUPABASE_URL missing)",
+      "nextAction": "Set Supabase project URL and anon key before claiming cross-device account sync.",
+      "command": "bun run supabase:bootstrap"
+    },
+    {
+      "id": "realtime-data",
+      "label": "真实实时比赛数据",
+      "status": "todo",
+      "passed": 3,
+      "total": 9,
+      "checkIds": [
+        "runtime-thesportsdb-free",
+        "runtime-data-proxy",
+        "data-proxy-health",
+        "runtime-api-football-enrichment",
+        "runtime-odds-enrichment",
+        "public-football-feed-continuity",
+        "football-data-readback",
+        "api-football-enrichment-live"
+      ],
+      "coverage": [
+        "providers"
+      ],
+      "missing": [
+        "Free feed CORS proxy",
+        "Static hosting data proxy health",
+        "Lineups + injuries",
+        "Odds /盘口",
+        "Football-Data.org matches/standings read-back",
+        "API-Football enrichment read-back"
+      ],
+      "envHints": [
+        "VITE_DATA_PROXY_URL (.env.production.local)",
+        "APIFOOTBALL_KEY (.env.production.local)",
+        "VITE_APIFOOTBALL_KEY (.env.production.local)",
+        "ODDS_API_KEY (.env.production.local)",
+        "VITE_ODDS_API_KEY (.env.production.local)",
+        "VITE_ODDS_API_SPORT_KEY (.env.production.local)",
+        "KICKOFF_VERIFY_FIXTURE_ID (.env.production.local)",
+        "KICKOFF_VERIFY_FIXTURE_IDS (.env.production.local)",
+        "KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX (.env.production.local)"
+      ],
+      "evidence": "3/9 checks passed · next failed check: Free feed CORS proxy (Optional VITE_DATA_PROXY_URL missing; set VITE_DATA_PROXY_SAME_ORIGIN=1 when /data-proxy/proxy is deployed on the app origin)",
+      "nextAction": "Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Cloudflare Pages function at /data-proxy/proxy and set VITE_DATA_PROXY_SAME_ORIGIN=1.",
+      "command": "bun run data:providers:check && bun run scout:data-targets && bun run doctor:data"
+    },
+    {
+      "id": "filecoin",
+      "label": "真实 Filecoin 自动封存流程",
+      "status": "todo",
+      "passed": 2,
+      "total": 8,
+      "checkIds": [
+        "runtime-filecoin-seal-api",
+        "runtime-filecoin-seal-token",
+        "filecoin-seal-health",
+        "filecoin-seal-contract",
+        "filecoin-record-proof-readback",
+        "filecoin-mode-proof-readback"
+      ],
+      "coverage": [
+        "filecoin-api",
+        "seal-e2e"
+      ],
+      "missing": [
+        "Browser seal endpoint",
+        "Upload token",
+        "Seal API production health",
+        "Seal API async endpoint contract",
+        "Record CID proof read-back",
+        "Mode CID proof read-back"
+      ],
+      "envHints": [
+        "VITE_FILECOIN_SEAL_API (.env.production.local)",
+        "VITE_FILECOIN_SEAL_TOKEN (.env.production.local)",
+        "SYNAPSE_PRIVATE_KEY (.env.production.local)",
+        "FILECOIN_SEAL_TOKEN (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_RECORD_CID (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES (.env.production.local)"
+      ],
+      "evidence": "2/8 checks passed · next failed check: Browser seal endpoint (Missing VITE_FILECOIN_SEAL_API; set VITE_FILECOIN_SEAL_SAME_ORIGIN=1 when a production seal API is mounted at /seal on the app origin)",
+      "nextAction": "Deploy the seal API as an HTTPS /seal endpoint, or mount it behind the app origin at /seal and set VITE_FILECOIN_SEAL_SAME_ORIGIN=1; clients use POST /seal?async=1 and GET /jobs/:id.",
+      "command": "bun run filecoin:bootstrap"
+    },
+    {
+      "id": "share-cards",
+      "label": "公开分享卡片",
+      "status": "todo",
+      "passed": 2,
+      "total": 6,
+      "checkIds": [
+        "runtime-share-storage-bucket",
+        "supabase-share-artifact-target",
+        "supabase-mode-share-artifact-target",
+        "supabase-share-channel-target",
+        "supabase-mode-share-channel-target"
+      ],
+      "coverage": [
+        "share-cards"
+      ],
+      "missing": [
+        "Public record share artifact target row",
+        "Public mode share artifact target rows",
+        "Public record share channel target row",
+        "Public mode share channel target rows"
+      ],
+      "envHints": [
+        "VITE_SUPABASE_URL (.env.production.local)",
+        "VITE_SUPABASE_ANON_KEY (.env.production.local)",
+        "SUPABASE_SERVICE_ROLE_KEY (.env.production.local)"
+      ],
+      "evidence": "2/6 checks passed · next failed check: Public record share artifact target row (Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY)",
+      "nextAction": "Generate a record share card, upload it to Supabase Storage, and sync kickoff_share_artifacts.",
+      "command": "bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png && bun run sharing:bootstrap"
+    },
+    {
+      "id": "leaderboard",
+      "label": "排行榜后端",
+      "status": "todo",
+      "passed": 1,
+      "total": 4,
+      "checkIds": [
+        "leaderboard-global-current-user",
+        "leaderboard-friend-current-user",
+        "leaderboard-season-current-user"
+      ],
+      "coverage": [
+        "cloud-readback"
+      ],
+      "missing": [
+        "Global leaderboard current user",
+        "Friend leaderboard current user",
+        "Season leaderboard current user"
+      ],
+      "envHints": [
+        "VITE_SUPABASE_URL (.env.production.local)",
+        "VITE_SUPABASE_ANON_KEY (.env.production.local)",
+        "SUPABASE_SERVICE_ROLE_KEY (.env.production.local)"
+      ],
+      "evidence": "1/4 checks passed · next failed check: Global leaderboard current user (Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY)",
+      "nextAction": "Set KICKOFF_VERIFY_USER_ID to a synced user that appears in kickoff_leaderboard.",
+      "command": "bun run leaderboard:bootstrap"
+    },
+    {
+      "id": "modes",
+      "label": "更完整的比赛模式",
+      "status": "todo",
+      "passed": 3,
+      "total": 6,
+      "checkIds": [
+        "supabase-mode-target",
+        "supabase-mode-share-artifact-target",
+        "filecoin-mode-proof-readback",
+        "public-mode-link",
+        "public-mode-share-image"
+      ],
+      "coverage": [
+        "modes"
+      ],
+      "missing": [
+        "Public mode proof target rows",
+        "Public mode share artifact target rows",
+        "Mode CID proof read-back"
+      ],
+      "envHints": [
+        "VITE_SUPABASE_URL (.env.production.local)",
+        "VITE_SUPABASE_ANON_KEY (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local)",
+        "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES (.env.production.local)"
+      ],
+      "evidence": "3/6 checks passed · next failed check: Public mode proof target rows (Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY)",
+      "nextAction": "Set KICKOFF_VERIFY_MODE_IDS to synced mode proof run ids.",
+      "command": "bun run test src/modes.test.ts src/modePlaybook.test.ts"
+    },
+    {
+      "id": "tests",
+      "label": "自动化测试",
+      "status": "todo",
+      "passed": 10,
+      "total": 11,
+      "checkIds": [
+        "public-acceptance-evidence"
+      ],
+      "coverage": [
+        "scoring",
+        "proof-hash",
+        "cloud-readback",
+        "providers",
+        "share-cards",
+        "filecoin-api",
+        "pages-functions",
+        "modes",
+        "browser-e2e",
+        "seal-e2e"
+      ],
+      "missing": [
+        "Published acceptance evidence"
+      ],
+      "envHints": [],
+      "evidence": "10/11 checks passed · next failed check: Published acceptance evidence (9/9 suites, manifest mismatch: expected acceptance-v1-a04b02375d5dce11, published acceptance-v1-9a3ae7c9715f3330)",
+      "nextAction": "Run bun run verify:acceptance, then build and deploy the updated dist/acceptance-evidence.json.",
+      "command": "bun run verify:acceptance"
+    },
+    {
+      "id": "public-proof-pages",
+      "label": "公开 proof 页面美化",
+      "status": "todo",
+      "passed": 6,
+      "total": 7,
+      "checkIds": [
+        "runtime-public-app-url",
+        "public-profile-link",
+        "public-proof-link",
+        "public-mode-link",
+        "public-clean-session-restore"
+      ],
+      "coverage": [
+        "share-cards",
+        "browser-e2e"
+      ],
+      "missing": [
+        "Clean-session account restore"
+      ],
+      "envHints": [
+        "VITE_SUPABASE_URL (.env.production.local)",
+        "VITE_SUPABASE_ANON_KEY (.env.production.local)"
+      ],
+      "evidence": "6/7 checks passed · next failed check: Clean-session account restore (clean-session cloud restore missing profile:kickoff-production-seed (fixture fallback or local-only page rendered); proof:cap-prod-73dc2618d1f9 (fixture fallback or local-only page rendered); mode:mode-prod-bracket-f90d6276 (fixture fallback or local-only page rendered); mode:mode-prod-parlay-77bf4ef2 (fixture fallback or local-only page rendered); mode:mode-prod-agent-vs-human-f8b27b3a (fixture fallback or local-only page rendered); mode:mode-prod-upset-9f6dd619 (fixture fallback or local-only page rendered); mode:mode-prod-group-path-b533c118 (fixture fallback or local-only page rendered))",
+      "nextAction": "Set profile/proof/mode verification ids to real Supabase targets, deploy public pages, then render Cloud-loaded pages in a clean browser context without relying on localStorage.",
+      "command": "bun run doctor:sharing"
+    },
+    {
+      "id": "share-images",
+      "label": "分享图生成",
+      "status": "done",
+      "passed": 3,
+      "total": 3,
+      "checkIds": [
+        "public-share-image",
+        "public-mode-share-image"
+      ],
+      "coverage": [
+        "share-cards"
+      ],
+      "missing": [],
+      "envHints": [],
+      "evidence": "3/3 checks passed.",
+      "nextAction": "上传 record/mode 两张公开 PNG，写入 KICKOFF_VERIFY_SHARE_IMAGE_URL 与 KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL。",
+      "command": "bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png"
+    },
+    {
+      "id": "final-production",
+      "label": "最终生产证据",
+      "status": "todo",
+      "passed": 4,
+      "total": 7,
+      "checkIds": [
+        "public-app-root",
+        "public-runtime-config",
+        "public-deployment-evidence",
+        "public-logo-asset",
+        "public-acceptance-evidence"
+      ],
+      "coverage": [
+        "browser-e2e",
+        "pages-functions"
+      ],
+      "missing": [
+        "Published runtime config",
+        "Published acceptance evidence",
+        "Strict production evidence complete"
+      ],
+      "envHints": [
+        "VITE_SUPABASE_URL (.env.production.local)",
+        "VITE_SUPABASE_ANON_KEY (.env.production.local)",
+        "VITE_DATA_PROXY_URL (.env.production.local)",
+        "VITE_FILECOIN_SEAL_API (.env.production.local)",
+        "VITE_FILECOIN_SEAL_TOKEN (.env.production.local)"
+      ],
+      "evidence": "4/7 checks passed · next failed check: Published runtime config (missing VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_TOKEN)",
+      "nextAction": "Run bun run runtime:config, bun run runtime:config:check, build and redeploy dist/runtime-config.js.",
+      "command": "bun run collect:production"
+    }
+  ],
+  "nextAction": "真实账号系统: Set Supabase project URL and anon key before claiming cross-device account sync. Command: bun run supabase:bootstrap.",
+  "copyText": "Kickoff Lock Agent production goal audit\nReady: no\nRequirements: 1/10\nChecks: 36/71\nCommand queue: 9 open, 8 blocked\nProduction evidence: 13/41\nAcceptance evidence: 9/9\nBlank env declarations: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_DB_URL (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local), APIFOOTBALL_KEY (.env.production.local), VITE_APIFOOTBALL_KEY (.env.production.local), VITE_DATA_PROXY_URL (.env.production.local), VITE_ODDS_API_KEY (.env.production.local), VITE_ODDS_API_SPORT_KEY (.env.production.local), ODDS_API_KEY (.env.production.local), VITE_FILECOIN_SEAL_API (.env.production.local), VITE_FILECOIN_SEAL_TOKEN (.env.production.local), SYNAPSE_PRIVATE_KEY (.env.production.local), FILECOIN_SEAL_TOKEN (.env.production.local), KICKOFF_VERIFY_FILECOIN_RECORD_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES (.env.production.local), KICKOFF_VERIFY_FIXTURE_ID (.env.production.local), KICKOFF_VERIFY_FIXTURE_IDS (.env.production.local), KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX (.env.production.local)\nNext action: 真实账号系统: Set Supabase project URL and anon key before claiming cross-device account sync. Command: bun run supabase:bootstrap.\nCommand queue:\n- 真实账号系统 [blocked]\n  command: bun run supabase:bootstrap\n  env hints: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_DB_URL (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local)\n  reason: Fill VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_DB_URL (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local) before running this command.\n- 真实实时比赛数据 [blocked]\n  command: bun run data:providers:check && bun run scout:data-targets && bun run doctor:data\n  env hints: VITE_DATA_PROXY_URL (.env.production.local), APIFOOTBALL_KEY (.env.production.local), VITE_APIFOOTBALL_KEY (.env.production.local), ODDS_API_KEY (.env.production.local), VITE_ODDS_API_KEY (.env.production.local), VITE_ODDS_API_SPORT_KEY (.env.production.local), KICKOFF_VERIFY_FIXTURE_ID (.env.production.local), KICKOFF_VERIFY_FIXTURE_IDS (.env.production.local), KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX (.env.production.local)\n  reason: Fill VITE_DATA_PROXY_URL (.env.production.local), APIFOOTBALL_KEY (.env.production.local), VITE_APIFOOTBALL_KEY (.env.production.local), ODDS_API_KEY (.env.production.local), VITE_ODDS_API_KEY (.env.production.local), VITE_ODDS_API_SPORT_KEY (.env.production.local), KICKOFF_VERIFY_FIXTURE_ID (.env.production.local), KICKOFF_VERIFY_FIXTURE_IDS (.env.production.local), KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX (.env.production.local) before running this command.\n- 真实 Filecoin 自动封存流程 [blocked]\n  command: bun run filecoin:bootstrap\n  env hints: VITE_FILECOIN_SEAL_API (.env.production.local), VITE_FILECOIN_SEAL_TOKEN (.env.production.local), SYNAPSE_PRIVATE_KEY (.env.production.local), FILECOIN_SEAL_TOKEN (.env.production.local), KICKOFF_VERIFY_FILECOIN_RECORD_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES (.env.production.local)\n  reason: Fill VITE_FILECOIN_SEAL_API (.env.production.local), VITE_FILECOIN_SEAL_TOKEN (.env.production.local), SYNAPSE_PRIVATE_KEY (.env.production.local), FILECOIN_SEAL_TOKEN (.env.production.local), KICKOFF_VERIFY_FILECOIN_RECORD_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES (.env.production.local) before running this command.\n- 公开分享卡片 [blocked]\n  command: bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png && bun run sharing:bootstrap\n  env hints: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local)\n  reason: Fill VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local) before running this command.\n- 排行榜后端 [blocked]\n  command: bun run leaderboard:bootstrap\n  env hints: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local)\n  reason: Fill VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local) before running this command.\n- 更完整的比赛模式 [blocked]\n  command: bun run test src/modes.test.ts src/modePlaybook.test.ts\n  env hints: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES (.env.production.local)\n  reason: Fill VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES (.env.production.local) before running this command.\n- 自动化测试 [ready]\n  command: bun run verify:acceptance\n  env hints: none\n  reason: Run bun run verify:acceptance, then build and deploy the updated dist/acceptance-evidence.json.\n- 公开 proof 页面美化 [blocked]\n  command: bun run doctor:sharing\n  env hints: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local)\n  reason: Fill VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local) before running this command.\n- 分享图生成 [done]\n  command: bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  env hints: none\n  reason: Requirement already has complete evidence.\n- 最终生产证据 [blocked]\n  command: bun run collect:production\n  env hints: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), VITE_DATA_PROXY_URL (.env.production.local), VITE_FILECOIN_SEAL_API (.env.production.local), VITE_FILECOIN_SEAL_TOKEN (.env.production.local)\n  reason: Fill VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), VITE_DATA_PROXY_URL (.env.production.local), VITE_FILECOIN_SEAL_API (.env.production.local), VITE_FILECOIN_SEAL_TOKEN (.env.production.local) before running this command.\nRequirements:\n- 真实账号系统 [todo] 2/10\n  command: bun run supabase:bootstrap\n  missing: Supabase auth + REST, Supabase Auth target user, Supabase Auth/profile identity match, Backend schema health, Public profile target row, Public prediction target row, Public mode proof target rows, Clean-session account restore\n  env hints: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_DB_URL (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local)\n  evidence: 2/10 checks passed · next failed check: Supabase auth + REST (VITE_SUPABASE_URL missing)\n- 真实实时比赛数据 [todo] 3/9\n  command: bun run data:providers:check && bun run scout:data-targets && bun run doctor:data\n  missing: Free feed CORS proxy, Static hosting data proxy health, Lineups + injuries, Odds /盘口, Football-Data.org matches/standings read-back, API-Football enrichment read-back\n  env hints: VITE_DATA_PROXY_URL (.env.production.local), APIFOOTBALL_KEY (.env.production.local), VITE_APIFOOTBALL_KEY (.env.production.local), ODDS_API_KEY (.env.production.local), VITE_ODDS_API_KEY (.env.production.local), VITE_ODDS_API_SPORT_KEY (.env.production.local), KICKOFF_VERIFY_FIXTURE_ID (.env.production.local), KICKOFF_VERIFY_FIXTURE_IDS (.env.production.local), KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX (.env.production.local)\n  evidence: 3/9 checks passed · next failed check: Free feed CORS proxy (Optional VITE_DATA_PROXY_URL missing; set VITE_DATA_PROXY_SAME_ORIGIN=1 when /data-proxy/proxy is deployed on the app origin)\n- 真实 Filecoin 自动封存流程 [todo] 2/8\n  command: bun run filecoin:bootstrap\n  missing: Browser seal endpoint, Upload token, Seal API production health, Seal API async endpoint contract, Record CID proof read-back, Mode CID proof read-back\n  env hints: VITE_FILECOIN_SEAL_API (.env.production.local), VITE_FILECOIN_SEAL_TOKEN (.env.production.local), SYNAPSE_PRIVATE_KEY (.env.production.local), FILECOIN_SEAL_TOKEN (.env.production.local), KICKOFF_VERIFY_FILECOIN_RECORD_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES (.env.production.local)\n  evidence: 2/8 checks passed · next failed check: Browser seal endpoint (Missing VITE_FILECOIN_SEAL_API; set VITE_FILECOIN_SEAL_SAME_ORIGIN=1 when a production seal API is mounted at /seal on the app origin)\n- 公开分享卡片 [todo] 2/6\n  command: bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png && bun run sharing:bootstrap\n  missing: Public record share artifact target row, Public mode share artifact target rows, Public record share channel target row, Public mode share channel target rows\n  env hints: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local)\n  evidence: 2/6 checks passed · next failed check: Public record share artifact target row (Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY)\n- 排行榜后端 [todo] 1/4\n  command: bun run leaderboard:bootstrap\n  missing: Global leaderboard current user, Friend leaderboard current user, Season leaderboard current user\n  env hints: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local)\n  evidence: 1/4 checks passed · next failed check: Global leaderboard current user (Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY)\n- 更完整的比赛模式 [todo] 3/6\n  command: bun run test src/modes.test.ts src/modePlaybook.test.ts\n  missing: Public mode proof target rows, Public mode share artifact target rows, Mode CID proof read-back\n  env hints: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES (.env.production.local)\n  evidence: 3/6 checks passed · next failed check: Public mode proof target rows (Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY)\n- 自动化测试 [todo] 10/11\n  command: bun run verify:acceptance\n  missing: Published acceptance evidence\n  env hints: none\n  evidence: 10/11 checks passed · next failed check: Published acceptance evidence (9/9 suites, manifest mismatch: expected acceptance-v1-a04b02375d5dce11, published acceptance-v1-9a3ae7c9715f3330)\n- 公开 proof 页面美化 [todo] 6/7\n  command: bun run doctor:sharing\n  missing: Clean-session account restore\n  env hints: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local)\n  evidence: 6/7 checks passed · next failed check: Clean-session account restore (clean-session cloud restore missing profile:kickoff-production-seed (fixture fallback or local-only page rendered); proof:cap-prod-73dc2618d1f9 (fixture fallback or local-only page rendered); mode:mode-prod-bracket-f90d6276 (fixture fallback or local-only page rendered); mode:mode-prod-parlay-77bf4ef2 (fixture fallback or local-only page rendered); mode:mode-prod-agent-vs-human-f8b27b3a (fixture fallback or local-only page rendered); mode:mode-prod-upset-9f6dd619 (fixture fallback or local-only page rendered); mode:mode-prod-group-path-b533c118 (fixture fallback or local-only page rendered))\n- 分享图生成 [done] 3/3\n  command: bun run share:upload-image && bun run share:upload-image -- --kind=mode --file=public/generated/kickoff-production-mode-share.png\n  missing: none\n  env hints: none\n  evidence: 3/3 checks passed.\n- 最终生产证据 [todo] 4/7\n  command: bun run collect:production\n  missing: Published runtime config, Published acceptance evidence, Strict production evidence complete\n  env hints: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), VITE_DATA_PROXY_URL (.env.production.local), VITE_FILECOIN_SEAL_API (.env.production.local), VITE_FILECOIN_SEAL_TOKEN (.env.production.local)\n  evidence: 4/7 checks passed · next failed check: Published runtime config (missing VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1, VITE_FILECOIN_SEAL_TOKEN)"
+}

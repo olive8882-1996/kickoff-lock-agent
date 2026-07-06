@@ -1,0 +1,27 @@
+{
+  "ready": false,
+  "fixtureIds": [],
+  "requiredSignals": 4,
+  "requiredFixtureCount": 3,
+  "checkedFixtures": 0,
+  "candidates": [],
+  "gaps": [],
+  "signalMatrix": "",
+  "verifyEnv": "KICKOFF_VERIFY_USER_ID=\nKICKOFF_VERIFY_PROFILE_ID=\nKICKOFF_VERIFY_PROOF_ID=\nKICKOFF_VERIFY_MODE_ID=\nKICKOFF_VERIFY_MODE_IDS=\nKICKOFF_VERIFY_FILECOIN_RECORD_CID=\nKICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH=\nKICKOFF_VERIFY_FILECOIN_MODE_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH=\nKICKOFF_VERIFY_FILECOIN_MODE_CIDS=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES=\nKICKOFF_VERIFY_FRIEND_CODE=\nKICKOFF_VERIFY_SEASON_KEY=world-cup-run\nKICKOFF_VERIFY_FIXTURE_ID=\nKICKOFF_VERIFY_FIXTURE_IDS=\nKICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX=\nKICKOFF_VERIFY_SHARE_IMAGE_URL=\nKICKOFF_VERIFY_MODE_SHARE_IMAGE_URL=\nKICKOFF_VERIFY_ALLOW_FAILURES=1\n",
+  "nextAction": "Set APIFOOTBALL_KEY, VITE_APIFOOTBALL_KEY or a deployed VITE_DATA_PROXY_URL/VITE_DATA_PROXY_SAME_ORIGIN before scouting production fixture targets.",
+  "generatedAt": "2026-07-06T11:33:32.637Z",
+  "envFiles": [
+    ".env.production.local"
+  ],
+  "artifactVersion": 1,
+  "acceptance": {
+    "readyFixtureCount": 0,
+    "requiredFixtureCount": 3,
+    "completeSignalMatrix": false,
+    "gaps": [],
+    "outputEnvKeys": [
+      "KICKOFF_VERIFY_FIXTURE_IDS",
+      "KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX"
+    ]
+  }
+}

@@ -6,20 +6,20 @@
   ],
   "localImage": {
     "imageMime": "image/png",
-    "imageByteLength": 231266,
-    "imageHash": "1c241dd03fbba6c1fd875f80bae88c039b5acd645181d18d852e7dfa7ca9ca90"
+    "imageByteLength": 238857,
+    "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0"
   },
-  "generatedAt": "2026-07-04T23:02:11.801Z",
+  "generatedAt": "2026-07-04T23:02:11.827Z",
   "envFiles": [
     ".env.production.local"
   ],
   "artifactVersion": 1,
-  "filePath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/generated/kickoff-production-share.png",
+  "filePath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/generated/kickoff-production-mode-share.png",
   "target": {
     "profileId": "kickoff-production-seed",
-    "kind": "record",
-    "artifactId": "cap-prod-73dc2618d1f9",
-    "fileName": "kickoff-production-share.png",
+    "kind": "mode",
+    "artifactId": "mode-prod-bracket-f90d6276",
+    "fileName": "kickoff-production-mode-share.png",
     "imageMime": "image/png"
   },
   "acceptance": {
@@ -30,8 +30,8 @@
     "localImageHashReady": true,
     "localImageSizeReady": true,
     "outputEnvKeys": [
-      "KICKOFF_SEED_SHARE_IMAGE_URL",
-      "KICKOFF_VERIFY_SHARE_IMAGE_URL"
+      "KICKOFF_SEED_MODE_SHARE_IMAGE_URL",
+      "KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL"
     ]
   }
 }

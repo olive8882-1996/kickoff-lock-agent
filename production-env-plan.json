@@ -172,6 +172,26 @@
       "action": "Set the local-only service role key for storage upload, target seeding and Supabase doctor checks."
     },
     {
+      "key": "APIFOOTBALL_KEY",
+      "label": "Data proxy API-Football key",
+      "group": "server",
+      "required": false,
+      "status": "optional",
+      "detail": "set when deploying the data proxy so API-Football is not exposed in the browser",
+      "command": "bun run data:providers:check",
+      "action": "Set APIFOOTBALL_KEY on the Worker/Pages runtime when VITE_DATA_PROXY_URL or VITE_DATA_PROXY_SAME_ORIGIN=1 carries API-Football enrichment."
+    },
+    {
+      "key": "ODDS_API_KEY",
+      "label": "Data proxy Odds API key",
+      "group": "server",
+      "required": false,
+      "status": "optional",
+      "detail": "set with VITE_ODDS_API_SPORT_KEY when using The Odds API through the data proxy",
+      "command": "bun run data:providers:check",
+      "action": "Set ODDS_API_KEY on the Worker/Pages runtime when VITE_ODDS_API_SPORT_KEY is enabled and odds reads are routed through the data proxy."
+    },
+    {
       "key": "SYNAPSE_PRIVATE_KEY",
       "label": "Synapse private key",
       "group": "server",

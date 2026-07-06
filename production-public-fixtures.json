@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-07-04T05:52:53.186Z",
+  "generatedAt": "2026-07-06T03:36:55.507Z",
   "source": "production-target-seed",
   "profile": {
     "id": "kickoff-production-seed",
     "email": "production-seed@kickoff.local",
     "displayName": "Kickoff Production Seed",
     "location": "Chengdu",
-    "createdAt": "2026-07-04T05:52:53.183Z",
+    "createdAt": "2026-07-06T03:36:55.504Z",
     "cloudMode": "supabase",
     "records": [
       {
@@ -15,7 +15,7 @@
           "matchId": "production-seed-brazil-japan",
           "matchLabel": "Brazil vs Japan",
           "kickoffAt": "2026-06-20T19:00:00.000Z",
-          "createdAt": "2026-07-04T05:52:53.183Z",
+          "createdAt": "2026-07-06T03:36:55.504Z",
           "prediction": {
             "homeScore": 2,
             "awayScore": 1,
@@ -37,16 +37,16 @@
               }
             ]
           },
-          "sealedAt": "2026-07-04T05:52:53.183Z",
-          "payloadHash": "73dc2618d1f932c7fe9f664f2950cdd08a9b17081d44cbc78c9ea49425ab37d4",
+          "sealedAt": "2026-07-06T03:36:55.504Z",
+          "payloadHash": "3c88bea6c506bde0d62e4596e69007309dea09e63b38c15564733638370810bf",
           "filecoinProof": {
             "mode": "demo",
-            "cid": "bafy-kickoff-seed-73dc2618d1f932c7fe9f664f2950cdd0",
-            "pieceCid": "baga6seed73dc2618d1f932c7fe9f664f2950cdd0",
+            "cid": "bafy-kickoff-seed-3c88bea6c506bde0d62e4596e6900730",
+            "pieceCid": "baga6seed3c88bea6c506bde0d62e4596e6900730",
             "provider": "demo-provider.fil",
-            "dataSetId": "seed-73dc2618d1",
+            "dataSetId": "seed-3c88bea6c5",
             "proofStatus": "retrievable",
-            "payloadHash": "73dc2618d1f932c7fe9f664f2950cdd08a9b17081d44cbc78c9ea49425ab37d4",
+            "payloadHash": "3c88bea6c506bde0d62e4596e69007309dea09e63b38c15564733638370810bf",
             "byteLength": 4096
           },
           "locked": true,
@@ -55,7 +55,7 @@
         "result": {
           "id": "result-cap-prod-73dc2618d1f9",
           "capsuleId": "cap-prod-73dc2618d1f9",
-          "revealedAt": "2026-07-04T05:52:53.183Z",
+          "revealedAt": "2026-07-06T03:36:55.504Z",
           "homeScore": 2,
           "awayScore": 1,
           "keyPlayers": [
@@ -86,19 +86,19 @@
         "id": "mode-prod-bracket-f90d6276",
         "modeId": "bracket",
         "title": "Production bracket path",
-        "createdAt": "2026-07-04T05:52:53.183Z",
+        "createdAt": "2026-07-06T03:36:55.504Z",
         "capsuleIds": [
           "cap-prod-73dc2618d1f9"
         ],
-        "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+        "payloadHash": "a86bbb3b83ae8b5fbf0c2a5b5a6be5a0de7662091d16c84e26070f18c2e71fd9",
         "filecoinProof": {
           "mode": "demo",
-          "cid": "bafy-kickoff-seed-f90d6276d2e730c763b216a76618883e",
-          "pieceCid": "baga6seedf90d6276d2e730c763b216a76618883e",
+          "cid": "bafy-kickoff-seed-a86bbb3b83ae8b5fbf0c2a5b5a6be5a0",
+          "pieceCid": "baga6seeda86bbb3b83ae8b5fbf0c2a5b5a6be5a0",
           "provider": "demo-provider.fil",
-          "dataSetId": "seed-f90d6276d2",
+          "dataSetId": "seed-a86bbb3b83",
           "proofStatus": "retrievable",
-          "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+          "payloadHash": "a86bbb3b83ae8b5fbf0c2a5b5a6be5a0de7662091d16c84e26070f18c2e71fd9",
           "byteLength": 4096
         },
         "status": "scored",
@@ -114,8 +114,8 @@
           "bracketPath": {
             "id": "bracket-mode-prod-bracket-f90d6276",
             "title": "Production bracket path",
-            "createdAt": "2026-07-04T05:52:53.183Z",
-            "updatedAt": "2026-07-04T05:52:53.183Z",
+            "createdAt": "2026-07-06T03:36:55.504Z",
+            "updatedAt": "2026-07-06T03:36:55.504Z",
             "picks": [
               {
                 "id": "pick-cap-prod-73dc2618d1f9",
@@ -127,15 +127,15 @@
                 "note": "Seeded acceptance pick."
               }
             ],
-            "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+            "payloadHash": "a86bbb3b83ae8b5fbf0c2a5b5a6be5a0de7662091d16c84e26070f18c2e71fd9",
             "filecoinProof": {
               "mode": "demo",
-              "cid": "bafy-kickoff-seed-f90d6276d2e730c763b216a76618883e",
-              "pieceCid": "baga6seedf90d6276d2e730c763b216a76618883e",
+              "cid": "bafy-kickoff-seed-a86bbb3b83ae8b5fbf0c2a5b5a6be5a0",
+              "pieceCid": "baga6seeda86bbb3b83ae8b5fbf0c2a5b5a6be5a0",
               "provider": "demo-provider.fil",
-              "dataSetId": "seed-f90d6276d2",
+              "dataSetId": "seed-a86bbb3b83",
               "proofStatus": "retrievable",
-              "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+              "payloadHash": "a86bbb3b83ae8b5fbf0c2a5b5a6be5a0de7662091d16c84e26070f18c2e71fd9",
               "byteLength": 4096
             }
           }
@@ -145,19 +145,19 @@
         "id": "mode-prod-parlay-77bf4ef2",
         "modeId": "parlay",
         "title": "Production parlay ticket",
-        "createdAt": "2026-07-04T05:52:53.183Z",
+        "createdAt": "2026-07-06T03:36:55.504Z",
         "capsuleIds": [
           "cap-prod-73dc2618d1f9"
         ],
-        "payloadHash": "77bf4ef2d7f03e37bbbc617cdd38e8aba78722bfa96537181e6c5727a401d114",
+        "payloadHash": "9221e6ac3282722d6623111cd9fb9f36cc88b629bd192eb1a4e4d539fb2a63f9",
         "filecoinProof": {
           "mode": "demo",
-          "cid": "bafy-kickoff-seed-77bf4ef2d7f03e37bbbc617cdd38e8ab",
-          "pieceCid": "baga6seed77bf4ef2d7f03e37bbbc617cdd38e8ab",
+          "cid": "bafy-kickoff-seed-9221e6ac3282722d6623111cd9fb9f36",
+          "pieceCid": "baga6seed9221e6ac3282722d6623111cd9fb9f36",
           "provider": "demo-provider.fil",
-          "dataSetId": "seed-77bf4ef2d7",
+          "dataSetId": "seed-9221e6ac32",
           "proofStatus": "retrievable",
-          "payloadHash": "77bf4ef2d7f03e37bbbc617cdd38e8aba78722bfa96537181e6c5727a401d114",
+          "payloadHash": "9221e6ac3282722d6623111cd9fb9f36cc88b629bd192eb1a4e4d539fb2a63f9",
           "byteLength": 4096
         },
         "status": "scored",
@@ -197,19 +197,19 @@
         "id": "mode-prod-agent-vs-human-f8b27b3a",
         "modeId": "agent-vs-human",
         "title": "Production agent calibration",
-        "createdAt": "2026-07-04T05:52:53.183Z",
+        "createdAt": "2026-07-06T03:36:55.504Z",
         "capsuleIds": [
           "cap-prod-73dc2618d1f9"
         ],
-        "payloadHash": "f8b27b3a4799d84f7823455d4f808675013e4ed067b20679f179904472c46aff",
+        "payloadHash": "548590955e87466cf8d92127aa73b67691b39cad13d7481c22caa7dc48c496e2",
         "filecoinProof": {
           "mode": "demo",
-          "cid": "bafy-kickoff-seed-f8b27b3a4799d84f7823455d4f808675",
-          "pieceCid": "baga6seedf8b27b3a4799d84f7823455d4f808675",
+          "cid": "bafy-kickoff-seed-548590955e87466cf8d92127aa73b676",
+          "pieceCid": "baga6seed548590955e87466cf8d92127aa73b676",
           "provider": "demo-provider.fil",
-          "dataSetId": "seed-f8b27b3a47",
+          "dataSetId": "seed-548590955e",
           "proofStatus": "retrievable",
-          "payloadHash": "f8b27b3a4799d84f7823455d4f808675013e4ed067b20679f179904472c46aff",
+          "payloadHash": "548590955e87466cf8d92127aa73b67691b39cad13d7481c22caa7dc48c496e2",
           "byteLength": 4096
         },
         "status": "scored",
@@ -242,19 +242,19 @@
         "id": "mode-prod-upset-9f6dd619",
         "modeId": "upset",
         "title": "Production upset challenge",
-        "createdAt": "2026-07-04T05:52:53.183Z",
+        "createdAt": "2026-07-06T03:36:55.504Z",
         "capsuleIds": [
           "cap-prod-73dc2618d1f9"
         ],
-        "payloadHash": "9f6dd619ee0a9d5c01b9af43c633d608e0fd479f6e221d2e0b219b4ab39bd46d",
+        "payloadHash": "6dbaf58d07022edfc1fa2d5795cbd665ef0edd061f13bd262148a5e02882f356",
         "filecoinProof": {
           "mode": "demo",
-          "cid": "bafy-kickoff-seed-9f6dd619ee0a9d5c01b9af43c633d608",
-          "pieceCid": "baga6seed9f6dd619ee0a9d5c01b9af43c633d608",
+          "cid": "bafy-kickoff-seed-6dbaf58d07022edfc1fa2d5795cbd665",
+          "pieceCid": "baga6seed6dbaf58d07022edfc1fa2d5795cbd665",
           "provider": "demo-provider.fil",
-          "dataSetId": "seed-9f6dd619ee",
+          "dataSetId": "seed-6dbaf58d07",
           "proofStatus": "retrievable",
-          "payloadHash": "9f6dd619ee0a9d5c01b9af43c633d608e0fd479f6e221d2e0b219b4ab39bd46d",
+          "payloadHash": "6dbaf58d07022edfc1fa2d5795cbd665ef0edd061f13bd262148a5e02882f356",
           "byteLength": 4096
         },
         "status": "scored",
@@ -282,6 +282,73 @@
           "hitPicks": 1,
           "bonusXp": 100
         }
+      },
+      {
+        "id": "mode-prod-group-path-b533c118",
+        "modeId": "group-path",
+        "title": "Production upset challenge",
+        "createdAt": "2026-07-06T03:36:55.504Z",
+        "capsuleIds": [
+          "cap-prod-73dc2618d1f9"
+        ],
+        "payloadHash": "b533c118af7f443e532ab304204aa45ac5730b22b9ea2a41ddd7bacb0f5f9e4e",
+        "filecoinProof": {
+          "mode": "demo",
+          "cid": "bafy-kickoff-seed-b533c118af7f443e532ab304204aa45a",
+          "pieceCid": "baga6seedb533c118af7f443e532ab304204aa45a",
+          "provider": "demo-provider.fil",
+          "dataSetId": "seed-b533c118af",
+          "proofStatus": "retrievable",
+          "payloadHash": "b533c118af7f443e532ab304204aa45ac5730b22b9ea2a41ddd7bacb0f5f9e4e",
+          "byteLength": 4096
+        },
+        "status": "scored",
+        "score": 82,
+        "requirements": [
+          "Public mode proof target",
+          "Share-card manifest",
+          "Leaderboard scope row"
+        ],
+        "summary": "Production group path sealed for table projection and public proof acceptance.",
+        "artifact": {
+          "kind": "group-table-path",
+          "table": [
+            {
+              "team": "Brazil",
+              "projectedRank": 1,
+              "predictedPoints": 3,
+              "predictedGoalDifference": 1,
+              "actualPoints": 3,
+              "actualGoalDifference": 1,
+              "locks": 1
+            },
+            {
+              "team": "Spain",
+              "projectedRank": 2,
+              "predictedPoints": 0,
+              "predictedGoalDifference": -1,
+              "actualPoints": 0,
+              "actualGoalDifference": -1,
+              "locks": 1
+            }
+          ],
+          "picks": [
+            {
+              "capsuleId": "cap-prod-73dc2618d1f9",
+              "matchLabel": "Brazil vs Japan",
+              "predictedWinner": "Brazil",
+              "predictedScore": "2-1",
+              "actualScore": "2-1",
+              "winnerHit": true
+            }
+          ],
+          "resolvedMatches": 1,
+          "winnerHits": 1,
+          "topTwo": [
+            "Brazil",
+            "Spain"
+          ]
+        }
       }
     ],
     "shareArtifacts": [
@@ -290,78 +357,92 @@
         "kind": "record",
         "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9",
         "imageGenerated": true,
-        "generatedAt": "2026-07-04T05:52:53.183Z",
+        "generatedAt": "2026-07-06T03:36:55.504Z",
         "fileName": "cap-prod-73dc2618d1f9-record-share-card.png",
         "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
         "imageMime": "image/png",
         "imageByteLength": 231266,
         "imageHash": "1c241dd03fbba6c1fd875f80bae88c039b5acd645181d18d852e7dfa7ca9ca90",
-        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+prediction+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
-        "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+prediction+on+Kickoff+Lock+Agent%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+        "xIntentOpenedAt": "2026-07-06T03:36:55.504Z"
       },
       {
         "id": "mode-prod-bracket-f90d6276",
         "kind": "mode",
         "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276",
         "imageGenerated": true,
-        "generatedAt": "2026-07-04T05:52:53.183Z",
+        "generatedAt": "2026-07-06T03:36:55.504Z",
         "fileName": "mode-prod-bracket-f90d6276-mode-share-card.png",
         "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
         "imageMime": "image/png",
         "imageByteLength": 238857,
         "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
-        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
-        "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+        "xIntentOpenedAt": "2026-07-06T03:36:55.504Z"
       },
       {
         "id": "mode-prod-parlay-77bf4ef2",
         "kind": "mode",
         "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2",
         "imageGenerated": true,
-        "generatedAt": "2026-07-04T05:52:53.183Z",
+        "generatedAt": "2026-07-06T03:36:55.504Z",
         "fileName": "mode-prod-parlay-77bf4ef2-mode-share-card.png",
         "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
         "imageMime": "image/png",
         "imageByteLength": 238857,
         "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
-        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
-        "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+        "xIntentOpenedAt": "2026-07-06T03:36:55.504Z"
       },
       {
         "id": "mode-prod-agent-vs-human-f8b27b3a",
         "kind": "mode",
         "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a",
         "imageGenerated": true,
-        "generatedAt": "2026-07-04T05:52:53.183Z",
+        "generatedAt": "2026-07-06T03:36:55.504Z",
         "fileName": "mode-prod-agent-vs-human-f8b27b3a-mode-share-card.png",
         "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
         "imageMime": "image/png",
         "imageByteLength": 238857,
         "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
-        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
-        "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+        "xIntentOpenedAt": "2026-07-06T03:36:55.504Z"
       },
       {
         "id": "mode-prod-upset-9f6dd619",
         "kind": "mode",
         "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619",
         "imageGenerated": true,
-        "generatedAt": "2026-07-04T05:52:53.183Z",
+        "generatedAt": "2026-07-06T03:36:55.504Z",
         "fileName": "mode-prod-upset-9f6dd619-mode-share-card.png",
         "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
         "imageMime": "image/png",
         "imageByteLength": 238857,
         "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
-        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
-        "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+        "xIntentOpenedAt": "2026-07-06T03:36:55.504Z"
+      },
+      {
+        "id": "mode-prod-group-path-b533c118",
+        "kind": "mode",
+        "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118",
+        "imageGenerated": true,
+        "generatedAt": "2026-07-06T03:36:55.504Z",
+        "fileName": "mode-prod-group-path-b533c118-mode-share-card.png",
+        "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+        "imageMime": "image/png",
+        "imageByteLength": 238857,
+        "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
+        "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-group-path-b533c118&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-group-path-b533c118&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+        "xIntentOpenedAt": "2026-07-06T03:36:55.504Z"
       }
     ],
     "locks": 1,
     "revealed": 1,
-    "modeProofs": 4,
+    "modeProofs": 5,
     "averageScore": 92,
     "bestScore": 92,
-    "xp": 940
+    "xp": 1112
   },
   "record": {
     "capsule": {
@@ -369,7 +450,7 @@
       "matchId": "production-seed-brazil-japan",
       "matchLabel": "Brazil vs Japan",
       "kickoffAt": "2026-06-20T19:00:00.000Z",
-      "createdAt": "2026-07-04T05:52:53.183Z",
+      "createdAt": "2026-07-06T03:36:55.504Z",
       "prediction": {
         "homeScore": 2,
         "awayScore": 1,
@@ -391,16 +472,16 @@
           }
         ]
       },
-      "sealedAt": "2026-07-04T05:52:53.183Z",
-      "payloadHash": "73dc2618d1f932c7fe9f664f2950cdd08a9b17081d44cbc78c9ea49425ab37d4",
+      "sealedAt": "2026-07-06T03:36:55.504Z",
+      "payloadHash": "3c88bea6c506bde0d62e4596e69007309dea09e63b38c15564733638370810bf",
       "filecoinProof": {
         "mode": "demo",
-        "cid": "bafy-kickoff-seed-73dc2618d1f932c7fe9f664f2950cdd0",
-        "pieceCid": "baga6seed73dc2618d1f932c7fe9f664f2950cdd0",
+        "cid": "bafy-kickoff-seed-3c88bea6c506bde0d62e4596e6900730",
+        "pieceCid": "baga6seed3c88bea6c506bde0d62e4596e6900730",
         "provider": "demo-provider.fil",
-        "dataSetId": "seed-73dc2618d1",
+        "dataSetId": "seed-3c88bea6c5",
         "proofStatus": "retrievable",
-        "payloadHash": "73dc2618d1f932c7fe9f664f2950cdd08a9b17081d44cbc78c9ea49425ab37d4",
+        "payloadHash": "3c88bea6c506bde0d62e4596e69007309dea09e63b38c15564733638370810bf",
         "byteLength": 4096
       },
       "locked": true,
@@ -409,7 +490,7 @@
     "result": {
       "id": "result-cap-prod-73dc2618d1f9",
       "capsuleId": "cap-prod-73dc2618d1f9",
-      "revealedAt": "2026-07-04T05:52:53.183Z",
+      "revealedAt": "2026-07-06T03:36:55.504Z",
       "homeScore": 2,
       "awayScore": 1,
       "keyPlayers": [
@@ -438,19 +519,19 @@
     "id": "mode-prod-bracket-f90d6276",
     "modeId": "bracket",
     "title": "Production bracket path",
-    "createdAt": "2026-07-04T05:52:53.183Z",
+    "createdAt": "2026-07-06T03:36:55.504Z",
     "capsuleIds": [
       "cap-prod-73dc2618d1f9"
     ],
-    "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+    "payloadHash": "a86bbb3b83ae8b5fbf0c2a5b5a6be5a0de7662091d16c84e26070f18c2e71fd9",
     "filecoinProof": {
       "mode": "demo",
-      "cid": "bafy-kickoff-seed-f90d6276d2e730c763b216a76618883e",
-      "pieceCid": "baga6seedf90d6276d2e730c763b216a76618883e",
+      "cid": "bafy-kickoff-seed-a86bbb3b83ae8b5fbf0c2a5b5a6be5a0",
+      "pieceCid": "baga6seeda86bbb3b83ae8b5fbf0c2a5b5a6be5a0",
       "provider": "demo-provider.fil",
-      "dataSetId": "seed-f90d6276d2",
+      "dataSetId": "seed-a86bbb3b83",
       "proofStatus": "retrievable",
-      "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+      "payloadHash": "a86bbb3b83ae8b5fbf0c2a5b5a6be5a0de7662091d16c84e26070f18c2e71fd9",
       "byteLength": 4096
     },
     "status": "scored",
@@ -466,8 +547,8 @@
       "bracketPath": {
         "id": "bracket-mode-prod-bracket-f90d6276",
         "title": "Production bracket path",
-        "createdAt": "2026-07-04T05:52:53.183Z",
-        "updatedAt": "2026-07-04T05:52:53.183Z",
+        "createdAt": "2026-07-06T03:36:55.504Z",
+        "updatedAt": "2026-07-06T03:36:55.504Z",
         "picks": [
           {
             "id": "pick-cap-prod-73dc2618d1f9",
@@ -479,15 +560,15 @@
             "note": "Seeded acceptance pick."
           }
         ],
-        "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+        "payloadHash": "a86bbb3b83ae8b5fbf0c2a5b5a6be5a0de7662091d16c84e26070f18c2e71fd9",
         "filecoinProof": {
           "mode": "demo",
-          "cid": "bafy-kickoff-seed-f90d6276d2e730c763b216a76618883e",
-          "pieceCid": "baga6seedf90d6276d2e730c763b216a76618883e",
+          "cid": "bafy-kickoff-seed-a86bbb3b83ae8b5fbf0c2a5b5a6be5a0",
+          "pieceCid": "baga6seeda86bbb3b83ae8b5fbf0c2a5b5a6be5a0",
           "provider": "demo-provider.fil",
-          "dataSetId": "seed-f90d6276d2",
+          "dataSetId": "seed-a86bbb3b83",
           "proofStatus": "retrievable",
-          "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+          "payloadHash": "a86bbb3b83ae8b5fbf0c2a5b5a6be5a0de7662091d16c84e26070f18c2e71fd9",
           "byteLength": 4096
         }
       }
@@ -498,19 +579,19 @@
       "id": "mode-prod-bracket-f90d6276",
       "modeId": "bracket",
       "title": "Production bracket path",
-      "createdAt": "2026-07-04T05:52:53.183Z",
+      "createdAt": "2026-07-06T03:36:55.504Z",
       "capsuleIds": [
         "cap-prod-73dc2618d1f9"
       ],
-      "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+      "payloadHash": "a86bbb3b83ae8b5fbf0c2a5b5a6be5a0de7662091d16c84e26070f18c2e71fd9",
       "filecoinProof": {
         "mode": "demo",
-        "cid": "bafy-kickoff-seed-f90d6276d2e730c763b216a76618883e",
-        "pieceCid": "baga6seedf90d6276d2e730c763b216a76618883e",
+        "cid": "bafy-kickoff-seed-a86bbb3b83ae8b5fbf0c2a5b5a6be5a0",
+        "pieceCid": "baga6seeda86bbb3b83ae8b5fbf0c2a5b5a6be5a0",
         "provider": "demo-provider.fil",
-        "dataSetId": "seed-f90d6276d2",
+        "dataSetId": "seed-a86bbb3b83",
         "proofStatus": "retrievable",
-        "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+        "payloadHash": "a86bbb3b83ae8b5fbf0c2a5b5a6be5a0de7662091d16c84e26070f18c2e71fd9",
         "byteLength": 4096
       },
       "status": "scored",
@@ -526,8 +607,8 @@
         "bracketPath": {
           "id": "bracket-mode-prod-bracket-f90d6276",
           "title": "Production bracket path",
-          "createdAt": "2026-07-04T05:52:53.183Z",
-          "updatedAt": "2026-07-04T05:52:53.183Z",
+          "createdAt": "2026-07-06T03:36:55.504Z",
+          "updatedAt": "2026-07-06T03:36:55.504Z",
           "picks": [
             {
               "id": "pick-cap-prod-73dc2618d1f9",
@@ -539,15 +620,15 @@
               "note": "Seeded acceptance pick."
             }
           ],
-          "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+          "payloadHash": "a86bbb3b83ae8b5fbf0c2a5b5a6be5a0de7662091d16c84e26070f18c2e71fd9",
           "filecoinProof": {
             "mode": "demo",
-            "cid": "bafy-kickoff-seed-f90d6276d2e730c763b216a76618883e",
-            "pieceCid": "baga6seedf90d6276d2e730c763b216a76618883e",
+            "cid": "bafy-kickoff-seed-a86bbb3b83ae8b5fbf0c2a5b5a6be5a0",
+            "pieceCid": "baga6seeda86bbb3b83ae8b5fbf0c2a5b5a6be5a0",
             "provider": "demo-provider.fil",
-            "dataSetId": "seed-f90d6276d2",
+            "dataSetId": "seed-a86bbb3b83",
             "proofStatus": "retrievable",
-            "payloadHash": "f90d6276d2e730c763b216a76618883e034619eb35c5260547fa41de48bc7ff8",
+            "payloadHash": "a86bbb3b83ae8b5fbf0c2a5b5a6be5a0de7662091d16c84e26070f18c2e71fd9",
             "byteLength": 4096
           }
         }
@@ -557,19 +638,19 @@
       "id": "mode-prod-parlay-77bf4ef2",
       "modeId": "parlay",
       "title": "Production parlay ticket",
-      "createdAt": "2026-07-04T05:52:53.183Z",
+      "createdAt": "2026-07-06T03:36:55.504Z",
       "capsuleIds": [
         "cap-prod-73dc2618d1f9"
       ],
-      "payloadHash": "77bf4ef2d7f03e37bbbc617cdd38e8aba78722bfa96537181e6c5727a401d114",
+      "payloadHash": "9221e6ac3282722d6623111cd9fb9f36cc88b629bd192eb1a4e4d539fb2a63f9",
       "filecoinProof": {
         "mode": "demo",
-        "cid": "bafy-kickoff-seed-77bf4ef2d7f03e37bbbc617cdd38e8ab",
-        "pieceCid": "baga6seed77bf4ef2d7f03e37bbbc617cdd38e8ab",
+        "cid": "bafy-kickoff-seed-9221e6ac3282722d6623111cd9fb9f36",
+        "pieceCid": "baga6seed9221e6ac3282722d6623111cd9fb9f36",
         "provider": "demo-provider.fil",
-        "dataSetId": "seed-77bf4ef2d7",
+        "dataSetId": "seed-9221e6ac32",
         "proofStatus": "retrievable",
-        "payloadHash": "77bf4ef2d7f03e37bbbc617cdd38e8aba78722bfa96537181e6c5727a401d114",
+        "payloadHash": "9221e6ac3282722d6623111cd9fb9f36cc88b629bd192eb1a4e4d539fb2a63f9",
         "byteLength": 4096
       },
       "status": "scored",
@@ -609,19 +690,19 @@
       "id": "mode-prod-agent-vs-human-f8b27b3a",
       "modeId": "agent-vs-human",
       "title": "Production agent calibration",
-      "createdAt": "2026-07-04T05:52:53.183Z",
+      "createdAt": "2026-07-06T03:36:55.504Z",
       "capsuleIds": [
         "cap-prod-73dc2618d1f9"
       ],
-      "payloadHash": "f8b27b3a4799d84f7823455d4f808675013e4ed067b20679f179904472c46aff",
+      "payloadHash": "548590955e87466cf8d92127aa73b67691b39cad13d7481c22caa7dc48c496e2",
       "filecoinProof": {
         "mode": "demo",
-        "cid": "bafy-kickoff-seed-f8b27b3a4799d84f7823455d4f808675",
-        "pieceCid": "baga6seedf8b27b3a4799d84f7823455d4f808675",
+        "cid": "bafy-kickoff-seed-548590955e87466cf8d92127aa73b676",
+        "pieceCid": "baga6seed548590955e87466cf8d92127aa73b676",
         "provider": "demo-provider.fil",
-        "dataSetId": "seed-f8b27b3a47",
+        "dataSetId": "seed-548590955e",
         "proofStatus": "retrievable",
-        "payloadHash": "f8b27b3a4799d84f7823455d4f808675013e4ed067b20679f179904472c46aff",
+        "payloadHash": "548590955e87466cf8d92127aa73b67691b39cad13d7481c22caa7dc48c496e2",
         "byteLength": 4096
       },
       "status": "scored",
@@ -654,19 +735,19 @@
       "id": "mode-prod-upset-9f6dd619",
       "modeId": "upset",
       "title": "Production upset challenge",
-      "createdAt": "2026-07-04T05:52:53.183Z",
+      "createdAt": "2026-07-06T03:36:55.504Z",
       "capsuleIds": [
         "cap-prod-73dc2618d1f9"
       ],
-      "payloadHash": "9f6dd619ee0a9d5c01b9af43c633d608e0fd479f6e221d2e0b219b4ab39bd46d",
+      "payloadHash": "6dbaf58d07022edfc1fa2d5795cbd665ef0edd061f13bd262148a5e02882f356",
       "filecoinProof": {
         "mode": "demo",
-        "cid": "bafy-kickoff-seed-9f6dd619ee0a9d5c01b9af43c633d608",
-        "pieceCid": "baga6seed9f6dd619ee0a9d5c01b9af43c633d608",
+        "cid": "bafy-kickoff-seed-6dbaf58d07022edfc1fa2d5795cbd665",
+        "pieceCid": "baga6seed6dbaf58d07022edfc1fa2d5795cbd665",
         "provider": "demo-provider.fil",
-        "dataSetId": "seed-9f6dd619ee",
+        "dataSetId": "seed-6dbaf58d07",
         "proofStatus": "retrievable",
-        "payloadHash": "9f6dd619ee0a9d5c01b9af43c633d608e0fd479f6e221d2e0b219b4ab39bd46d",
+        "payloadHash": "6dbaf58d07022edfc1fa2d5795cbd665ef0edd061f13bd262148a5e02882f356",
         "byteLength": 4096
       },
       "status": "scored",
@@ -694,6 +775,73 @@
         "hitPicks": 1,
         "bonusXp": 100
       }
+    },
+    {
+      "id": "mode-prod-group-path-b533c118",
+      "modeId": "group-path",
+      "title": "Production upset challenge",
+      "createdAt": "2026-07-06T03:36:55.504Z",
+      "capsuleIds": [
+        "cap-prod-73dc2618d1f9"
+      ],
+      "payloadHash": "b533c118af7f443e532ab304204aa45ac5730b22b9ea2a41ddd7bacb0f5f9e4e",
+      "filecoinProof": {
+        "mode": "demo",
+        "cid": "bafy-kickoff-seed-b533c118af7f443e532ab304204aa45a",
+        "pieceCid": "baga6seedb533c118af7f443e532ab304204aa45a",
+        "provider": "demo-provider.fil",
+        "dataSetId": "seed-b533c118af",
+        "proofStatus": "retrievable",
+        "payloadHash": "b533c118af7f443e532ab304204aa45ac5730b22b9ea2a41ddd7bacb0f5f9e4e",
+        "byteLength": 4096
+      },
+      "status": "scored",
+      "score": 82,
+      "requirements": [
+        "Public mode proof target",
+        "Share-card manifest",
+        "Leaderboard scope row"
+      ],
+      "summary": "Production group path sealed for table projection and public proof acceptance.",
+      "artifact": {
+        "kind": "group-table-path",
+        "table": [
+          {
+            "team": "Brazil",
+            "projectedRank": 1,
+            "predictedPoints": 3,
+            "predictedGoalDifference": 1,
+            "actualPoints": 3,
+            "actualGoalDifference": 1,
+            "locks": 1
+          },
+          {
+            "team": "Spain",
+            "projectedRank": 2,
+            "predictedPoints": 0,
+            "predictedGoalDifference": -1,
+            "actualPoints": 0,
+            "actualGoalDifference": -1,
+            "locks": 1
+          }
+        ],
+        "picks": [
+          {
+            "capsuleId": "cap-prod-73dc2618d1f9",
+            "matchLabel": "Brazil vs Japan",
+            "predictedWinner": "Brazil",
+            "predictedScore": "2-1",
+            "actualScore": "2-1",
+            "winnerHit": true
+          }
+        ],
+        "resolvedMatches": 1,
+        "winnerHits": 1,
+        "topTwo": [
+          "Brazil",
+          "Spain"
+        ]
+      }
     }
   ],
   "shareArtifacts": [
@@ -702,70 +850,84 @@
       "kind": "record",
       "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9",
       "imageGenerated": true,
-      "generatedAt": "2026-07-04T05:52:53.183Z",
+      "generatedAt": "2026-07-06T03:36:55.504Z",
       "fileName": "cap-prod-73dc2618d1f9-record-share-card.png",
       "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
       "imageMime": "image/png",
       "imageByteLength": 231266,
       "imageHash": "1c241dd03fbba6c1fd875f80bae88c039b5acd645181d18d852e7dfa7ca9ca90",
-      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+prediction+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
-      "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+prediction+on+Kickoff+Lock+Agent%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fproof%3Dcap-prod-73dc2618d1f9&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "xIntentOpenedAt": "2026-07-06T03:36:55.504Z"
     },
     {
       "id": "mode-prod-bracket-f90d6276",
       "kind": "mode",
       "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276",
       "imageGenerated": true,
-      "generatedAt": "2026-07-04T05:52:53.183Z",
+      "generatedAt": "2026-07-06T03:36:55.504Z",
       "fileName": "mode-prod-bracket-f90d6276-mode-share-card.png",
       "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
       "imageMime": "image/png",
       "imageByteLength": 238857,
       "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
-      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
-      "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-bracket-f90d6276&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "xIntentOpenedAt": "2026-07-06T03:36:55.504Z"
     },
     {
       "id": "mode-prod-parlay-77bf4ef2",
       "kind": "mode",
       "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2",
       "imageGenerated": true,
-      "generatedAt": "2026-07-04T05:52:53.183Z",
+      "generatedAt": "2026-07-06T03:36:55.504Z",
       "fileName": "mode-prod-parlay-77bf4ef2-mode-share-card.png",
       "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
       "imageMime": "image/png",
       "imageByteLength": 238857,
       "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
-      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
-      "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-parlay-77bf4ef2&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "xIntentOpenedAt": "2026-07-06T03:36:55.504Z"
     },
     {
       "id": "mode-prod-agent-vs-human-f8b27b3a",
       "kind": "mode",
       "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a",
       "imageGenerated": true,
-      "generatedAt": "2026-07-04T05:52:53.183Z",
+      "generatedAt": "2026-07-06T03:36:55.504Z",
       "fileName": "mode-prod-agent-vs-human-f8b27b3a-mode-share-card.png",
       "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
       "imageMime": "image/png",
       "imageByteLength": 238857,
       "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
-      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
-      "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-agent-vs-human-f8b27b3a&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "xIntentOpenedAt": "2026-07-06T03:36:55.504Z"
     },
     {
       "id": "mode-prod-upset-9f6dd619",
       "kind": "mode",
       "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619",
       "imageGenerated": true,
-      "generatedAt": "2026-07-04T05:52:53.183Z",
+      "generatedAt": "2026-07-06T03:36:55.504Z",
       "fileName": "mode-prod-upset-9f6dd619-mode-share-card.png",
       "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
       "imageMime": "image/png",
       "imageByteLength": 238857,
       "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
-      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent.&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
-      "xIntentOpenedAt": "2026-07-04T05:52:53.183Z"
+      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-upset-9f6dd619&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "xIntentOpenedAt": "2026-07-06T03:36:55.504Z"
+    },
+    {
+      "id": "mode-prod-group-path-b533c118",
+      "kind": "mode",
+      "proofUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118",
+      "imageGenerated": true,
+      "generatedAt": "2026-07-06T03:36:55.504Z",
+      "fileName": "mode-prod-group-path-b533c118-mode-share-card.png",
+      "imageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+      "imageMime": "image/png",
+      "imageByteLength": 238857,
+      "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0",
+      "xIntentUrl": "https://twitter.com/intent/tweet?text=I+sealed+a+World+Cup+mode+proof+on+Kickoff+Lock+Agent%3A+https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-group-path-b533c118&url=https%3A%2F%2Folive8882-1996.github.io%2Fkickoff-lock-agent%2F%3Fmode%3Dmode-prod-group-path-b533c118&hashtags=KickoffLock%2CFilecoin%2CWorldCup",
+      "xIntentOpenedAt": "2026-07-06T03:36:55.504Z"
     }
   ]
 }

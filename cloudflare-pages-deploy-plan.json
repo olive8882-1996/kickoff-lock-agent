@@ -1,0 +1,119 @@
+{
+  "artifactVersion": 1,
+  "generatedAt": "2026-07-06T09:39:29.536Z",
+  "source": "local-script",
+  "envFiles": [
+    ".env.production.local"
+  ],
+  "outputPath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/cloudflare-pages-deploy-plan.json",
+  "wrote": true,
+  "functionsBuild": {
+    "command": "bunx wrangler pages functions build functions --outfile=.wrangler/pages-functions.js",
+    "status": 0,
+    "stdoutTail": "⛅️ wrangler 4.107.0\n────────────────────\n✨ Compiled Worker successfully",
+    "stderrTail": "Resolving dependencies\nResolved, downloaded and extracted [2]\nSaved lockfile"
+  },
+  "wranglerWhoami": {
+    "command": "bunx wrangler whoami",
+    "status": 0,
+    "ready": false,
+    "outputTail": "⛅️ wrangler 4.107.0\n────────────────────\nGetting User settings...\nYou are not authenticated. Please run `wrangler login`.\nTo deploy without logging in, run a command like `wrangler deploy --temporary` to use a temporary preview account.\nResolving dependencies\nResolved, downloaded and extracted [2]\nSaved lockfile"
+  },
+  "ready": false,
+  "projectName": "kickoff-lock-agent",
+  "branch": "main",
+  "outputDir": "dist",
+  "plannedPagesUrl": "https://kickoff-lock-agent.pages.dev/",
+  "tokenAuthReady": false,
+  "wranglerLoginReady": false,
+  "sameOriginData": false,
+  "sameOriginSeal": false,
+  "functionsReady": true,
+  "runtimePreflight": {
+    "sameOriginData": false,
+    "sameOriginSeal": false,
+    "functionsReady": true,
+    "functionEntryProblems": [],
+    "problems": []
+  },
+  "stageReadyCount": 2,
+  "totalStages": 4,
+  "blockedStages": 2,
+  "missingEnv": [
+    "CLOUDFLARE_API_TOKEN",
+    "CLOUDFLARE_ACCOUNT_ID"
+  ],
+  "stages": [
+    {
+      "id": "functions",
+      "label": "Build Cloudflare Pages Functions bundle",
+      "status": "done",
+      "command": "bun run pages:functions:build",
+      "requiredEnv": [],
+      "missingEnv": [],
+      "outputEnv": [
+        ".wrangler/pages-functions.js"
+      ],
+      "detail": "Cloudflare Pages Functions bundle compiled with Wrangler."
+    },
+    {
+      "id": "runtime-secrets",
+      "label": "Set Pages runtime secrets",
+      "status": "done",
+      "command": "Set Cloudflare Pages environment variables: APIFOOTBALL_KEY, ODDS_API_KEY, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN, ALLOW_ORIGIN",
+      "requiredEnv": [],
+      "missingEnv": [],
+      "outputEnv": [
+        "same-origin /data-proxy/health",
+        "same-origin /seal health"
+      ],
+      "detail": "Runtime secrets are ready for Pages Functions."
+    },
+    {
+      "id": "auth",
+      "label": "Authenticate Cloudflare deploy",
+      "status": "blocked",
+      "command": "bun run pages:cf:check",
+      "requiredEnv": [
+        "CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID or wrangler login"
+      ],
+      "missingEnv": [
+        "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_ACCOUNT_ID"
+      ],
+      "outputEnv": [
+        "Cloudflare Pages deploy authorization"
+      ],
+      "detail": "Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, or run bunx wrangler login and set CLOUDFLARE_WRANGLER_LOGIN=1."
+    },
+    {
+      "id": "deploy",
+      "label": "Deploy app and same-origin backend routes",
+      "status": "blocked",
+      "command": "bun run pages:cf:deploy",
+      "requiredEnv": [
+        "Cloudflare Pages project",
+        "dist build",
+        "functions bundle",
+        "deploy auth"
+      ],
+      "missingEnv": [
+        "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_ACCOUNT_ID"
+      ],
+      "outputEnv": [
+        "https://kickoff-lock-agent.pages.dev/",
+        "VITE_DATA_PROXY_SAME_ORIGIN=1",
+        "VITE_FILECOIN_SEAL_SAME_ORIGIN=1"
+      ],
+      "detail": "Complete Functions, runtime secrets and Cloudflare auth before deploying the same-origin backend routes."
+    }
+  ],
+  "commands": [
+    "bun run pages:functions:build",
+    "bun run pages:cf:check",
+    "bun run pages:cf:deploy"
+  ],
+  "nextAction": "Authenticate Cloudflare deploy: Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, or run bunx wrangler login and set CLOUDFLARE_WRANGLER_LOGIN=1.",
+  "copyText": "Kickoff Lock Agent Cloudflare Pages deploy plan\nReady: no\nProject: kickoff-lock-agent\nBranch: main\nPlanned URL: https://kickoff-lock-agent.pages.dev/\nSame-origin data proxy: no\nSame-origin Filecoin seal proxy: no\nNext action: Authenticate Cloudflare deploy: Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, or run bunx wrangler login and set CLOUDFLARE_WRANGLER_LOGIN=1.\nCommands:\n- bun run pages:functions:build\n- bun run pages:cf:check\n- bun run pages:cf:deploy\nStages:\n- Build Cloudflare Pages Functions bundle [done]\n  command: bun run pages:functions:build\n  missing: none\n  detail: Cloudflare Pages Functions bundle compiled with Wrangler.\n- Set Pages runtime secrets [done]\n  command: Set Cloudflare Pages environment variables: APIFOOTBALL_KEY, ODDS_API_KEY, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN, ALLOW_ORIGIN\n  missing: none\n  detail: Runtime secrets are ready for Pages Functions.\n- Authenticate Cloudflare deploy [blocked]\n  command: bun run pages:cf:check\n  missing: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID\n  detail: Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, or run bunx wrangler login and set CLOUDFLARE_WRANGLER_LOGIN=1.\n- Deploy app and same-origin backend routes [blocked]\n  command: bun run pages:cf:deploy\n  missing: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID\n  detail: Complete Functions, runtime secrets and Cloudflare auth before deploying the same-origin backend routes."
+}

@@ -1,6 +1,6 @@
 {
   "ready": false,
-  "requiredPassed": 8,
+  "requiredPassed": 9,
   "requiredTotal": 10,
   "checks": [
     {
@@ -76,7 +76,7 @@
       "id": "mode-render",
       "label": "Public mode proof render",
       "required": true,
-      "detail": "mode-prod-group-path-b533c118: missing Mode proof facts, Proof timeline, Verifier packet, Social metadata, mode-prod-group-path-b533c118; social metadata incomplete | mode-prod-group-path-b533c118: og:image https://olive8882-1996.github.io/kickoff-lock-agent/assets/kickoff-lock-icon.png does not match expected share image https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png | mode-prod-group-path-b533c118: JSON-LD image missing; expected https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+      "detail": "rendered 5/5 mode pages with canonical URL, social metadata and JSON-LD",
       "action": "Set KICKOFF_VERIFY_MODE_IDS to synced mode proof run ids with share manifests.",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276",
       "sampleIds": [
@@ -86,7 +86,7 @@
         "mode-prod-upset-9f6dd619",
         "mode-prod-group-path-b533c118"
       ],
-      "status": "failed"
+      "status": "passed"
     },
     {
       "id": "clean-session-restore",
@@ -96,15 +96,6 @@
       "action": "Render profile, proof and every mode proof page from the deployed app with cloud-loaded Supabase content in a clean browser context.",
       "sampleIds": [],
       "status": "failed"
-    },
-    {
-      "id": "share-image-public-read",
-      "label": "Public share image read",
-      "required": true,
-      "detail": "image/png · 231266 bytes · 1200x675",
-      "action": "Generate a record share card PNG, publish it as a public HTTPS image and set KICKOFF_VERIFY_SHARE_IMAGE_URL.",
-      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
-      "status": "passed"
     },
     {
       "id": "mode-share-image-public-read",
@@ -114,25 +105,18 @@
       "action": "Generate a mode proof share card PNG, publish it as a public HTTPS image and set KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL.",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
       "status": "passed"
+    },
+    {
+      "id": "share-image-public-read",
+      "label": "Public share image read",
+      "required": true,
+      "detail": "image/png · 231266 bytes · 1200x675",
+      "action": "Generate a record share card PNG, publish it as a public HTTPS image and set KICKOFF_VERIFY_SHARE_IMAGE_URL.",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
+      "status": "passed"
     }
   ],
   "nextActions": [
-    {
-      "id": "mode-render",
-      "label": "Public mode proof render",
-      "required": true,
-      "detail": "mode-prod-group-path-b533c118: missing Mode proof facts, Proof timeline, Verifier packet, Social metadata, mode-prod-group-path-b533c118; social metadata incomplete | mode-prod-group-path-b533c118: og:image https://olive8882-1996.github.io/kickoff-lock-agent/assets/kickoff-lock-icon.png does not match expected share image https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png | mode-prod-group-path-b533c118: JSON-LD image missing; expected https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
-      "action": "Set KICKOFF_VERIFY_MODE_IDS to synced mode proof run ids with share manifests.",
-      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276",
-      "sampleIds": [
-        "mode-prod-bracket-f90d6276",
-        "mode-prod-parlay-77bf4ef2",
-        "mode-prod-agent-vs-human-f8b27b3a",
-        "mode-prod-upset-9f6dd619",
-        "mode-prod-group-path-b533c118"
-      ],
-      "status": "failed"
-    },
     {
       "id": "clean-session-restore",
       "label": "Clean-session account restore",
@@ -143,7 +127,7 @@
       "status": "failed"
     }
   ],
-  "generatedAt": "2026-07-06T03:37:34.240Z",
+  "generatedAt": "2026-07-06T03:38:33.395Z",
   "envFiles": [
     ".env.production.local"
   ],
@@ -167,7 +151,7 @@
     "cleanSessionRestore": false,
     "profileRender": true,
     "proofRender": true,
-    "modeRenderCount": 0,
+    "modeRenderCount": 5,
     "requiredModeRenderCount": 5,
     "cleanSessionProfileIds": [],
     "cleanSessionProofIds": [],

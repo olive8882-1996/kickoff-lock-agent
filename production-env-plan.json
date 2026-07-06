@@ -307,9 +307,9 @@
       "group": "verification",
       "required": true,
       "status": "filled",
-      "detail": "mode-prod-bracket-...set-9f6dd619",
+      "detail": "mode-prod-bracket-...ath-b533c118",
       "command": "bun run seed:production-targets",
-      "action": "Create bracket, parlay, Agent vs Human and upset proof runs."
+      "action": "Create bracket, parlay, Agent vs Human, upset and group path proof runs."
     },
     {
       "key": "KICKOFF_VERIFY_FILECOIN_RECORD_CID",

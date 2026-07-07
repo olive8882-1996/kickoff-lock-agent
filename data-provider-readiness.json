@@ -14,7 +14,7 @@
       "id": "football-data-backup",
       "label": "Stable schedule and score backup",
       "passed": true,
-      "detail": "openfootball/TheSportsDB public feeds configured",
+      "detail": "openfootball 104 rows + TheSportsDB 15 rows",
       "action": "Keep openfootball/TheSportsDB public feeds reachable for no-key schedule and score continuity; add FOOTBALL_DATA_TOKEN when you want a second server-side matches/standings backup."
     },
     {
@@ -97,7 +97,7 @@
       "action": "Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1."
     }
   ],
-  "generatedAt": "2026-07-06T18:36:57.645Z",
+  "generatedAt": "2026-07-07T00:51:24.117Z",
   "envFiles": [
     ".env.production.local"
   ],
@@ -118,6 +118,23 @@
     },
     "footballDataCredentialConfigured": false,
     "freeFeedBackupConfigured": true,
+    "publicFreeFeedReadBack": {
+      "checkedAt": "2026-07-07T00:51:24.116Z",
+      "openfootball": {
+        "url": "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json",
+        "ok": true,
+        "status": 200,
+        "rowCount": 104,
+        "detail": "104 World Cup rows"
+      },
+      "theSportsDb": {
+        "url": "https://www.thesportsdb.com/api/v1/json/123/eventsseason.php?id=4429&s=2026",
+        "ok": true,
+        "status": 200,
+        "rowCount": 15,
+        "detail": "15 season events"
+      }
+    },
     "dataProxyHealthProof": {
       "checked": false,
       "ok": false,
@@ -134,6 +151,7 @@
   "acceptance": {
     "apiFootballKey": false,
     "footballDataBackup": true,
+    "publicFreeFeedReadBack": true,
     "fixtureTargets": false,
     "fixtureSignalMatrix": false,
     "oddsProvider": false,

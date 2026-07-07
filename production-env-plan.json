@@ -97,9 +97,9 @@
       "group": "runtime",
       "required": false,
       "status": "optional",
-      "detail": "Optional VITE_FOOTBALL_DATA_TOKEN missing",
+      "detail": "Optional VITE_FOOTBALL_DATA_TOKEN missing, or deploy data proxy with server-side FOOTBALL_DATA_TOKEN",
       "command": "bun run runtime:config:check",
-      "action": "Add Football-Data.org as a backup fixture and score route if quota allows."
+      "action": "Add Football-Data.org as a backup fixture, score and standings route through server-side FOOTBALL_DATA_TOKEN when quota allows."
     },
     {
       "key": "VITE_FILECOIN_SEAL_API_OR_SAME_ORIGIN",
@@ -327,7 +327,7 @@
       "group": "verification",
       "required": true,
       "status": "filled",
-      "detail": "mode-prod-bracket-...ath-b533c118",
+      "detail": "mode-prod-bracket-...ure-f7632967",
       "command": "bun run seed:production-targets",
       "action": "Create bracket, parlay, Agent vs Human, upset and group path proof runs."
     },
@@ -337,9 +337,19 @@
       "group": "verification",
       "required": true,
       "status": "filled",
-      "detail": "record:cap-prod-73...ath-b533c118",
+      "detail": "record:cap-prod-73...ure-f7632967",
       "command": "bun run seed:production-targets",
       "action": "Sync record and mode share-card manifests so public cards can be read back by id."
+    },
+    {
+      "key": "KICKOFF_VERIFY_FILECOIN_RECORD_JOB_ID",
+      "label": "Record seal job id",
+      "group": "verification",
+      "required": true,
+      "status": "missing",
+      "detail": "missing",
+      "command": "bun run seal:production-targets",
+      "action": "Copy the async upload job id returned by the production record seal."
     },
     {
       "key": "KICKOFF_VERIFY_FILECOIN_RECORD_CID",
@@ -372,6 +382,16 @@
       "action": "Seal at least one mode proof if multi-mode CIDs are not available yet."
     },
     {
+      "key": "KICKOFF_VERIFY_FILECOIN_MODE_JOB_IDS",
+      "label": "All required mode seal job ids",
+      "group": "verification",
+      "required": false,
+      "status": "optional",
+      "detail": "missing",
+      "command": "bun run seal:production-targets",
+      "action": "Merge the async upload job id list from every required mode seal."
+    },
+    {
       "key": "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH",
       "label": "Primary mode payload hash",
       "group": "verification",
@@ -396,8 +416,8 @@
       "label": "All required mode payload hashes",
       "group": "verification",
       "required": true,
-      "status": "filled",
-      "detail": "25c8e017e0edeff484...d7df699fa827",
+      "status": "invalid",
+      "detail": "25c8e017e0edeff484...d7df699fa827 (needs 6 mode payload hashes)",
       "command": "bun run seal:production-targets",
       "action": "Merge the payload hash list from the mode seal report."
     },
@@ -504,6 +524,7 @@
     "SUPABASE_SERVICE_ROLE_KEY",
     "SYNAPSE_PRIVATE_KEY",
     "FILECOIN_SEAL_TOKEN",
+    "KICKOFF_VERIFY_FILECOIN_RECORD_JOB_ID",
     "KICKOFF_VERIFY_FILECOIN_RECORD_CID",
     "KICKOFF_VERIFY_FILECOIN_MODE_CID",
     "KICKOFF_VERIFY_FILECOIN_MODE_CIDS",
@@ -511,7 +532,9 @@
     "KICKOFF_VERIFY_FIXTURE_IDS",
     "KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX"
   ],
-  "invalidRequired": [],
+  "invalidRequired": [
+    "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES"
+  ],
   "blankDeclarations": [
     {
       "key": "VITE_SUPABASE_URL",
@@ -620,11 +643,11 @@
       "group": "verification",
       "label": "Production targets",
       "ready": false,
-      "filled": 13,
-      "total": 19
+      "filled": 12,
+      "total": 20
     }
   ],
-  "templateText": "# Browser runtime\nVITE_SUPABASE_URL=\nVITE_SUPABASE_ANON_KEY=\nVITE_DATA_PROXY_URL=\nVITE_DATA_PROXY_SAME_ORIGIN=0\nAPIFOOTBALL_KEY=\nVITE_APIFOOTBALL_KEY=\nODDS_API_KEY=\nVITE_ODDS_API_KEY=\nVITE_ODDS_API_SPORT_KEY=\nVITE_FILECOIN_SEAL_API=\nVITE_FILECOIN_SEAL_SAME_ORIGIN=0\nVITE_FILECOIN_SEAL_TOKEN=\n\n# Server/service\nSUPABASE_DB_URL=\nSUPABASE_SERVICE_ROLE_KEY=\nSYNAPSE_PRIVATE_KEY=\nFILECOIN_SEAL_TOKEN=\n\n# Production targets\nKICKOFF_VERIFY_FILECOIN_RECORD_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_CIDS=\nKICKOFF_VERIFY_FIXTURE_ID=\nKICKOFF_VERIFY_FIXTURE_IDS=\nKICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX=\n",
-  "copyText": "Kickoff Lock Agent production env plan\nReady: no\nMissing required: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_DATA_PROXY_URL_OR_SAME_ORIGIN, APIFOOTBALL_KEY_OR_VITE_APIFOOTBALL_KEY_OR_DATA_PROXY, API_FOOTBALL_OR_ODDS_PROVIDER, VITE_FILECOIN_SEAL_API_OR_SAME_ORIGIN, VITE_FILECOIN_SEAL_TOKEN, SUPABASE_DB_URL, SUPABASE_SERVICE_ROLE_KEY, SYNAPSE_PRIVATE_KEY, FILECOIN_SEAL_TOKEN, KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_MODE_CID, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FIXTURE_ID, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\nInvalid required: none\nBlank declarations: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_DB_URL (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local), APIFOOTBALL_KEY (.env.production.local), VITE_APIFOOTBALL_KEY (.env.production.local), VITE_DATA_PROXY_URL (.env.production.local), VITE_ODDS_API_KEY (.env.production.local), VITE_ODDS_API_SPORT_KEY (.env.production.local), ODDS_API_KEY (.env.production.local), VITE_FILECOIN_SEAL_API (.env.production.local), VITE_FILECOIN_SEAL_TOKEN (.env.production.local), SYNAPSE_PRIVATE_KEY (.env.production.local), FILECOIN_SEAL_TOKEN (.env.production.local), KICKOFF_VERIFY_FILECOIN_RECORD_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local), KICKOFF_VERIFY_FIXTURE_ID (.env.production.local), KICKOFF_VERIFY_FIXTURE_IDS (.env.production.local), KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX (.env.production.local)\nNext action: bun run supabase:bootstrap · Set Supabase project URL and anon key before claiming cross-device account sync.\n\n# Browser runtime\nVITE_SUPABASE_URL=\nVITE_SUPABASE_ANON_KEY=\nVITE_DATA_PROXY_URL=\nVITE_DATA_PROXY_SAME_ORIGIN=0\nAPIFOOTBALL_KEY=\nVITE_APIFOOTBALL_KEY=\nODDS_API_KEY=\nVITE_ODDS_API_KEY=\nVITE_ODDS_API_SPORT_KEY=\nVITE_FILECOIN_SEAL_API=\nVITE_FILECOIN_SEAL_SAME_ORIGIN=0\nVITE_FILECOIN_SEAL_TOKEN=\n\n# Server/service\nSUPABASE_DB_URL=\nSUPABASE_SERVICE_ROLE_KEY=\nSYNAPSE_PRIVATE_KEY=\nFILECOIN_SEAL_TOKEN=\n\n# Production targets\nKICKOFF_VERIFY_FILECOIN_RECORD_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_CIDS=\nKICKOFF_VERIFY_FIXTURE_ID=\nKICKOFF_VERIFY_FIXTURE_IDS=\nKICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX=",
+  "templateText": "# Browser runtime\nVITE_SUPABASE_URL=\nVITE_SUPABASE_ANON_KEY=\nVITE_DATA_PROXY_URL=\nVITE_DATA_PROXY_SAME_ORIGIN=0\nAPIFOOTBALL_KEY=\nVITE_APIFOOTBALL_KEY=\nODDS_API_KEY=\nVITE_ODDS_API_KEY=\nVITE_ODDS_API_SPORT_KEY=\nVITE_FILECOIN_SEAL_API=\nVITE_FILECOIN_SEAL_SAME_ORIGIN=0\nVITE_FILECOIN_SEAL_TOKEN=\n\n# Server/service\nSUPABASE_DB_URL=\nSUPABASE_SERVICE_ROLE_KEY=\nSYNAPSE_PRIVATE_KEY=\nFILECOIN_SEAL_TOKEN=\n\n# Production targets\nKICKOFF_VERIFY_FILECOIN_RECORD_JOB_ID=\nKICKOFF_VERIFY_FILECOIN_RECORD_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_CIDS=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES=\nKICKOFF_VERIFY_FIXTURE_ID=\nKICKOFF_VERIFY_FIXTURE_IDS=\nKICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX=\n",
+  "copyText": "Kickoff Lock Agent production env plan\nReady: no\nMissing required: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_DATA_PROXY_URL_OR_SAME_ORIGIN, APIFOOTBALL_KEY_OR_VITE_APIFOOTBALL_KEY_OR_DATA_PROXY, API_FOOTBALL_OR_ODDS_PROVIDER, VITE_FILECOIN_SEAL_API_OR_SAME_ORIGIN, VITE_FILECOIN_SEAL_TOKEN, SUPABASE_DB_URL, SUPABASE_SERVICE_ROLE_KEY, SYNAPSE_PRIVATE_KEY, FILECOIN_SEAL_TOKEN, KICKOFF_VERIFY_FILECOIN_RECORD_JOB_ID, KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_MODE_CID, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FIXTURE_ID, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\nInvalid required: KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES\nBlank declarations: VITE_SUPABASE_URL (.env.production.local), VITE_SUPABASE_ANON_KEY (.env.production.local), SUPABASE_DB_URL (.env.production.local), SUPABASE_SERVICE_ROLE_KEY (.env.production.local), APIFOOTBALL_KEY (.env.production.local), VITE_APIFOOTBALL_KEY (.env.production.local), VITE_DATA_PROXY_URL (.env.production.local), VITE_ODDS_API_KEY (.env.production.local), VITE_ODDS_API_SPORT_KEY (.env.production.local), ODDS_API_KEY (.env.production.local), VITE_FILECOIN_SEAL_API (.env.production.local), VITE_FILECOIN_SEAL_TOKEN (.env.production.local), SYNAPSE_PRIVATE_KEY (.env.production.local), FILECOIN_SEAL_TOKEN (.env.production.local), KICKOFF_VERIFY_FILECOIN_RECORD_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CID (.env.production.local), KICKOFF_VERIFY_FILECOIN_MODE_CIDS (.env.production.local), KICKOFF_VERIFY_FIXTURE_ID (.env.production.local), KICKOFF_VERIFY_FIXTURE_IDS (.env.production.local), KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX (.env.production.local)\nNext action: bun run supabase:bootstrap · Set Supabase project URL and anon key before claiming cross-device account sync.\n\n# Browser runtime\nVITE_SUPABASE_URL=\nVITE_SUPABASE_ANON_KEY=\nVITE_DATA_PROXY_URL=\nVITE_DATA_PROXY_SAME_ORIGIN=0\nAPIFOOTBALL_KEY=\nVITE_APIFOOTBALL_KEY=\nODDS_API_KEY=\nVITE_ODDS_API_KEY=\nVITE_ODDS_API_SPORT_KEY=\nVITE_FILECOIN_SEAL_API=\nVITE_FILECOIN_SEAL_SAME_ORIGIN=0\nVITE_FILECOIN_SEAL_TOKEN=\n\n# Server/service\nSUPABASE_DB_URL=\nSUPABASE_SERVICE_ROLE_KEY=\nSYNAPSE_PRIVATE_KEY=\nFILECOIN_SEAL_TOKEN=\n\n# Production targets\nKICKOFF_VERIFY_FILECOIN_RECORD_JOB_ID=\nKICKOFF_VERIFY_FILECOIN_RECORD_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_CIDS=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES=\nKICKOFF_VERIFY_FIXTURE_ID=\nKICKOFF_VERIFY_FIXTURE_IDS=\nKICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX=",
   "nextAction": "bun run supabase:bootstrap: Set Supabase project URL and anon key before claiming cross-device account sync."
 }

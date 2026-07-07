@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T22:11:39.075Z",
+  "generatedAt": "2026-07-07T00:07:09.324Z",
   "source": "local-script",
   "envFiles": [
     ".env.production.local"
@@ -370,7 +370,7 @@
     {
       "label": "Mode proof rows",
       "scope": "mode",
-      "path": "kickoff_mode_runs?select=id,user_id,mode_id,status,score,season_key,friend_code&id=in.(mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118)&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=5",
+      "path": "kickoff_mode_runs?select=id,user_id,mode_id,status,score,season_key,friend_code&id=in.(mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118,mode-prod-penalty-pressure-f7632967)&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=6",
       "url": "",
       "authMode": "anon",
       "targetIds": [
@@ -378,20 +378,22 @@
         "mode-prod-parlay-77bf4ef2",
         "mode-prod-agent-vs-human-f8b27b3a",
         "mode-prod-upset-9f6dd619",
-        "mode-prod-group-path-b533c118"
+        "mode-prod-group-path-b533c118",
+        "mode-prod-penalty-pressure-f7632967"
       ],
       "expectedUserId": "kickoff-production-seed",
       "expectedFriendCode": "chengdu",
       "expectedSeasonKey": "world-cup-run",
       "responseExpectation": {
         "responseType": "supabase-array",
-        "minRows": 5,
+        "minRows": 6,
         "targetIds": [
           "mode-prod-bracket-f90d6276",
           "mode-prod-parlay-77bf4ef2",
           "mode-prod-agent-vs-human-f8b27b3a",
           "mode-prod-upset-9f6dd619",
-          "mode-prod-group-path-b533c118"
+          "mode-prod-group-path-b533c118",
+          "mode-prod-penalty-pressure-f7632967"
         ],
         "requiredFields": [
           "id",
@@ -408,7 +410,7 @@
         "expectedSource": "cloud"
       },
       "ready": false,
-      "command": "Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_mode_runs?select=id,user_id,mode_id,status,score,season_key,friend_code&id=in.(mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118)&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=5"
+      "command": "Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_mode_runs?select=id,user_id,mode_id,status,score,season_key,friend_code&id=in.(mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118,mode-prod-penalty-pressure-f7632967)&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=6"
     },
     {
       "label": "Record share artifact row",
@@ -449,7 +451,7 @@
     {
       "label": "Mode share artifact rows",
       "scope": "shareArtifact",
-      "path": "kickoff_share_artifacts?select=id,user_id,season_key,friend_code,kind,image_url,image_hash,proof_url&id=in.(mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118)&kind=eq.mode&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=5",
+      "path": "kickoff_share_artifacts?select=id,user_id,season_key,friend_code,kind,image_url,image_hash,proof_url&id=in.(mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118,mode-prod-penalty-pressure-f7632967)&kind=eq.mode&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=6",
       "url": "",
       "authMode": "anon",
       "targetIds": [
@@ -457,20 +459,22 @@
         "mode-prod-parlay-77bf4ef2",
         "mode-prod-agent-vs-human-f8b27b3a",
         "mode-prod-upset-9f6dd619",
-        "mode-prod-group-path-b533c118"
+        "mode-prod-group-path-b533c118",
+        "mode-prod-penalty-pressure-f7632967"
       ],
       "expectedUserId": "kickoff-production-seed",
       "expectedFriendCode": "chengdu",
       "expectedSeasonKey": "world-cup-run",
       "responseExpectation": {
         "responseType": "supabase-array",
-        "minRows": 5,
+        "minRows": 6,
         "targetIds": [
           "mode-prod-bracket-f90d6276",
           "mode-prod-parlay-77bf4ef2",
           "mode-prod-agent-vs-human-f8b27b3a",
           "mode-prod-upset-9f6dd619",
-          "mode-prod-group-path-b533c118"
+          "mode-prod-group-path-b533c118",
+          "mode-prod-penalty-pressure-f7632967"
         ],
         "requiredFields": [
           "id",
@@ -488,7 +492,7 @@
         "expectedSource": "cloud"
       },
       "ready": false,
-      "command": "Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_share_artifacts?select=id,user_id,season_key,friend_code,kind,image_url,image_hash,proof_url&id=in.(mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118)&kind=eq.mode&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=5"
+      "command": "Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_share_artifacts?select=id,user_id,season_key,friend_code,kind,image_url,image_hash,proof_url&id=in.(mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118,mode-prod-penalty-pressure-f7632967)&kind=eq.mode&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=6"
     },
     {
       "label": "Global leaderboard",
@@ -838,6 +842,36 @@
       },
       "ready": true,
       "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118'"
+    },
+    {
+      "label": "Clean-session Mode proof 6",
+      "scope": "public-mode",
+      "path": "/kickoff-lock-agent/?mode=mode-prod-penalty-pressure-f7632967",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-penalty-pressure-f7632967",
+      "authMode": "public-page",
+      "targetIds": [
+        "mode-prod-penalty-pressure-f7632967"
+      ],
+      "expectedUserId": "kickoff-production-seed",
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetIds": [
+          "mode-prod-penalty-pressure-f7632967"
+        ],
+        "requiredFields": [
+          "canonical-url",
+          "social-metadata",
+          "share-image",
+          "cloud-record"
+        ],
+        "expectedUserId": "kickoff-production-seed",
+        "expectedSource": "cloud",
+        "requiresCleanSession": true,
+        "pageKind": "mode",
+        "queryParam": "mode"
+      },
+      "ready": true,
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-penalty-pressure-f7632967'"
     }
   ],
   "commands": [
@@ -847,5 +881,5 @@
     "bun run doctor:supabase"
   ],
   "nextAction": "Apply Supabase schema: set SUPABASE_DB_URL first.",
-  "copyText": "Kickoff Lock Agent Supabase production bootstrap\nMode: plan\nStages: 0/4 ready or done\nMissing env: SUPABASE_DB_URL, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\nNext action: Apply Supabase schema: set SUPABASE_DB_URL first.\nCommands:\n- bun run supabase:schema:check\n- bun run runtime:config:check\n- bun run seed:production-targets --dry-run\n- bun run doctor:supabase\nSupabase Auth admin read-back command:\n- Auth admin user: Set VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and KICKOFF_VERIFY_USER_ID before reading the Auth user.\nAnonymous Supabase read-back commands:\n- Profile row: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_profiles?select=id,email,display_name,location,friend_code,season_key,updated_at&id=eq.kickoff-production-seed&limit=1\n- Prediction row: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_records?select=id,user_id,season_key,friend_code,total_score&id=eq.cap-prod-73dc2618d1f9&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=1\n- Mode proof rows: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_mode_runs?select=id,user_id,mode_id,status,score,season_key,friend_code&id=in.(mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118)&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=5\n- Record share artifact row: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_share_artifacts?select=id,user_id,season_key,friend_code,kind,image_url,image_hash,proof_url&id=eq.cap-prod-73dc2618d1f9&kind=eq.record&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=1\n- Mode share artifact rows: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_share_artifacts?select=id,user_id,season_key,friend_code,kind,image_url,image_hash,proof_url&id=in.(mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118)&kind=eq.mode&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=5\n- Global leaderboard: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_leaderboard?select=id,display_name,location,friend_code,season_key,locks,revealed,average_score,best_score,xp,streak,exact_hits,verified_proofs,mode_proofs,global_rank,friend_rank,season_rank,rank,updated_at&order=xp.desc&id=eq.kickoff-production-seed&limit=1\n- Friend leaderboard: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_leaderboard?select=id,display_name,location,friend_code,season_key,locks,revealed,average_score,best_score,xp,streak,exact_hits,verified_proofs,mode_proofs,global_rank,friend_rank,season_rank,rank,updated_at&order=xp.desc&id=eq.kickoff-production-seed&friend_code=eq.chengdu&limit=1\n- Season leaderboard: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_leaderboard?select=id,display_name,location,friend_code,season_key,locks,revealed,average_score,best_score,xp,streak,exact_hits,verified_proofs,mode_proofs,global_rank,friend_rank,season_rank,rank,updated_at&order=xp.desc&id=eq.kickoff-production-seed&season_key=eq.world-cup-run&limit=1\nClean-session public page read-back commands:\n- Clean-session Public profile: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?profile=kickoff-production-seed'\n- Clean-session Prediction proof: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9'\n- Clean-session Mode proof 1: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276'\n- Clean-session Mode proof 2: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2'\n- Clean-session Mode proof 3: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a'\n- Clean-session Mode proof 4: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619'\n- Clean-session Mode proof 5: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118'\nStages:\n- Apply Supabase schema [blocked]\n  command: bun run supabase:schema:check\n  execute: bun run supabase:schema:apply\n  requires: SUPABASE_DB_URL\n  missing: SUPABASE_DB_URL\n  outputs: kickoff_profiles, kickoff_records, kickoff_mode_runs, kickoff_share_artifacts, kickoff_leaderboard\n  detail: Set SUPABASE_DB_URL to the Supabase project Postgres connection string, for example postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres.\n- Verify account auth redirect [blocked]\n  command: bun run runtime:config:check\n  execute: bun run runtime:config:check\n  requires: VITE_PUBLIC_APP_URL, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_REDIRECT_URL\n  missing: VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL\n  outputs: Google OAuth authorize URL, magic-link redirect URL\n  detail: Supabase auth is blocked by VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL.\n- Seed account, proof and leaderboard rows [blocked]\n  command: bun run seed:production-targets --dry-run\n  execute: bun run seed:production-targets --upload-share-image --upload-mode-share-image\n  requires: VITE_PUBLIC_APP_URL, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, KICKOFF_SEED_SHARE_IMAGE_URL or KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_SEED_MODE_SHARE_IMAGE_URL or KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  missing: VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, VITE_SUPABASE_URL\n  outputs: KICKOFF_VERIFY_USER_ID, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_FRIEND_CODE, KICKOFF_VERIFY_SEASON_KEY\n  detail: 6/6 Supabase target env keys collected; waiting for write prerequisites.\n- Verify Supabase read-back [blocked]\n  command: bun run doctor:supabase\n  execute: bun run doctor:supabase\n  requires: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, KICKOFF_VERIFY_USER_ID, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_FRIEND_CODE, KICKOFF_VERIFY_SEASON_KEY\n  missing: VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL\n  outputs: supabase production evidence\n  detail: Verify public REST reads, target rows, share artifacts and global/friend/season leaderboard scopes."
+  "copyText": "Kickoff Lock Agent Supabase production bootstrap\nMode: plan\nStages: 0/4 ready or done\nMissing env: SUPABASE_DB_URL, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY\nNext action: Apply Supabase schema: set SUPABASE_DB_URL first.\nCommands:\n- bun run supabase:schema:check\n- bun run runtime:config:check\n- bun run seed:production-targets --dry-run\n- bun run doctor:supabase\nSupabase Auth admin read-back command:\n- Auth admin user: Set VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and KICKOFF_VERIFY_USER_ID before reading the Auth user.\nAnonymous Supabase read-back commands:\n- Profile row: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_profiles?select=id,email,display_name,location,friend_code,season_key,updated_at&id=eq.kickoff-production-seed&limit=1\n- Prediction row: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_records?select=id,user_id,season_key,friend_code,total_score&id=eq.cap-prod-73dc2618d1f9&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=1\n- Mode proof rows: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_mode_runs?select=id,user_id,mode_id,status,score,season_key,friend_code&id=in.(mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118,mode-prod-penalty-pressure-f7632967)&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=6\n- Record share artifact row: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_share_artifacts?select=id,user_id,season_key,friend_code,kind,image_url,image_hash,proof_url&id=eq.cap-prod-73dc2618d1f9&kind=eq.record&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=1\n- Mode share artifact rows: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_share_artifacts?select=id,user_id,season_key,friend_code,kind,image_url,image_hash,proof_url&id=in.(mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118,mode-prod-penalty-pressure-f7632967)&kind=eq.mode&user_id=eq.kickoff-production-seed&friend_code=eq.chengdu&season_key=eq.world-cup-run&limit=6\n- Global leaderboard: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_leaderboard?select=id,display_name,location,friend_code,season_key,locks,revealed,average_score,best_score,xp,streak,exact_hits,verified_proofs,mode_proofs,global_rank,friend_rank,season_rank,rank,updated_at&order=xp.desc&id=eq.kickoff-production-seed&limit=1\n- Friend leaderboard: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_leaderboard?select=id,display_name,location,friend_code,season_key,locks,revealed,average_score,best_score,xp,streak,exact_hits,verified_proofs,mode_proofs,global_rank,friend_rank,season_rank,rank,updated_at&order=xp.desc&id=eq.kickoff-production-seed&friend_code=eq.chengdu&limit=1\n- Season leaderboard: Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY before reading kickoff_leaderboard?select=id,display_name,location,friend_code,season_key,locks,revealed,average_score,best_score,xp,streak,exact_hits,verified_proofs,mode_proofs,global_rank,friend_rank,season_rank,rank,updated_at&order=xp.desc&id=eq.kickoff-production-seed&season_key=eq.world-cup-run&limit=1\nClean-session public page read-back commands:\n- Clean-session Public profile: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?profile=kickoff-production-seed'\n- Clean-session Prediction proof: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?proof=cap-prod-73dc2618d1f9'\n- Clean-session Mode proof 1: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276'\n- Clean-session Mode proof 2: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-parlay-77bf4ef2'\n- Clean-session Mode proof 3: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-agent-vs-human-f8b27b3a'\n- Clean-session Mode proof 4: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-upset-9f6dd619'\n- Clean-session Mode proof 5: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118'\n- Clean-session Mode proof 6: curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-penalty-pressure-f7632967'\nStages:\n- Apply Supabase schema [blocked]\n  command: bun run supabase:schema:check\n  execute: bun run supabase:schema:apply\n  requires: SUPABASE_DB_URL\n  missing: SUPABASE_DB_URL\n  outputs: kickoff_profiles, kickoff_records, kickoff_mode_runs, kickoff_share_artifacts, kickoff_leaderboard\n  detail: Set SUPABASE_DB_URL to the Supabase project Postgres connection string, for example postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres.\n- Verify account auth redirect [blocked]\n  command: bun run runtime:config:check\n  execute: bun run runtime:config:check\n  requires: VITE_PUBLIC_APP_URL, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_REDIRECT_URL\n  missing: VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL\n  outputs: Google OAuth authorize URL, magic-link redirect URL\n  detail: Supabase auth is blocked by VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL.\n- Seed account, proof and leaderboard rows [blocked]\n  command: bun run seed:production-targets --dry-run\n  execute: bun run seed:production-targets --upload-share-image --upload-mode-share-image\n  requires: VITE_PUBLIC_APP_URL, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, KICKOFF_SEED_SHARE_IMAGE_URL or KICKOFF_VERIFY_SHARE_IMAGE_URL, KICKOFF_SEED_MODE_SHARE_IMAGE_URL or KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL\n  missing: VITE_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, VITE_SUPABASE_URL\n  outputs: KICKOFF_VERIFY_USER_ID, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_FRIEND_CODE, KICKOFF_VERIFY_SEASON_KEY\n  detail: 6/6 Supabase target env keys collected; waiting for write prerequisites.\n- Verify Supabase read-back [blocked]\n  command: bun run doctor:supabase\n  execute: bun run doctor:supabase\n  requires: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, KICKOFF_VERIFY_USER_ID, KICKOFF_VERIFY_PROFILE_ID, KICKOFF_VERIFY_PROOF_ID, KICKOFF_VERIFY_MODE_IDS, KICKOFF_VERIFY_FRIEND_CODE, KICKOFF_VERIFY_SEASON_KEY\n  missing: VITE_SUPABASE_ANON_KEY, VITE_SUPABASE_URL\n  outputs: supabase production evidence\n  detail: Verify public REST reads, target rows, share artifacts and global/friend/season leaderboard scopes."
 }

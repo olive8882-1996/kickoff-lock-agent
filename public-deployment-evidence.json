@@ -4,12 +4,12 @@
   ],
   "outputPath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/public-deployment-evidence.json",
   "wrote": true,
-  "generatedAt": "2026-07-07T00:55:12.410Z",
+  "generatedAt": "2026-07-07T00:56:17.151Z",
   "source": "local-script",
   "ready": true,
   "publicAppUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/",
   "pagesBuildStatus": "built",
-  "pagesBuildCommit": "32f238d50914ea6c500fbf85b03641ebd4f03b86",
+  "pagesBuildCommit": "d98ac1dc0f3c6cac89aabe25c8982492fc2599be",
   "pagesBuildError": null,
   "liveBundle": "assets/index-CqBxVlFF.js",
   "expectedBundle": "assets/index-CqBxVlFF.js",
@@ -33,7 +33,7 @@
       "key": "pages-commit",
       "label": "Pages commit",
       "passed": true,
-      "detail": "Pages 32f238d50914ea6c500fbf85b03641ebd4f03b86"
+      "detail": "Pages d98ac1dc0f3c6cac89aabe25c8982492fc2599be"
     },
     {
       "key": "live-index",
@@ -73,5 +73,5 @@
   ],
   "summary": "Live deployment matches assets/index-CqBxVlFF.js.",
   "nextAction": "Public deployment is live: Pages build status or published assets, commit and hashed assets all match.",
-  "copyText": "Kickoff Lock Agent public deployment evidence\nReady: yes\nPublic app: https://olive8882-1996.github.io/kickoff-lock-agent/\nExpected commit: unknown\nPages build: built 32f238d50914ea6c500fbf85b03641ebd4f03b86\nExpected bundle: assets/index-CqBxVlFF.js\nLive bundle: assets/index-CqBxVlFF.js\nExpected stylesheet: assets/index-DBSf2Tzt.css\nLive stylesheet: assets/index-DBSf2Tzt.css\nNext action: Public deployment is live: Pages build status or published assets, commit and hashed assets all match.\nChecks:\n- Public app URL: passed · https://olive8882-1996.github.io/kickoff-lock-agent/\n- GitHub Pages build: passed · built\n- Pages commit: passed · Pages 32f238d50914ea6c500fbf85b03641ebd4f03b86\n- Live index: passed · HTTP 200 · bundle assets/index-CqBxVlFF.js · css assets/index-DBSf2Tzt.css\n- Bundle hash: passed · expected assets/index-CqBxVlFF.js · live assets/index-CqBxVlFF.js\n- Bundle asset: passed · HTTP 200 · assets/index-CqBxVlFF.js\n- Stylesheet hash: passed · expected assets/index-DBSf2Tzt.css · live assets/index-DBSf2Tzt.css\n- Stylesheet asset: passed · HTTP 200 · assets/index-DBSf2Tzt.css"
+  "copyText": "Kickoff Lock Agent public deployment evidence\nReady: yes\nPublic app: https://olive8882-1996.github.io/kickoff-lock-agent/\nExpected commit: unknown\nPages build: built d98ac1dc0f3c6cac89aabe25c8982492fc2599be\nExpected bundle: assets/index-CqBxVlFF.js\nLive bundle: assets/index-CqBxVlFF.js\nExpected stylesheet: assets/index-DBSf2Tzt.css\nLive stylesheet: assets/index-DBSf2Tzt.css\nNext action: Public deployment is live: Pages build status or published assets, commit and hashed assets all match.\nChecks:\n- Public app URL: passed · https://olive8882-1996.github.io/kickoff-lock-agent/\n- GitHub Pages build: passed · built\n- Pages commit: passed · Pages d98ac1dc0f3c6cac89aabe25c8982492fc2599be\n- Live index: passed · HTTP 200 · bundle assets/index-CqBxVlFF.js · css assets/index-DBSf2Tzt.css\n- Bundle hash: passed · expected assets/index-CqBxVlFF.js · live assets/index-CqBxVlFF.js\n- Bundle asset: passed · HTTP 200 · assets/index-CqBxVlFF.js\n- Stylesheet hash: passed · expected assets/index-DBSf2Tzt.css · live assets/index-DBSf2Tzt.css\n- Stylesheet asset: passed · HTTP 200 · assets/index-DBSf2Tzt.css"
 }

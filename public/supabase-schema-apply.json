@@ -1,0 +1,83 @@
+{
+  "ready": false,
+  "dryRun": true,
+  "schemaPath": "supabase.schema.sql",
+  "databaseUrl": "",
+  "maskedDatabaseUrl": "",
+  "command": "psql",
+  "args": [
+    "--set",
+    "ON_ERROR_STOP=1",
+    "--file",
+    "supabase.schema.sql"
+  ],
+  "missing": [
+    "SUPABASE_DB_URL"
+  ],
+  "schemaContract": {
+    "ready": true,
+    "passed": 6,
+    "total": 6,
+    "missing": [],
+    "checks": [
+      {
+        "id": "required-tables",
+        "label": "Required public tables",
+        "passed": true,
+        "detail": "4/4 tables declared"
+      },
+      {
+        "id": "share-artifact-columns",
+        "label": "Share artifact production columns",
+        "passed": true,
+        "detail": "17/17 share columns declared"
+      },
+      {
+        "id": "leaderboard-columns",
+        "label": "Leaderboard scope rank columns",
+        "passed": true,
+        "detail": "17/17 leaderboard columns declared"
+      },
+      {
+        "id": "backend-health-columns",
+        "label": "Backend health deep checks",
+        "passed": true,
+        "detail": "5/5 health columns declared"
+      },
+      {
+        "id": "share-storage-contract",
+        "label": "Share card Storage bucket and policies",
+        "passed": true,
+        "detail": "public bucket and upload/update/read policies declared"
+      },
+      {
+        "id": "public-read-grants",
+        "label": "Public REST read grants",
+        "passed": true,
+        "detail": "public REST grants declared"
+      }
+    ]
+  },
+  "action": "Set SUPABASE_DB_URL to the Supabase project Postgres connection string, for example postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres.",
+  "generatedAt": "2026-07-04T23:02:11.776Z",
+  "envFiles": [
+    ".env.production.local"
+  ],
+  "artifactVersion": 1,
+  "schemaReadable": true,
+  "applied": false,
+  "acceptance": {
+    "schemaReadable": true,
+    "contractReady": true,
+    "applied": false,
+    "dryRun": true,
+    "outputEnvKeys": [
+      "kickoff_profiles",
+      "kickoff_records",
+      "kickoff_mode_runs",
+      "kickoff_share_artifacts",
+      "kickoff_leaderboard",
+      "kickoff_backend_health"
+    ]
+  }
+}

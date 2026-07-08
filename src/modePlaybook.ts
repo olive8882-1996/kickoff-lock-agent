@@ -1,4 +1,5 @@
 import { isBracketPathReady } from "./bracket";
+import { requiredProductionModeIds, type ModeEvidencePacket } from "./modeEvidence";
 import { getModeReadiness } from "./modes";
 import type { BracketPath, GameMode, GameModeRun, MemoryRecord } from "./types";
 
@@ -16,13 +17,27 @@ export type ModePlaybookItem = {
   nextAction: string;
 };
 
+export type ModeCreationQueueItem = {
+  modeId: GameMode["id"];
+  title: string;
+  status: ModePlaybookStatus;
+  runnable: boolean;
+  latestRunId?: string;
+  nextAction: string;
+};
+
 export type ModePlaybookPacket = {
   complete: boolean;
+  productionComplete: boolean;
   sealedModes: number;
+  productionReadyModes: number;
   readyToSealModes: number;
   totalModes: number;
   totalRuns: number;
+  productionMissingModes: GameMode["id"][];
   items: ModePlaybookItem[];
+  queue: ModeCreationQueueItem[];
+  runnableQueue: number;
   summary: string;
   nextAction: string;
   copyText: string;
@@ -33,6 +48,8 @@ const requiredCounts: Record<GameMode["id"], number> = {
   parlay: 3,
   "agent-vs-human": 1,
   upset: 1,
+  "group-path": 4,
+  "penalty-pressure": 2,
 };
 
 const latestRunFor = (modeId: GameMode["id"], runs: GameModeRun[]) =>
@@ -100,33 +117,61 @@ export const buildModePlaybookPacket = ({
   records,
   bracketPath,
   runs,
+  productionEvidence,
 }: {
   modes: GameMode[];
   records: MemoryRecord[];
   bracketPath: BracketPath;
   runs: GameModeRun[];
+  productionEvidence?: ModeEvidencePacket;
 }): ModePlaybookPacket => {
   const items = modes.map((mode) =>
     mode.id === "bracket"
       ? buildBracketItem(mode, bracketPath, runs)
       : buildStandardItem(mode, records, runs),
   );
+  const queue = items
+    .filter((item) => item.status !== "sealed")
+    .map<ModeCreationQueueItem>((item) => ({
+      modeId: item.modeId,
+      title: item.title,
+      status: item.status,
+      runnable: item.status === "ready-to-seal",
+      latestRunId: item.latestRunId,
+      nextAction: item.nextAction,
+    }));
+  const runnableQueue = queue.filter((item) => item.runnable).length;
   const sealedModes = items.filter((item) => item.status === "sealed").length;
   const readyToSealModes = items.filter((item) => item.status === "ready-to-seal").length;
   const totalRuns = items.reduce((sum, item) => sum + item.runCount, 0);
   const complete = sealedModes === items.length;
+  const productionComplete = productionEvidence?.complete ?? false;
+  const productionReadyModes = productionEvidence?.passedModes ?? 0;
+  const productionModeTargetCount = productionEvidence?.totalModes ?? requiredProductionModeIds.length;
+  const productionMissingModes = productionEvidence?.missingModes ?? requiredProductionModeIds;
   const nextItem = items.find((item) => item.status !== "sealed");
   const nextAction = nextItem
     ? `${nextItem.title}: ${nextItem.nextAction}`
-    : "All tournament mode proof runs exist; finish Filecoin, cloud and share-card production evidence.";
-  const summary = `${sealedModes}/${items.length} modes sealed · ${readyToSealModes}/${items.length} ready to seal · ${totalRuns} proof run${totalRuns === 1 ? "" : "s"}.`;
+    : productionComplete
+      ? "All tournament mode proof runs and production evidence are complete."
+      : productionEvidence?.nextAction ?? "All tournament mode proof runs exist; finish Filecoin, cloud and share-card production evidence.";
+  const summary = `${sealedModes}/${items.length} modes sealed · ${productionReadyModes}/${productionModeTargetCount} production-ready · ${readyToSealModes}/${items.length} ready to seal · ${totalRuns} proof run${totalRuns === 1 ? "" : "s"}.`;
   const copyText = [
     "Kickoff Lock Agent tournament mode playbook",
     `Complete: ${complete ? "yes" : "no"}`,
+    `Production complete: ${productionComplete ? "yes" : "no"}`,
     `Modes sealed: ${sealedModes}/${items.length}`,
+    `Production-ready modes: ${productionReadyModes}/${productionModeTargetCount}`,
+    `Production missing modes: ${productionMissingModes.join(", ") || "none"}`,
     `Ready to seal: ${readyToSealModes}/${items.length}`,
     `Proof runs: ${totalRuns}`,
+    `Creation queue: ${runnableQueue} runnable`,
     `Next action: ${nextAction}`,
+    "Queue:",
+    ...queue.map(
+      (item) =>
+        `- ${item.modeId} · ${item.runnable ? "runnable" : item.status} · ${item.nextAction}`,
+    ),
     ...items.map(
       (item) =>
         `${item.modeId}: ${item.status} · eligible ${item.eligibleCount}/${item.requiredCount} · runs ${item.runCount} · next ${item.nextAction}`,
@@ -135,11 +180,16 @@ export const buildModePlaybookPacket = ({
 
   return {
     complete,
+    productionComplete,
     sealedModes,
+    productionReadyModes,
     readyToSealModes,
     totalModes: items.length,
     totalRuns,
+    productionMissingModes,
     items,
+    queue,
+    runnableQueue,
     summary,
     nextAction,
     copyText,

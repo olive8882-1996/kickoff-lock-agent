@@ -104,6 +104,9 @@ const verification = (patch: Partial<CloudSyncVerification> = {}): CloudSyncVeri
   publicProfileRecordIds: ["cap-1"],
   publicProfileModeRunIds: ["mode-1"],
   publicProfileShareArtifactIds: ["record:cap-1", "mode:mode-1"],
+  publicProfileRecordContentIds: ["cap-1"],
+  publicProfileModeRunContentIds: ["mode-1"],
+  publicProfileShareArtifactContentIds: ["record:cap-1", "mode:mode-1"],
   recordContentIds: ["cap-1"],
   modeRunContentIds: ["mode-1"],
   shareArtifactContentIds: ["record:cap-1", "mode:mode-1"],
@@ -115,6 +118,9 @@ const verification = (patch: Partial<CloudSyncVerification> = {}): CloudSyncVeri
   missingPublicProfileRecordIds: [],
   missingPublicProfileModeRunIds: [],
   missingPublicProfileShareArtifactIds: [],
+  missingPublicProfileRecordContentIds: [],
+  missingPublicProfileModeRunContentIds: [],
+  missingPublicProfileShareArtifactContentIds: [],
   missingRecordContentIds: [],
   missingModeRunContentIds: [],
   missingShareArtifactContentIds: [],
@@ -150,7 +156,55 @@ describe("profile archive evidence packet", () => {
     expect(packet.contentFingerprints).toBe(4);
     expect(packet.publicProofLinks).toBe(2);
     expect(packet.missingIds).toEqual([]);
+    expect(packet.manifest.records).toEqual([
+      expect.objectContaining({
+        id: "cap-1",
+        proofUrl: "https://example.com/kickoff-lock-agent/?proof=cap-1",
+        cid: "bafy-record",
+        payloadHash: "b".repeat(64),
+        shareCardId: "record:cap-1",
+        shareImageUrl: "https://cdn.example.com/cap-1-record.png",
+      }),
+    ]);
+    expect(packet.manifest.modeRuns).toEqual([
+      expect.objectContaining({
+        id: "mode-1",
+        proofUrl: "https://example.com/kickoff-lock-agent/?mode=mode-1",
+        cid: "bafy-mode",
+        payloadHash: "c".repeat(64),
+        shareCardId: "mode:mode-1",
+        shareImageUrl: "https://cdn.example.com/mode-1-mode.png",
+      }),
+    ]);
+    expect(packet.manifest.shareCards).toEqual([
+      expect.objectContaining({ id: "cap-1", kind: "record", publishable: true, publicImage: true }),
+      expect.objectContaining({ id: "mode-1", kind: "mode", publishable: true, publicImage: true }),
+    ]);
+    expect(packet.manifestJson).toContain('"profileId": "user-1"');
+    expect(packet.manifestJson).toContain('"cid": "bafy-record"');
+    expect(packet.copyText).toContain("Manifest: 1 records, 1 modes, 2 share cards");
     expect(packet.copyText).toContain("Ready: yes");
+  });
+
+  it("keeps archive evidence pending when public profile archive content fingerprints are stale", () => {
+    const packet = buildProfileArchiveEvidencePacket({
+      profile: profile(),
+      profileUrl: "https://example.com/kickoff-lock-agent/?profile=user-1",
+      verification: verification({
+        publicProfileRecordContentIds: [],
+        publicProfileModeRunContentIds: [],
+        publicProfileShareArtifactContentIds: [],
+        missingPublicProfileRecordContentIds: ["cap-1"],
+        missingPublicProfileModeRunContentIds: ["mode-1"],
+        missingPublicProfileShareArtifactContentIds: ["record:cap-1", "mode:mode-1"],
+      }),
+      source: "cloud-readback",
+    });
+
+    expect(packet.ready).toBe(false);
+    expect(packet.missingIds).toEqual(expect.arrayContaining(["cap-1", "mode-1", "record:cap-1", "mode:mode-1"]));
+    expect(packet.checks.find((check) => check.key === "public-archive")?.detail).toContain("0/4 archive fingerprints");
+    expect(packet.checks.find((check) => check.key === "content-fingerprints")?.status).toBe("pending");
   });
 
   it("lists missing mode archives, fingerprints and public images", () => {

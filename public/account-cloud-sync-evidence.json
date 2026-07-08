@@ -1,0 +1,203 @@
+{
+  "artifactVersion": 1,
+  "generatedAt": "2026-07-06T22:57:32.410Z",
+  "source": "local-script",
+  "ready": false,
+  "profileId": "missing-production-profile",
+  "cloudMode": "local",
+  "configured": false,
+  "authenticated": false,
+  "localTotals": {
+    "profile": 1,
+    "records": 0,
+    "modeRuns": 0,
+    "shareArtifacts": 0,
+    "publicProofs": 0,
+    "historyArtifacts": 0
+  },
+  "verifiedTotals": {
+    "records": 0,
+    "modeRuns": 0,
+    "shareArtifacts": 0,
+    "publicProofs": 0,
+    "publicShareImages": 0,
+    "publicProfileArchives": 0,
+    "contentFingerprints": 0
+  },
+  "expectedIds": {
+    "records": [],
+    "modeRuns": [],
+    "shareArtifacts": [],
+    "publicProofs": [],
+    "leaderboardScopes": []
+  },
+  "acceptance": {
+    "backendReady": false,
+    "profileIdentityReady": false,
+    "historyReady": false,
+    "publicProofsReady": false,
+    "shareArtifactsReady": true,
+    "publicProfileReady": false,
+    "outboxEmpty": false,
+    "auditPassed": false,
+    "leaderboardScopesReady": false,
+    "cloudReadBackReady": false
+  },
+  "outbox": [
+    {
+      "key": "profile",
+      "label": "Profile row",
+      "status": "blocked",
+      "queued": 1,
+      "verified": 0,
+      "total": 1,
+      "detail": "profile identity waiting for read-back · missing missing-production-profile",
+      "action": "Set Supabase env vars before this outbox can sync."
+    },
+    {
+      "key": "records",
+      "label": "Prediction history",
+      "status": "verified",
+      "queued": 0,
+      "verified": 0,
+      "total": 0,
+      "detail": "0/0 prediction capsule fingerprints read back",
+      "action": "Prediction history is cloud-acknowledged."
+    },
+    {
+      "key": "modeRuns",
+      "label": "Mode proofs",
+      "status": "verified",
+      "queued": 0,
+      "verified": 0,
+      "total": 0,
+      "detail": "0/0 mode proof fingerprints read back",
+      "action": "Mode proof history is cloud-acknowledged."
+    },
+    {
+      "key": "shareArtifacts",
+      "label": "Share manifests",
+      "status": "verified",
+      "queued": 0,
+      "verified": 0,
+      "total": 0,
+      "detail": "0/0 share card manifest fingerprints read back",
+      "action": "Share manifests are cloud-acknowledged."
+    },
+    {
+      "key": "publicProofs",
+      "label": "Public proof links",
+      "status": "verified",
+      "queued": 0,
+      "verified": 0,
+      "total": 0,
+      "detail": "0/0 anonymous proof link fingerprints read back",
+      "action": "Proof URLs work without this local session and match the synced payloads."
+    }
+  ],
+  "audit": [
+    {
+      "key": "backend",
+      "label": "Supabase backend schema",
+      "status": "blocked",
+      "synced": 0,
+      "total": 1,
+      "detail": "production-schema · Supabase schema apply artifact is missing or blocked.",
+      "action": "Apply supabase.schema.sql and verify kickoff_backend_health."
+    },
+    {
+      "key": "profile",
+      "label": "Cloud profile",
+      "status": "blocked",
+      "synced": 0,
+      "total": 1,
+      "detail": "Supabase env missing",
+      "action": "Supabase Auth user was not read back"
+    },
+    {
+      "key": "records",
+      "label": "Prediction history",
+      "status": "blocked",
+      "synced": 0,
+      "total": 0,
+      "detail": "no local capsules",
+      "action": "Run Sync after locking predictions."
+    },
+    {
+      "key": "modeRuns",
+      "label": "Mode proof history",
+      "status": "blocked",
+      "synced": 0,
+      "total": 0,
+      "detail": "no mode proofs",
+      "action": "Create a mode proof and sync."
+    },
+    {
+      "key": "publicProofs",
+      "label": "Public proof links",
+      "status": "blocked",
+      "synced": 0,
+      "total": 0,
+      "detail": "no proof links",
+      "action": "Sync history before sharing public links."
+    },
+    {
+      "key": "shareArtifacts",
+      "label": "Share card manifests",
+      "status": "blocked",
+      "synced": 0,
+      "total": 0,
+      "detail": "no share card manifests",
+      "action": "Generate proof cards, upload public images and sync their manifests to Supabase."
+    },
+    {
+      "key": "contentFingerprints",
+      "label": "Content fingerprints",
+      "status": "blocked",
+      "synced": 0,
+      "total": 0,
+      "detail": "no cloud content to fingerprint",
+      "action": "Sync again or pull cloud history if an older remote row overwrote local content."
+    },
+    {
+      "key": "publicProfile",
+      "label": "Public profile",
+      "status": "blocked",
+      "synced": 0,
+      "total": 1,
+      "detail": "local preview only",
+      "action": "Sync cloud history and verify the public profile includes records, mode proofs and share cards."
+    },
+    {
+      "key": "leaderboard",
+      "label": "Leaderboard backend",
+      "status": "blocked",
+      "synced": 0,
+      "total": 1,
+      "detail": "local fallback row only",
+      "action": "Load Supabase leaderboard rows for every scope."
+    }
+  ],
+  "coverage": {
+    "passed": false,
+    "pendingItems": 0,
+    "detail": "No local proofs yet"
+  },
+  "missing": [
+    "Supabase runtime not configured",
+    "Supabase session not authenticated",
+    "profile is still local-only",
+    "backend schema health not ready",
+    "profile/Auth identity read-back incomplete",
+    "cloud history fingerprints incomplete",
+    "public proof fingerprints incomplete",
+    "public profile archive read-back incomplete",
+    "cloud sync outbox still has queued items",
+    "cloud sync audit has pending checks",
+    "global/friend/season leaderboard scopes incomplete",
+    "strict cloud read-back helper did not pass"
+  ],
+  "evidenceFingerprint": "{\n  \"expected\": {\n    \"modeRunIds\": [],\n    \"publicProofIds\": [],\n    \"recordIds\": [],\n    \"shareArtifactIds\": []\n  },\n  \"profileId\": \"missing-production-profile\",\n  \"verified\": {\n    \"leaderboardScopes\": [],\n    \"modeRunContentIds\": [],\n    \"publicProfileModeRunContentIds\": [],\n    \"publicProfileRecordContentIds\": [],\n    \"publicProfileShareArtifactContentIds\": [],\n    \"publicProofContentIds\": [],\n    \"publicShareImageIds\": [],\n    \"recordContentIds\": [],\n    \"shareArtifactContentIds\": []\n  }\n}",
+  "nextAction": "Apply supabase.schema.sql and verify kickoff_backend_health.",
+  "copyText": "Kickoff Lock Agent account cloud sync evidence\nReady: no\nProfile: Missing production profile (missing-production-profile)\nCloud: local · configured no · authenticated no\nHistory: records 0/0, modes 0/0, shares 0/0\nPublic: proofs 0/0, profile archives 0/0, share images 0/0\nOutbox queued: 1\nLeaderboard scopes: none\nMissing: Supabase runtime not configured, Supabase session not authenticated, profile is still local-only +9 more\nNext action: Apply supabase.schema.sql and verify kickoff_backend_health."
+}

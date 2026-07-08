@@ -103,4 +103,53 @@ describe("leaderboard season evidence packet", () => {
     expect(packet.missingScopes).toEqual(["friend"]);
     expect(packet.checks.find((check) => check.key === "friend")?.detail).toContain("not in packet rows");
   });
+
+  it("does not trust current-user packet rows without scoped ranks", () => {
+    const packet = buildLeaderboardSeasonEvidencePacket({
+      profile,
+      entries: [
+        remoteEntry("global", { rank: undefined }),
+        remoteEntry("friend", { rank: 0 }),
+        remoteEntry("season", { rank: 1 }),
+      ],
+      evidence: [
+        scopeEvidence("global", { currentUserRank: undefined }),
+        scopeEvidence("friend", { currentUserRank: 0 }),
+        scopeEvidence("season", { currentUserRank: 1 }),
+      ],
+    });
+
+    expect(packet.ready).toBe(false);
+    expect(packet.currentUserScopes).toEqual(["season"]);
+    expect(packet.missingScopes).toEqual(["global", "friend"]);
+    expect(packet.nextAction).toContain("scoped rank");
+    expect(packet.checks.find((check) => check.key === "global")?.detail).toContain("missing scoped rank");
+    expect(packet.checks.find((check) => check.key === "friend")?.detail).toContain("missing scoped rank");
+  });
+
+  it("requires friend and season rows to match the scoped filters", () => {
+    const packet = buildLeaderboardSeasonEvidencePacket({
+      profile,
+      entries: [
+        remoteEntry("global"),
+        remoteEntry("friend", { friendCode: "other-friends" }),
+        remoteEntry("season", { seasonKey: "other-season" }),
+      ],
+      evidence: [scopeEvidence("global"), scopeEvidence("friend"), scopeEvidence("season")],
+    });
+
+    expect(packet.ready).toBe(false);
+    expect(packet.currentUserScopes).toEqual(["global"]);
+    expect(packet.missingScopes).toEqual(["friend", "season"]);
+    expect(packet.passedScopes).toBe(1);
+    expect(packet.summary).toContain("1/3 season claim scopes");
+    expect(packet.checks.find((check) => check.key === "friend")).toMatchObject({
+      passed: false,
+      detail: "loaded · friend code mismatch other-friends != chengdu",
+    });
+    expect(packet.checks.find((check) => check.key === "season")).toMatchObject({
+      passed: false,
+      detail: "loaded · season key mismatch other-season != world-cup-run",
+    });
+  });
 });

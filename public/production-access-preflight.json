@@ -1,0 +1,135 @@
+{
+  "artifactVersion": 1,
+  "generatedAt": "2026-07-07T00:41:53.003Z",
+  "source": "local-script",
+  "envFiles": [
+    ".env.production.local"
+  ],
+  "outputPath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/production-access-preflight.json",
+  "wrote": true,
+  "cliChecks": [
+    {
+      "provider": "cloudflare",
+      "command": "bun x wrangler whoami",
+      "exitCode": 0,
+      "stdout": "\n ⛅️ wrangler 4.107.0\n────────────────────\nGetting User settings...\nYou are not authenticated. Please run `wrangler login`.\nTo deploy without logging in, run a command like `wrangler deploy --temporary` to use a temporary preview account.\n",
+      "stderr": "Resolving dependencies\nResolved, downloaded and extracted [2]\nSaved lockfile\n"
+    },
+    {
+      "provider": "supabase",
+      "command": "bun x supabase projects list",
+      "exitCode": 1,
+      "stdout": "{\"_tag\":\"Error\",\"error\":{\"code\":\"LegacyPlatformAuthRequiredError\",\"message\":\"Access token not provided. Supply an access token by running `supabase login` or setting the SUPABASE_ACCESS_TOKEN environment variable.\"}}\n",
+      "stderr": ""
+    }
+  ],
+  "ready": false,
+  "stageReadyCount": 1,
+  "totalStages": 5,
+  "blockedStages": 4,
+  "missingEnv": [
+    "CLOUDFLARE_API_TOKEN or wrangler login",
+    "CLOUDFLARE_ACCOUNT_ID or wrangler login",
+    "SUPABASE_ACCESS_TOKEN or supabase login",
+    "VITE_SUPABASE_URL",
+    "VITE_SUPABASE_ANON_KEY",
+    "SUPABASE_DB_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY",
+    "ODDS_API_KEY or VITE_ODDS_API_KEY",
+    "VITE_ODDS_API_SPORT_KEY",
+    "FILECOIN_SEAL_UPSTREAM_URL",
+    "FILECOIN_SEAL_TOKEN",
+    "SYNAPSE_PRIVATE_KEY",
+    "KICKOFF_VERIFY_FILECOIN_RECORD_CID",
+    "KICKOFF_VERIFY_FILECOIN_MODE_CIDS",
+    "KICKOFF_VERIFY_FIXTURE_IDS",
+    "KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX"
+  ],
+  "cliAuthenticated": {
+    "cloudflare": false,
+    "supabase": false
+  },
+  "stages": [
+    {
+      "id": "cloudflare-cli",
+      "label": "Cloudflare deploy access",
+      "command": "bunx wrangler whoami",
+      "missingEnv": [
+        "CLOUDFLARE_API_TOKEN or wrangler login",
+        "CLOUDFLARE_ACCOUNT_ID or wrangler login"
+      ],
+      "status": "blocked",
+      "detail": "Cloudflare deploy auth is not available in CLI env or browser-independent shell.",
+      "nextAction": "Run wrangler login in Chrome/terminal, or set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID before Cloudflare Pages deploy."
+    },
+    {
+      "id": "supabase-cli",
+      "label": "Supabase management access",
+      "command": "bunx supabase projects list",
+      "missingEnv": [
+        "SUPABASE_ACCESS_TOKEN or supabase login"
+      ],
+      "status": "blocked",
+      "detail": "Supabase CLI is not logged in and SUPABASE_ACCESS_TOKEN is not set.",
+      "nextAction": "Run supabase login or set SUPABASE_ACCESS_TOKEN before creating/applying production Supabase resources."
+    },
+    {
+      "id": "manual-env",
+      "label": "Manual production env values",
+      "command": "bun run env:production:plan",
+      "missingEnv": [
+        "VITE_SUPABASE_URL",
+        "VITE_SUPABASE_ANON_KEY",
+        "SUPABASE_DB_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY",
+        "ODDS_API_KEY or VITE_ODDS_API_KEY",
+        "VITE_ODDS_API_SPORT_KEY",
+        "FILECOIN_SEAL_UPSTREAM_URL",
+        "FILECOIN_SEAL_TOKEN",
+        "SYNAPSE_PRIVATE_KEY"
+      ],
+      "status": "blocked",
+      "detail": "Supabase, realtime data and Filecoin production values must be present before strict evidence can pass.",
+      "nextAction": "Fill .env.production.local with Supabase, data provider and Filecoin values, then rerun access:preflight."
+    },
+    {
+      "id": "account-cloud",
+      "label": "Account cloud sync targets",
+      "command": "bun run supabase:bootstrap && bun run sharing:bootstrap",
+      "missingEnv": [],
+      "status": "ready",
+      "detail": "User login, cloud profile identity, public profile URL and clean-session proof targets must be generated from Supabase read-back.",
+      "nextAction": "Run supabase:bootstrap after Supabase access is ready, then run sharing:bootstrap to prove the public profile/proof pages restore without localStorage."
+    },
+    {
+      "id": "runtime-targets",
+      "label": "Generated verification targets",
+      "command": "bun run env:production",
+      "missingEnv": [
+        "KICKOFF_VERIFY_FILECOIN_RECORD_CID",
+        "KICKOFF_VERIFY_FILECOIN_MODE_CIDS",
+        "KICKOFF_VERIFY_FIXTURE_IDS",
+        "KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX"
+      ],
+      "status": "blocked",
+      "detail": "Production verification targets must come from cloud rows, live fixture scouting and Filecoin CID read-back.",
+      "nextAction": "Run supabase:bootstrap, scout:data-targets, seal:production-targets and env:production after backend access is ready."
+    }
+  ],
+  "commands": [
+    "bunx wrangler whoami",
+    "bunx supabase projects list",
+    "bun run env:production:plan",
+    "bun run supabase:bootstrap && bun run sharing:bootstrap",
+    "bun run env:production",
+    "bun run supabase:bootstrap",
+    "bun run pages:cf:deploy",
+    "bun run data:bootstrap",
+    "bun run filecoin:bootstrap",
+    "bun run collect:production"
+  ],
+  "nextAction": "Run wrangler login in Chrome/terminal, or set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID before Cloudflare Pages deploy.",
+  "copyText": "Kickoff Lock Agent production access preflight\nReady: no\nStages: 1/5\nCloudflare CLI: not authenticated\nSupabase CLI: not authenticated\nMissing: CLOUDFLARE_API_TOKEN or wrangler login, CLOUDFLARE_ACCOUNT_ID or wrangler login, SUPABASE_ACCESS_TOKEN or supabase login, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, SUPABASE_DB_URL, SUPABASE_SERVICE_ROLE_KEY, APIFOOTBALL_KEY or VITE_APIFOOTBALL_KEY, ODDS_API_KEY or VITE_ODDS_API_KEY, VITE_ODDS_API_SPORT_KEY, FILECOIN_SEAL_UPSTREAM_URL, FILECOIN_SEAL_TOKEN, SYNAPSE_PRIVATE_KEY, KICKOFF_VERIFY_FILECOIN_RECORD_CID, KICKOFF_VERIFY_FILECOIN_MODE_CIDS, KICKOFF_VERIFY_FIXTURE_IDS, KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX\nNext action: Run wrangler login in Chrome/terminal, or set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID before Cloudflare Pages deploy.\nCommands:\n- bunx wrangler whoami\n- bunx supabase projects list\n- bun run env:production:plan\n- bun run supabase:bootstrap && bun run sharing:bootstrap\n- bun run env:production\n- bun run supabase:bootstrap\n- bun run pages:cf:deploy\n- bun run data:bootstrap\n- bun run filecoin:bootstrap\n- bun run collect:production"
+}

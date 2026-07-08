@@ -107,6 +107,17 @@ describe("public proof metadata", () => {
     expect(meta.jsonLd.image).toBe("https://cdn.example.com/kickoff-lock/cap-meta-public-proof.png");
     expect(meta.imageManifest?.imageUrl).toBe("https://cdn.example.com/kickoff-lock/cap-meta-public-proof.png");
     expect(meta.imageManifest?.imageHash).toBe("c".repeat(64));
+    expect(meta.imageManifest?.imageByteLength).toBe(123456);
+    expect(meta.imageManifest?.imageMime).toBe("image/png");
+    expect(meta.jsonLd.associatedMedia).toMatchObject({
+      "@type": "ImageObject",
+      name: "cap-meta-public-proof.png",
+      url: "https://cdn.example.com/kickoff-lock/cap-meta-public-proof.png",
+      contentUrl: "https://cdn.example.com/kickoff-lock/cap-meta-public-proof.png",
+      encodingFormat: "image/png",
+      contentSize: 123456,
+      sha256: "c".repeat(64),
+    });
     expect(meta.jsonLd["@type"]).toBe("CreativeWork");
     expect(meta.jsonLd.sha256).toBe("a".repeat(64));
   });
@@ -132,6 +143,68 @@ describe("public proof metadata", () => {
     expect(meta.imageUrl).toBe("https://cdn.example.com/kickoff-lock/mode-meta-public-proof.png");
     expect(meta.jsonLd.identifier).toBe("mode-meta");
     expect(meta.jsonLd.isBasedOn).toBe("bafy-mode-meta");
+    expect(meta.jsonLd.associatedMedia).toMatchObject({
+      "@type": "ImageObject",
+      contentUrl: "https://cdn.example.com/kickoff-lock/mode-meta-public-proof.png",
+      sha256: "c".repeat(64),
+    });
+  });
+
+  it("does not attach a share image manifest from a different public proof URL", () => {
+    const meta = buildRecordProofMeta(
+      record,
+      "https://example.com/kickoff-lock-agent/?proof=cap-meta",
+      "/kickoff-lock-agent/assets/kickoff-lock-icon.png",
+      {
+        ...artifact,
+        proofUrl: "https://example.com/kickoff-lock-agent/?proof=another-proof",
+        imageUrl: "https://cdn.example.com/kickoff-lock/another-proof-card.png",
+      },
+    );
+
+    expect(meta.imageUrl).toBe("https://example.com/kickoff-lock-agent/assets/kickoff-lock-icon.png");
+    expect(meta.jsonLd.image).toBe("https://example.com/kickoff-lock-agent/assets/kickoff-lock-icon.png");
+    expect(meta.imageManifest).toBeUndefined();
+    expect(meta.jsonLd.associatedMedia).toBeUndefined();
+  });
+
+  it("does not attach a share image manifest from a different proof target identity", () => {
+    const meta = buildRecordProofMeta(
+      record,
+      "https://example.com/kickoff-lock-agent/?proof=cap-meta",
+      "/kickoff-lock-agent/assets/kickoff-lock-icon.png",
+      {
+        ...artifact,
+        id: "mode-meta",
+        kind: "mode",
+        proofUrl: "https://example.com/kickoff-lock-agent/?proof=cap-meta",
+        imageUrl: "https://cdn.example.com/kickoff-lock/mode-meta-card.png",
+      },
+    );
+
+    expect(meta.imageUrl).toBe("https://example.com/kickoff-lock-agent/assets/kickoff-lock-icon.png");
+    expect(meta.imageManifest).toBeUndefined();
+    expect(meta.jsonLd.associatedMedia).toBeUndefined();
+  });
+
+  it("does not attach a mode share image manifest from a different mode proof URL", () => {
+    const meta = buildModeProofMeta(
+      modeRun,
+      "https://example.com/kickoff-lock-agent/?mode=mode-meta",
+      "assets/kickoff-lock-icon.png",
+      {
+        ...artifact,
+        id: "mode-other",
+        kind: "mode",
+        proofUrl: "https://example.com/kickoff-lock-agent/?mode=mode-other",
+        imageUrl: "https://cdn.example.com/kickoff-lock/mode-other-card.png",
+      },
+    );
+
+    expect(meta.imageUrl).toBe("https://example.com/kickoff-lock-agent/assets/kickoff-lock-icon.png");
+    expect(meta.jsonLd.image).toBe("https://example.com/kickoff-lock-agent/assets/kickoff-lock-icon.png");
+    expect(meta.imageManifest).toBeUndefined();
+    expect(meta.jsonLd.associatedMedia).toBeUndefined();
   });
 
   it("builds metadata for public profiles", () => {

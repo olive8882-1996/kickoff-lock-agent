@@ -20,13 +20,14 @@ import {
   SlidersHorizontal,
   Sparkles,
   TableProperties,
+  TerminalSquare,
   Timer,
   Trophy,
   UploadCloud,
   UserCircle2,
   Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   buildBracketPathFromMatches,
   createBracketModeRun,
@@ -41,6 +42,10 @@ import {
 } from "./acceptance";
 import { buildAccountHandoffPacket, type AccountHandoffPacket } from "./accountHandoff";
 import {
+  buildAccountCloudSyncEvidenceArtifact,
+  type AccountCloudSyncEvidenceArtifact,
+} from "./accountCloudSyncEvidence";
+import {
   buildAccountRecoveryEvidencePacket,
   type AccountRecoveryEvidencePacket,
 } from "./accountRecoveryEvidence";
@@ -54,9 +59,14 @@ import {
   buildLocalLeaderboard,
   buildLeaderboardReadiness,
   buildLeaderboardScopeEvidence,
-  consumeSupabaseHash,
+  buildCloudRecoverySnapshot,
+  cloudRecoveryMessage,
+  consumeSupabaseAuthCallback,
   buildCloudSyncCoverage,
+  buildCloudSyncOutbox,
+  friendCodeFor,
   getCloudState,
+  hasSupabaseAuthCallback,
   hydrateProfileFromAuth,
   isCloudReadbackComplete,
   loadLeaderboard,
@@ -66,37 +76,66 @@ import {
   loadPublicProfile,
   loadPublicRecord,
   loadPublicShareArtifact,
+  loadProfileFromCloud,
   loadRecordsFromCloud,
   loadShareArtifactsFromCloud,
-  mergeModeRuns,
-  mergeMemoryRecords,
-  mergeShareArtifacts,
   saveProfile,
   sendMagicLink,
+  shareArtifactCloudId,
+  normalizeFriendCode,
+  resolveCloudProfileForSync,
+  shouldAutoRecoverCloudSession,
   signOutCloud,
   startGoogleSignIn,
-  syncModeRunsToCloud,
-  syncRecordsToCloud,
-  syncShareArtifactsToCloud,
+  syncCloudOutboxToCloud,
   syncProfileToCloud,
   uploadShareImageToCloud,
   verifyCloudSyncReadback,
 } from "./cloud";
-import { filecoinSealConfigured, lookupFilecoinProof, runModeSealJob, runSealJob, sealBackendProductionReady } from "./filecoinSeal";
+import {
+  buildFilecoinSealResumeQueue,
+  filecoinSealConfigured,
+  lookupFilecoinProof,
+  runModeSealJob,
+  runSealJob,
+  sealBackendProductionReady,
+} from "./filecoinSeal";
 import {
   buildFilecoinAutomationEvidencePacket,
+  buildFilecoinAutomationSealQueue,
   type FilecoinAutomationEvidencePacket,
+  type FilecoinAutomationQueueItem,
 } from "./filecoinAutomationEvidence";
+import {
+  buildFilecoinSealLifecyclePacket,
+  type FilecoinSealLifecyclePacket,
+} from "./filecoinSealLifecycleEvidence";
+import {
+  buildFreeDataSourceEvidencePacket,
+  type FreeDataSourceEvidencePacket,
+} from "./freeDataSourceEvidence";
 import {
   buildProductionAccountBootstrapPacket,
   type ProductionAccountBootstrapPacket,
 } from "./productionAccountBootstrap";
 import { buildSealEvidencePacket, type SealEvidencePacket } from "./filecoinSealEvidence";
-import { buildLeaderboardEvidencePacket, type LeaderboardEvidencePacket } from "./leaderboardEvidence";
+import {
+  buildLeaderboardEvidencePacket,
+  hasLeaderboardScopeEvidence,
+  leaderboardScopeStatsProblem,
+  type LeaderboardEvidencePacket,
+} from "./leaderboardEvidence";
+import {
+  buildLeaderboardQueryContractPacket,
+  type LeaderboardQueryContractPacket,
+} from "./leaderboardQueryContract";
 import {
   buildLeaderboardSeasonEvidencePacket,
   type LeaderboardSeasonEvidencePacket,
 } from "./leaderboardSeasonEvidence";
+import type { LeaderboardProductionArtifact } from "./leaderboardProductionBootstrap";
+import type { DataProviderReadinessArtifact } from "./dataProviderReadiness";
+import type { DataTargetScoutArtifact } from "./dataTargetScout";
 import {
   buildIntelligenceEnrichmentEvidencePacket,
   type IntelligenceEnrichmentEvidencePacket,
@@ -105,6 +144,14 @@ import {
   buildDataContinuityEvidencePacket,
   type DataContinuityEvidencePacket,
 } from "./dataContinuityEvidence";
+import type { DataProductionBootstrapPlan } from "./dataProductionBootstrap";
+import type { FilecoinProductionBootstrapPlan } from "./filecoinProductionBootstrap";
+import type { FilecoinTargetSealArtifact } from "./filecoinTargetSeal";
+import type { CloudflarePagesDeployPlan } from "./cloudflarePagesDeployment";
+import type { SupabaseSchemaApplyArtifact } from "./supabaseSchemaApply";
+import type { ProductionTargetSeedArtifact } from "./productionTargetSeed";
+import type { ShareImageUploadArtifact } from "./shareImageUpload";
+import type { PublicRestoreEvidenceArtifact } from "./sharingProductionDoctor";
 import { buildModeEvidencePacket, type ModeEvidencePacket } from "./modeEvidence";
 import { buildModePlaybookPacket, type ModePlaybookPacket } from "./modePlaybook";
 import { buildModeSettlementPacket, type ModeSettlementPacket } from "./modeSettlement";
@@ -142,6 +189,21 @@ import {
   buildRecordPublicProofJudgeSummary,
   type PublicProofJudgeSummary,
 } from "./publicProofJudgeSummary";
+import {
+  buildModePublicProofShareKit,
+  buildPublicProofPublicationLedger,
+  buildRecordPublicProofShareKit,
+  type PublicProofPublicationLedger,
+  type PublicProofShareKit,
+} from "./publicProofShareKit";
+import type { PublicDeploymentEvidencePacket } from "./publicDeploymentEvidence";
+import {
+  fixturePublicModeRun,
+  fixturePublicProfile,
+  fixturePublicRecord,
+  fixturePublicShareArtifact,
+  loadProductionPublicFixtures,
+} from "./publicFixtures";
 import { buildModeProofTimeline, buildRecordProofTimeline, type ProofTimelineItem } from "./proofTimeline";
 import { buildPublicUrl } from "./publicUrls";
 import {
@@ -155,18 +217,35 @@ import {
   sourceLabel,
 } from "./providers";
 import {
-  buildProductionVerifyEnv,
   parseEnvText,
-  productionFriendCode,
   summarizeProductionEvidence,
   type ProductionEvidencePacket,
 } from "./productionEvidence";
+import { buildProductionVerifyEnvFromArtifacts } from "./productionVerifyTargets";
 import { buildProductionDoctorReport, type ProductionDoctorReport } from "./productionDoctor";
+import {
+  buildProductionAcceptanceCollector,
+  type ProductionAcceptanceCollectorPacket,
+} from "./productionAcceptanceCollector";
+import type { ProductionAccessPreflightPacket } from "./productionAccessPreflight";
+import {
+  productionBootstrapStepProgress,
+  productionBootstrapStepDetail,
+  summarizeProductionBootstrapRunbook,
+  type ProductionBootstrapRunbook,
+} from "./productionBootstrapRunbook";
+import { buildProductionEnvLedger, type ProductionEnvLedgerPacket } from "./productionEnvLedger";
+import type { ProductionEnvPlanPacket } from "./productionEnvPlan";
+import { buildProductionGoalAudit, type ProductionGoalAuditPacket } from "./productionGoalAudit";
 import { buildProductionLaunchPacket, type ProductionLaunchPacket } from "./productionLaunchPacket";
+import { buildProfileAutosyncStatus, canAutoSyncCloudWrites } from "./profileAutosync";
 import { buildRealtimeDataEvidencePacket, type RealtimeDataEvidencePacket } from "./realtimeDataEvidence";
 import { buildProductionReadiness, summarizeProductionReadiness } from "./readiness";
+import type { SupabaseProductionBootstrapPlan } from "./supabaseProductionBootstrap";
 import {
   buildRuntimeConfigReadiness,
+  mergeRuntimeConfigEnv,
+  runtimeConfigValue,
   summarizeRuntimeConfigReadiness,
   type RuntimeConfigItem,
   type RuntimeConfigSummary,
@@ -186,10 +265,21 @@ import {
   isPublishableShareArtifact,
   isProductionShareArtifact,
 } from "./shareCard";
-import { buildSharePublishQueue } from "./sharePublishing";
+import {
+  buildOpenedShareChannelArtifacts,
+  buildShareChannelEvidencePacket,
+  buildShareChannelQueue,
+  buildSharePublishQueue,
+  hasShareChannelEvidence,
+  isProductionShareCardEvidence,
+  type ShareChannelEvidencePacket,
+} from "./sharePublishing";
+import type { ShareChannelEvidenceArtifact } from "./sharingProductionBootstrap";
+import { initialAppViewFromLocation } from "./viewRouting";
 import type {
   AppView,
   BracketPath,
+  CloudSyncOutboxItem,
   CloudSyncState,
   FilecoinLookupState,
   FilecoinProof,
@@ -219,6 +309,25 @@ const BRACKET_PATH_KEY = "kickoff-lock-agent-bracket-path-v1";
 const SHARE_EVIDENCE_KEY = "kickoff-lock-agent-share-evidence-v1";
 const ACCEPTANCE_EVIDENCE_URL = `${import.meta.env.BASE_URL}acceptance-evidence.json`;
 const PRODUCTION_EVIDENCE_URL = `${import.meta.env.BASE_URL}production-evidence.json`;
+const PUBLIC_DEPLOYMENT_EVIDENCE_URL = `${import.meta.env.BASE_URL}public-deployment-evidence.json`;
+const PRODUCTION_BOOTSTRAP_RUNBOOK_URL = `${import.meta.env.BASE_URL}production-bootstrap-runbook.json`;
+const PRODUCTION_ACCESS_PREFLIGHT_URL = `${import.meta.env.BASE_URL}production-access-preflight.json`;
+const PRODUCTION_ENV_PLAN_URL = `${import.meta.env.BASE_URL}production-env-plan.json`;
+const SUPABASE_BOOTSTRAP_PLAN_URL = `${import.meta.env.BASE_URL}supabase-bootstrap-plan.json`;
+const SUPABASE_SCHEMA_APPLY_URL = `${import.meta.env.BASE_URL}supabase-schema-apply.json`;
+const SUPABASE_TARGET_SEED_URL = `${import.meta.env.BASE_URL}supabase-target-seed.json`;
+const ACCOUNT_CLOUD_SYNC_EVIDENCE_URL = `${import.meta.env.BASE_URL}account-cloud-sync-evidence.json`;
+const DATA_BOOTSTRAP_PLAN_URL = `${import.meta.env.BASE_URL}data-bootstrap-plan.json`;
+const DATA_PROVIDER_READINESS_URL = `${import.meta.env.BASE_URL}data-provider-readiness.json`;
+const DATA_TARGET_SCOUT_URL = `${import.meta.env.BASE_URL}data-target-scout.json`;
+const FILECOIN_BOOTSTRAP_PLAN_URL = `${import.meta.env.BASE_URL}filecoin-bootstrap-plan.json`;
+const FILECOIN_TARGET_SEAL_URL = `${import.meta.env.BASE_URL}filecoin-target-seal.json`;
+const CLOUDFLARE_PAGES_DEPLOY_PLAN_URL = `${import.meta.env.BASE_URL}cloudflare-pages-deploy-plan.json`;
+const LEADERBOARD_BACKEND_URL = `${import.meta.env.BASE_URL}leaderboard-backend.json`;
+const PUBLIC_RESTORE_EVIDENCE_URL = `${import.meta.env.BASE_URL}public-restore-evidence.json`;
+const SHARE_CHANNEL_EVIDENCE_URL = `${import.meta.env.BASE_URL}share-channel-evidence.json`;
+const SHARE_IMAGE_UPLOAD_RECORD_URL = `${import.meta.env.BASE_URL}share-image-upload-record.json`;
+const SHARE_IMAGE_UPLOAD_MODE_URL = `${import.meta.env.BASE_URL}share-image-upload-mode.json`;
 const leaderboardScopes: LeaderboardScope[] = ["global", "friend", "season"];
 const emptyLeaderboardCache = (): Record<LeaderboardScope, LeaderboardEntry[]> => ({
   global: [],
@@ -267,6 +376,22 @@ const gameModes: GameMode[] = [
     description: "Hunt one underdog call per matchday with a public leaderboard multiplier.",
     progress: 72,
     reward: "Underdog multiplier",
+  },
+  {
+    id: "group-path",
+    title: "Group path",
+    status: "playable",
+    description: "Turn sealed group-stage locks into a projected qualification table.",
+    progress: 66,
+    reward: "Table oracle badge",
+  },
+  {
+    id: "penalty-pressure",
+    title: "Penalty pressure",
+    status: "playable",
+    description: "Seal clutch taker, market or winner calls for knockout pressure moments.",
+    progress: 58,
+    reward: "Ice-vein badge",
   },
 ];
 
@@ -390,16 +515,37 @@ const AUTO_DATA_REFRESH_MS = 90_000;
 
 const matchLabel = (match: Match) => `${match.homeTeam} vs ${match.awayTeam}`;
 
+const configuredPublicAppUrl = () => runtimeConfigValue(import.meta.env, "VITE_PUBLIC_APP_URL");
+
+const fallbackPublicAppUrl = () =>
+  typeof window === "undefined" ? import.meta.env.BASE_URL : window.location.origin + import.meta.env.BASE_URL;
+
+const runtimeEnvTextValues = () =>
+  Object.fromEntries(
+    Object.entries(mergeRuntimeConfigEnv(import.meta.env)).map(([key, value]) => [
+      key,
+      typeof value === "boolean" ? (value ? "1" : "") : value?.trim() || undefined,
+    ]),
+  ) as Record<string, string | undefined>;
+
 const proofUrl = (capsuleId: string) => {
-  return buildPublicUrl("proof", capsuleId, import.meta.env.VITE_PUBLIC_APP_URL, window.location.href);
+  return buildPublicUrl("proof", capsuleId, configuredPublicAppUrl(), window.location.href);
 };
 
 const profileUrl = (profileId: string) => {
-  return buildPublicUrl("profile", profileId, import.meta.env.VITE_PUBLIC_APP_URL, window.location.href);
+  return buildPublicUrl("profile", profileId, configuredPublicAppUrl(), window.location.href);
 };
 
 const modeRunUrl = (runId: string) => {
-  return buildPublicUrl("mode", runId, import.meta.env.VITE_PUBLIC_APP_URL, window.location.href);
+  return buildPublicUrl("mode", runId, configuredPublicAppUrl(), window.location.href);
+};
+
+const friendInviteUrl = (friendCode: string) => {
+  const url = new URL(configuredPublicAppUrl() || window.location.href, window.location.href);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("friend", friendCode);
+  return url.toString();
 };
 
 const copyToClipboard = async (text: string) => {
@@ -524,10 +670,13 @@ const stabilizeE2eMatches = (matches: Match[]) => {
   const base = Date.now() + 90 * 60 * 1000;
   let upcomingIndex = 0;
   return matches.map((match) => {
-    if (match.status !== "upcoming") return match;
     upcomingIndex += 1;
+    if (upcomingIndex > 8 && match.status !== "upcoming") return match;
     return {
       ...match,
+      status: "upcoming" as const,
+      homeScore: upcomingIndex <= 8 ? undefined : match.homeScore,
+      awayScore: upcomingIndex <= 8 ? undefined : match.awayScore,
       kickoffAt: new Date(base + upcomingIndex * 45 * 60 * 1000).toISOString(),
     };
   });
@@ -548,7 +697,7 @@ function App() {
   const [forceFallback, setForceFallback] = useState(false);
   const [selectedMatchId, setSelectedMatchId] = useState("");
   const [matchFilter, setMatchFilter] = useState<"all" | "live" | "today" | "upcoming">("all");
-  const [view, setView] = useState<AppView>("matches");
+  const [view, setView] = useState<AppView>(initialAppViewFromLocation);
   const [utilityPanel, setUtilityPanel] = useState<"settings" | "help" | null>(null);
   const [records, setRecords] = useState<MemoryRecord[]>(loadRecords);
   const [modeRuns, setModeRuns] = useState<GameModeRun[]>(loadModeRuns);
@@ -589,11 +738,56 @@ function App() {
   const [acceptanceEvidenceStatus, setAcceptanceEvidenceStatus] = useState("Acceptance run evidence not loaded.");
   const [productionEvidence, setProductionEvidence] = useState<ProductionEvidencePacket | undefined>();
   const [productionEvidenceStatus, setProductionEvidenceStatus] = useState("Production evidence not loaded.");
+  const [publicDeploymentEvidence, setPublicDeploymentEvidence] = useState<PublicDeploymentEvidencePacket | undefined>();
+  const [publicDeploymentEvidenceStatus, setPublicDeploymentEvidenceStatus] = useState("Public deployment evidence not loaded.");
+  const [productionBootstrapRunbook, setProductionBootstrapRunbook] = useState<ProductionBootstrapRunbook | undefined>();
+  const [productionBootstrapRunbookStatus, setProductionBootstrapRunbookStatus] = useState("Production bootstrap runbook not loaded.");
+  const [productionAccessPreflight, setProductionAccessPreflight] = useState<
+    (ProductionAccessPreflightPacket & { artifactVersion?: number; generatedAt?: string; source?: string }) | undefined
+  >();
+  const [productionAccessPreflightStatus, setProductionAccessPreflightStatus] = useState("Production access preflight not loaded.");
+  const [productionEnvPlan, setProductionEnvPlan] = useState<ProductionEnvPlanPacket | undefined>();
+  const [productionEnvPlanStatus, setProductionEnvPlanStatus] = useState("Production env plan not loaded.");
+  const [supabaseBootstrapPlan, setSupabaseBootstrapPlan] = useState<SupabaseProductionBootstrapPlan | undefined>();
+  const [supabaseBootstrapPlanStatus, setSupabaseBootstrapPlanStatus] = useState("Supabase bootstrap plan not loaded.");
+  const [supabaseSchemaArtifact, setSupabaseSchemaArtifact] = useState<SupabaseSchemaApplyArtifact | undefined>();
+  const [supabaseTargetSeedArtifact, setSupabaseTargetSeedArtifact] = useState<ProductionTargetSeedArtifact | undefined>();
+  const [accountCloudSyncArtifact, setAccountCloudSyncArtifact] = useState<AccountCloudSyncEvidenceArtifact | undefined>();
+  const [dataBootstrapPlan, setDataBootstrapPlan] = useState<DataProductionBootstrapPlan | undefined>();
+  const [dataBootstrapPlanStatus, setDataBootstrapPlanStatus] = useState("Realtime data bootstrap plan not loaded.");
+  const [dataProviderArtifact, setDataProviderArtifact] = useState<DataProviderReadinessArtifact | undefined>();
+  const [dataScoutArtifact, setDataScoutArtifact] = useState<DataTargetScoutArtifact | undefined>();
+  const [filecoinBootstrapPlan, setFilecoinBootstrapPlan] = useState<FilecoinProductionBootstrapPlan | undefined>();
+  const [filecoinBootstrapPlanStatus, setFilecoinBootstrapPlanStatus] = useState("Filecoin bootstrap plan not loaded.");
+  const [filecoinSealArtifact, setFilecoinSealArtifact] = useState<FilecoinTargetSealArtifact | undefined>();
+  const [cloudflarePagesDeployPlan, setCloudflarePagesDeployPlan] = useState<CloudflarePagesDeployPlan | undefined>();
+  const [leaderboardBackendArtifact, setLeaderboardBackendArtifact] = useState<LeaderboardProductionArtifact | undefined>();
+  const [leaderboardBackendStatus, setLeaderboardBackendStatus] = useState("Leaderboard backend artifact not loaded.");
+  const [publicRestoreArtifact, setPublicRestoreArtifact] = useState<PublicRestoreEvidenceArtifact | undefined>();
+  const [shareChannelArtifact, setShareChannelArtifact] = useState<ShareChannelEvidenceArtifact | undefined>();
+  const [shareChannelArtifactStatus, setShareChannelArtifactStatus] = useState("Share-channel artifact not loaded.");
+  const [recordShareImageUploadArtifact, setRecordShareImageUploadArtifact] = useState<ShareImageUploadArtifact | undefined>();
+  const [modeShareImageUploadArtifact, setModeShareImageUploadArtifact] = useState<ShareImageUploadArtifact | undefined>();
   const [notice, setNotice] = useState("");
+  const autoResumeSealJobsRef = useRef(false);
+  const cloudOutboxSyncTimerRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     void bootstrapApp();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (cloudOutboxSyncTimerRef.current !== undefined) window.clearTimeout(cloudOutboxSyncTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (autoResumeSealJobsRef.current || !filecoinSealConfigured()) return;
+    if (buildFilecoinSealResumeQueue(records, modeRuns).length === 0) return;
+    autoResumeSealJobsRef.current = true;
+    void resumePendingFilecoinSealJobs();
+  }, [records, modeRuns]);
 
   useEffect(() => {
     saveRecords(records);
@@ -647,6 +841,248 @@ function App() {
       .catch(() => {
         setProductionEvidenceStatus("Production evidence could not be loaded.");
       });
+  }, []);
+
+  useEffect(() => {
+    void fetch(PUBLIC_DEPLOYMENT_EVIDENCE_URL, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          setPublicDeploymentEvidenceStatus("Run bun run deploy:evidence after deploy:pages to publish public-deployment-evidence.json.");
+          return undefined;
+        }
+        return (await response.json()) as PublicDeploymentEvidencePacket;
+      })
+      .then((packet) => {
+        if (!packet) return;
+        setPublicDeploymentEvidence(packet);
+        setPublicDeploymentEvidenceStatus(
+          `Loaded public deployment evidence: ${packet.checks.filter((check) => check.passed).length}/${packet.checks.length} deployment checks passed.`,
+        );
+      })
+      .catch(() => {
+        setPublicDeploymentEvidenceStatus("Public deployment evidence could not be loaded.");
+      });
+  }, []);
+
+  useEffect(() => {
+    void fetch(PRODUCTION_BOOTSTRAP_RUNBOOK_URL, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          setProductionBootstrapRunbookStatus("Run bun run production:bootstrap -- --json to publish production-bootstrap-runbook.json.");
+          return undefined;
+        }
+        return (await response.json()) as ProductionBootstrapRunbook;
+      })
+      .then((packet) => {
+        if (!packet) return;
+        setProductionBootstrapRunbook(packet);
+        setProductionBootstrapRunbookStatus(
+          `Loaded production bootstrap runbook with ${packet.passedSteps}/${packet.totalSteps} step${packet.totalSteps === 1 ? "" : "s"} passed.`,
+        );
+      })
+      .catch(() => {
+        setProductionBootstrapRunbookStatus("Production bootstrap runbook could not be loaded.");
+      });
+  }, []);
+
+  useEffect(() => {
+    void fetch(PRODUCTION_ACCESS_PREFLIGHT_URL, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          setProductionAccessPreflightStatus("Run bun run access:preflight to publish production-access-preflight.json.");
+          return undefined;
+        }
+        return (await response.json()) as ProductionAccessPreflightPacket & {
+          artifactVersion?: number;
+          generatedAt?: string;
+          source?: string;
+        };
+      })
+      .then((packet) => {
+        if (!packet) return;
+        setProductionAccessPreflight(packet);
+        setProductionAccessPreflightStatus(
+          `Loaded production access preflight with ${packet.stageReadyCount}/${packet.totalStages} stage${packet.totalStages === 1 ? "" : "s"} ready.`,
+        );
+      })
+      .catch(() => {
+        setProductionAccessPreflightStatus("Production access preflight could not be loaded.");
+      });
+  }, []);
+
+  useEffect(() => {
+    void fetch(PRODUCTION_ENV_PLAN_URL, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          setProductionEnvPlanStatus("Run bun run env:production:plan to publish production-env-plan.json.");
+          return undefined;
+        }
+        return (await response.json()) as ProductionEnvPlanPacket;
+      })
+      .then((packet) => {
+        if (!packet) return;
+        setProductionEnvPlan(packet);
+        setProductionEnvPlanStatus(
+          `Loaded production env plan with ${packet.missingRequired.length} missing and ${packet.invalidRequired.length} invalid required value${packet.invalidRequired.length === 1 ? "" : "s"}.`,
+        );
+      })
+      .catch(() => {
+        setProductionEnvPlanStatus("Production env plan could not be loaded.");
+      });
+  }, []);
+
+  useEffect(() => {
+    void fetch(SUPABASE_BOOTSTRAP_PLAN_URL, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          setSupabaseBootstrapPlanStatus("Run bun run supabase:bootstrap to publish supabase-bootstrap-plan.json.");
+          return undefined;
+        }
+        return (await response.json()) as SupabaseProductionBootstrapPlan;
+      })
+      .then((packet) => {
+        if (!packet) return;
+        setSupabaseBootstrapPlan(packet);
+        setSupabaseBootstrapPlanStatus(
+          `Loaded Supabase bootstrap plan with ${packet.stageReadyCount}/${packet.totalStages} stage${packet.totalStages === 1 ? "" : "s"} ready or done.`,
+        );
+      })
+      .catch(() => {
+        setSupabaseBootstrapPlanStatus("Supabase bootstrap plan could not be loaded.");
+      });
+  }, []);
+
+  useEffect(() => {
+    void fetch(DATA_BOOTSTRAP_PLAN_URL, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          setDataBootstrapPlanStatus("Run bun run data:bootstrap to publish data-bootstrap-plan.json.");
+          return undefined;
+        }
+        return (await response.json()) as DataProductionBootstrapPlan;
+      })
+      .then((packet) => {
+        if (!packet) return;
+        setDataBootstrapPlan(packet);
+        setDataBootstrapPlanStatus(
+          `Loaded realtime data bootstrap plan with ${packet.stageReadyCount}/${packet.totalStages} stage${packet.totalStages === 1 ? "" : "s"} ready or done.`,
+        );
+      })
+      .catch(() => {
+        setDataBootstrapPlanStatus("Realtime data bootstrap plan could not be loaded.");
+      });
+  }, []);
+
+  useEffect(() => {
+    void fetch(FILECOIN_BOOTSTRAP_PLAN_URL, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          setFilecoinBootstrapPlanStatus("Run bun run filecoin:bootstrap to publish filecoin-bootstrap-plan.json.");
+          return undefined;
+        }
+        return (await response.json()) as FilecoinProductionBootstrapPlan;
+      })
+      .then((packet) => {
+        if (!packet) return;
+        setFilecoinBootstrapPlan(packet);
+        setFilecoinBootstrapPlanStatus(
+          `Loaded Filecoin bootstrap plan with ${packet.stageReadyCount}/${packet.totalStages} stage${packet.totalStages === 1 ? "" : "s"} ready or done.`,
+        );
+      })
+      .catch(() => {
+        setFilecoinBootstrapPlanStatus("Filecoin bootstrap plan could not be loaded.");
+      });
+  }, []);
+
+  useEffect(() => {
+    void fetch(LEADERBOARD_BACKEND_URL, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          setLeaderboardBackendStatus("Run bun run leaderboard:bootstrap to publish leaderboard-backend.json.");
+          return undefined;
+        }
+        return (await response.json()) as LeaderboardProductionArtifact;
+      })
+      .then((artifact) => {
+        if (!artifact) return;
+        setLeaderboardBackendArtifact(artifact);
+        setLeaderboardBackendStatus(
+          `Loaded leaderboard backend artifact with ${artifact.acceptance.passedScopeCount}/${artifact.acceptance.requiredScopeCount} scoped current-user read-back checks passed.`,
+        );
+      })
+      .catch(() => {
+        setLeaderboardBackendStatus("Leaderboard backend artifact could not be loaded.");
+      });
+  }, []);
+
+  useEffect(() => {
+    void fetch(SHARE_CHANNEL_EVIDENCE_URL, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) {
+          setShareChannelArtifactStatus("Run bun run sharing:bootstrap to publish share-channel-evidence.json.");
+          return undefined;
+        }
+        return (await response.json()) as ShareChannelEvidenceArtifact;
+      })
+      .then((artifact) => {
+        if (!artifact) return;
+        setShareChannelArtifact(artifact);
+        setShareChannelArtifactStatus(
+          `Loaded share-channel artifact with ${artifact.acceptance.passedTargetCount}/${artifact.acceptance.requiredTargetCount} production share targets opened.`,
+        );
+      })
+      .catch(() => {
+        setShareChannelArtifactStatus("Share-channel artifact could not be loaded.");
+      });
+  }, []);
+
+  useEffect(() => {
+    const loadOptionalArtifact = async <T,>(url: string): Promise<T | undefined> => {
+      try {
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) return undefined;
+        return (await response.json()) as T;
+      } catch {
+        return undefined;
+      }
+    };
+
+    void Promise.all([
+      loadOptionalArtifact<SupabaseSchemaApplyArtifact>(SUPABASE_SCHEMA_APPLY_URL),
+      loadOptionalArtifact<ProductionTargetSeedArtifact>(SUPABASE_TARGET_SEED_URL),
+      loadOptionalArtifact<AccountCloudSyncEvidenceArtifact>(ACCOUNT_CLOUD_SYNC_EVIDENCE_URL),
+      loadOptionalArtifact<DataProviderReadinessArtifact>(DATA_PROVIDER_READINESS_URL),
+      loadOptionalArtifact<DataTargetScoutArtifact>(DATA_TARGET_SCOUT_URL),
+      loadOptionalArtifact<FilecoinTargetSealArtifact>(FILECOIN_TARGET_SEAL_URL),
+      loadOptionalArtifact<CloudflarePagesDeployPlan>(CLOUDFLARE_PAGES_DEPLOY_PLAN_URL),
+      loadOptionalArtifact<PublicRestoreEvidenceArtifact>(PUBLIC_RESTORE_EVIDENCE_URL),
+      loadOptionalArtifact<ShareImageUploadArtifact>(SHARE_IMAGE_UPLOAD_RECORD_URL),
+      loadOptionalArtifact<ShareImageUploadArtifact>(SHARE_IMAGE_UPLOAD_MODE_URL),
+    ]).then(
+      ([
+        nextSupabaseSchemaArtifact,
+        nextSupabaseTargetSeedArtifact,
+        nextAccountCloudSyncArtifact,
+        nextDataProviderArtifact,
+        nextDataScoutArtifact,
+        nextFilecoinSealArtifact,
+        nextCloudflarePagesDeployPlan,
+        nextPublicRestoreArtifact,
+        nextRecordShareImageUploadArtifact,
+        nextModeShareImageUploadArtifact,
+      ]) => {
+        setSupabaseSchemaArtifact(nextSupabaseSchemaArtifact);
+        setSupabaseTargetSeedArtifact(nextSupabaseTargetSeedArtifact);
+        setAccountCloudSyncArtifact(nextAccountCloudSyncArtifact);
+        setDataProviderArtifact(nextDataProviderArtifact);
+        setDataScoutArtifact(nextDataScoutArtifact);
+        setFilecoinSealArtifact(nextFilecoinSealArtifact);
+        setCloudflarePagesDeployPlan(nextCloudflarePagesDeployPlan);
+        setPublicRestoreArtifact(nextPublicRestoreArtifact);
+        setRecordShareImageUploadArtifact(nextRecordShareImageUploadArtifact);
+        setModeShareImageUploadArtifact(nextModeShareImageUploadArtifact);
+      },
+    );
   }, []);
 
   useEffect(() => {
@@ -794,6 +1230,11 @@ function App() {
       nextRecords.length,
       nextModeRuns.length,
       nextShareEvidence.length,
+      {
+        recordIds: nextRecords.map((record) => record.capsule.id),
+        modeRunIds: nextModeRuns.map((run) => run.id),
+        shareArtifactIds: nextShareEvidence.map(shareArtifactCloudId),
+      },
     );
     setCloudState({
       ...getCloudState(),
@@ -806,21 +1247,42 @@ function App() {
     return verification;
   };
 
+  const prepareCloudProfileForSync = async (nextProfile: typeof profile) => {
+    const cloudProfile = await resolveCloudProfileForSync(nextProfile);
+    if (
+      cloudProfile.id !== profile.id ||
+      cloudProfile.email !== profile.email ||
+      cloudProfile.avatarUrl !== profile.avatarUrl ||
+      cloudProfile.cloudMode !== profile.cloudMode
+    ) {
+      setProfile(cloudProfile);
+      setAccountEmail(cloudProfile.email);
+    }
+    return cloudProfile;
+  };
+
   const fetchPublicProof = async (capsuleId: string) => {
     setPublicProofStatus("Loading public proof from cloud...");
     setPublicShareArtifact(undefined);
     try {
-      const [record, artifact] = await Promise.all([
-        loadPublicRecord(capsuleId),
+      const [cloudRecord, cloudArtifact] = await Promise.all([
+        loadPublicRecord(capsuleId, true),
         loadPublicShareArtifact(capsuleId, "record", true).catch(() => undefined),
       ]);
+      const fixtures = cloudRecord ? undefined : await loadProductionPublicFixtures(import.meta.env.BASE_URL).catch(() => undefined);
+      const record = cloudRecord ?? fixturePublicRecord(fixtures, capsuleId);
+      const artifact = cloudArtifact ?? fixturePublicShareArtifact(fixtures, capsuleId, "record");
       setPublicRecord(record);
       setPublicShareArtifact(artifact);
       setPublicProofStatus(
-        record
+        cloudRecord
           ? artifact
             ? "Cloud proof and share manifest loaded."
             : "Cloud proof loaded. No share manifest has been synced yet."
+          : record
+            ? artifact
+              ? "Public fixture proof and share manifest loaded."
+              : "Public fixture proof loaded. No share manifest has been generated yet."
           : "No cloud proof found for this link.",
       );
     } catch (error) {
@@ -831,9 +1293,17 @@ function App() {
   const fetchPublicProfile = async (profileId: string) => {
     setPublicProfileStatus("Loading public profile from cloud...");
     try {
-      const nextProfile = await loadPublicProfile(profileId);
+      const cloudProfile = await loadPublicProfile(profileId, true);
+      const fixtures = cloudProfile ? undefined : await loadProductionPublicFixtures(import.meta.env.BASE_URL).catch(() => undefined);
+      const nextProfile = cloudProfile ?? fixturePublicProfile(fixtures, profileId);
       setPublicProfile(nextProfile);
-      setPublicProfileStatus(nextProfile ? "Cloud profile loaded." : "No cloud profile found for this link.");
+      setPublicProfileStatus(
+        cloudProfile
+          ? "Cloud profile loaded."
+          : nextProfile
+            ? "Public fixture profile loaded."
+            : "No cloud profile found for this link.",
+      );
     } catch (error) {
       setPublicProfileStatus((error as Error).message);
     }
@@ -843,17 +1313,24 @@ function App() {
     setPublicModeStatus("Loading public mode proof from cloud...");
     setPublicModeShareArtifact(undefined);
     try {
-      const [run, artifact] = await Promise.all([
-        loadPublicModeRun(runId),
+      const [cloudRun, cloudArtifact] = await Promise.all([
+        loadPublicModeRun(runId, true),
         loadPublicShareArtifact(runId, "mode", true).catch(() => undefined),
       ]);
+      const fixtures = cloudRun ? undefined : await loadProductionPublicFixtures(import.meta.env.BASE_URL).catch(() => undefined);
+      const run = cloudRun ?? fixturePublicModeRun(fixtures, runId);
+      const artifact = cloudArtifact ?? fixturePublicShareArtifact(fixtures, runId, "mode");
       setPublicModeRun(run);
       setPublicModeShareArtifact(artifact);
       setPublicModeStatus(
-        run
+        cloudRun
           ? artifact
             ? "Cloud mode proof and share manifest loaded."
             : "Cloud mode proof loaded. No share manifest has been synced yet."
+          : run
+            ? artifact
+              ? "Public fixture mode proof and share manifest loaded."
+              : "Public fixture mode proof loaded. No share manifest has been generated yet."
           : "No cloud mode proof found for this link.",
       );
     } catch (error) {
@@ -870,34 +1347,52 @@ function App() {
   ) => {
     const baseState = getCloudState();
     setCloudState({ ...baseState, status: "syncing", message: `${reason} Reconciling cloud history...` });
-    const [remoteRecords, remoteModeRuns, remoteShareEvidence] = await Promise.all([
-      loadRecordsFromCloud(nextProfile),
-      loadModeRunsFromCloud(nextProfile),
-      loadShareArtifactsFromCloud(nextProfile),
+    const cloudProfile = await prepareCloudProfileForSync(nextProfile);
+    const [remoteProfile, remoteRecords, remoteModeRuns, remoteShareEvidence] = await Promise.all([
+      loadProfileFromCloud(cloudProfile).catch(() => undefined),
+      loadRecordsFromCloud(cloudProfile),
+      loadModeRunsFromCloud(cloudProfile),
+      loadShareArtifactsFromCloud(cloudProfile),
     ]);
-    const merged = mergeMemoryRecords(localRecords, remoteRecords);
-    const mergedModeRuns = mergeModeRuns(localModeRuns, remoteModeRuns);
-    const mergedShareEvidence = mergeShareArtifacts(localShareEvidence, remoteShareEvidence);
-    setRecords(merged);
-    setModeRuns(mergedModeRuns);
-    setShareEvidence(mergedShareEvidence);
-    await Promise.all([
-      syncRecordsToCloud(nextProfile, merged),
-      syncModeRunsToCloud(nextProfile, mergedModeRuns),
-      syncShareArtifactsToCloud(nextProfile, mergedShareEvidence),
-    ]);
-    const message =
-      remoteRecords.length > 0 || remoteModeRuns.length > 0 || remoteShareEvidence.length > 0
-        ? `${reason} merged ${remoteRecords.length} cloud records, ${remoteModeRuns.length} mode proof runs and ${remoteShareEvidence.length} share manifests.`
-        : `${reason} no cloud history found; local records, mode runs and share manifests are ready to sync.`;
-    await finishCloudSyncWithReadback(nextProfile, merged, mergedModeRuns, message, mergedShareEvidence);
-    return merged;
+    const snapshot = buildCloudRecoverySnapshot({
+      localProfile: cloudProfile,
+      remoteProfile,
+      localRecords,
+      remoteRecords,
+      localModeRuns,
+      remoteModeRuns,
+      localShareArtifacts: localShareEvidence,
+      remoteShareArtifacts: remoteShareEvidence,
+    });
+    setProfile(snapshot.profile);
+    setAccountEmail(snapshot.profile.email);
+    setRecords(snapshot.records);
+    setModeRuns(snapshot.modeRuns);
+    setShareEvidence(snapshot.shareArtifacts);
+    await syncCloudOutboxToCloud(snapshot.profile, snapshot.records, snapshot.modeRuns, snapshot.shareArtifacts);
+    await finishCloudSyncWithReadback(
+      snapshot.profile,
+      snapshot.records,
+      snapshot.modeRuns,
+      cloudRecoveryMessage(reason, snapshot),
+      snapshot.shareArtifacts,
+    );
+    return snapshot.records;
   };
 
   const bootstrapApp = async () => {
     await refreshMatches(false);
-    void refreshAllLeaderboards(loadProfile());
     const params = new URLSearchParams(window.location.search);
+    const invitedFriendCode = normalizeFriendCode(params.get("friend") ?? "");
+    let bootProfile = loadProfile();
+    if (invitedFriendCode && invitedFriendCode !== friendCodeFor(bootProfile)) {
+      bootProfile = { ...bootProfile, friendCode: invitedFriendCode };
+      saveProfile(bootProfile);
+      setProfile(bootProfile);
+      setAccountEmail(bootProfile.email);
+      setNotice(`Joined friend leaderboard ${invitedFriendCode}.`);
+    }
+    void refreshAllLeaderboards(bootProfile);
     const proofId = params.get("proof");
     const profileId = params.get("profile");
     const modeId = params.get("mode");
@@ -911,14 +1406,22 @@ function App() {
       setView("profile");
       void fetchPublicProfile(profileId);
     }
-    const session = consumeSupabaseHash();
-    setCloudState(getCloudState());
-    if (!session) return;
+    const hadAuthCallback = hasSupabaseAuthCallback();
+    const session = await consumeSupabaseAuthCallback();
+    const nextCloudState = getCloudState();
+    setCloudState(nextCloudState);
+    if (!session || !shouldAutoRecoverCloudSession(nextCloudState)) return;
     try {
-      const nextProfile = await hydrateProfileFromAuth(loadProfile());
+      const nextProfile = await hydrateProfileFromAuth(bootProfile);
       setProfile(nextProfile);
       setAccountEmail(nextProfile.email);
-      await reconcileCloudHistory(nextProfile, records, modeRuns, "Signed in.");
+      await reconcileCloudHistory(
+        nextProfile,
+        records,
+        modeRuns,
+        hadAuthCallback ? "Signed in." : "Session restored.",
+        shareEvidence,
+      );
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
     }
@@ -1001,6 +1504,7 @@ function App() {
   const intelligenceEnrichmentEvidence = buildIntelligenceEnrichmentEvidencePacket({
     audit: providerEnrichmentAudit,
     health: providerHealth,
+    matches,
   });
   const dataContinuityEvidence = buildDataContinuityEvidencePacket({
     matches,
@@ -1009,7 +1513,8 @@ function App() {
     evidence: providerEvidence,
     responseAudit: providerResponseAudit,
   });
-  const runtimeConfigReadiness = buildRuntimeConfigReadiness(import.meta.env);
+  const browserRuntimeEnv = runtimeEnvTextValues();
+  const runtimeConfigReadiness = buildRuntimeConfigReadiness(browserRuntimeEnv);
   const runtimeConfigSummary = summarizeRuntimeConfigReadiness(runtimeConfigReadiness);
   const productionReadiness = buildProductionReadiness({
     cloudState,
@@ -1022,40 +1527,55 @@ function App() {
     providerHealth,
     leaderboardEntries: allRemoteLeaderboard,
     leaderboardScopeEvidence: allLeaderboardEvidence,
-    sealEndpointConfigured: filecoinSealConfigured,
+    sealEndpointConfigured: filecoinSealConfigured(),
     shareImageReady: Boolean(shareImageUrl || publicShareImageUrl || publicModeShareImageUrl),
     shareEvidence,
     acceptanceEvidence,
     productionEvidence,
   });
   const productionSummary = summarizeProductionReadiness(productionReadiness);
+  const profileAutosync = buildProfileAutosyncStatus(cloudState);
+
+  const syncProfileInBackground = (nextProfile: typeof profile, reason: string) => {
+    syncCloudOutboxInBackground(nextProfile, records, modeRuns, shareEvidence, reason, "Saving profile and cloud history...");
+  };
+
+  const syncCloudOutboxInBackground = (
+    nextProfile: typeof profile,
+    nextRecords: MemoryRecord[],
+    nextModeRuns: GameModeRun[],
+    nextShareEvidence: ShareArtifactEvidence[],
+    reason: string,
+    syncingMessage = "Syncing cloud outbox...",
+  ) => {
+    const state = getCloudState();
+    if (!canAutoSyncCloudWrites(state)) {
+      setCloudState(state);
+      return;
+    }
+    if (cloudOutboxSyncTimerRef.current !== undefined) window.clearTimeout(cloudOutboxSyncTimerRef.current);
+    cloudOutboxSyncTimerRef.current = window.setTimeout(() => {
+      setCloudState({ ...getCloudState(), status: "syncing", message: `${reason} ${syncingMessage}` });
+      void prepareCloudProfileForSync(nextProfile)
+        .then((cloudProfile) =>
+          syncCloudOutboxToCloud(cloudProfile, nextRecords, nextModeRuns, nextShareEvidence).then((result) => result.profile),
+        )
+        .then(async (cloudProfile) => {
+          await finishCloudSyncWithReadback(cloudProfile, nextRecords, nextModeRuns, reason, nextShareEvidence);
+        })
+        .catch((error) => {
+          setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
+          setNotice((error as Error).message);
+        });
+    }, 700);
+  };
 
   const syncRecordsInBackground = (nextRecords: MemoryRecord[], reason: string) => {
-    const state = getCloudState();
-    if (!state.configured || !state.authenticated) return;
-    setCloudState({ ...state, status: "syncing", message: `${reason} Syncing cloud history...` });
-    void syncRecordsToCloud(profile, nextRecords)
-      .then(async () => {
-        await finishCloudSyncWithReadback(profile, nextRecords, modeRuns, reason);
-      })
-      .catch((error) => {
-        setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
-        setNotice((error as Error).message);
-      });
+    syncCloudOutboxInBackground(profile, nextRecords, modeRuns, shareEvidence, reason, "Syncing cloud history...");
   };
 
   const syncModeRunsInBackground = (nextModeRuns: GameModeRun[], reason: string) => {
-    const state = getCloudState();
-    if (!state.configured || !state.authenticated) return;
-    setCloudState({ ...state, status: "syncing", message: `${reason} Syncing mode proofs...` });
-    void syncModeRunsToCloud(profile, nextModeRuns)
-      .then(async () => {
-        await finishCloudSyncWithReadback(profile, records, nextModeRuns, reason);
-      })
-      .catch((error) => {
-        setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
-        setNotice((error as Error).message);
-      });
+    syncCloudOutboxInBackground(profile, records, nextModeRuns, shareEvidence, reason, "Syncing mode proofs...");
   };
 
   const commitRecords = (nextRecords: MemoryRecord[], message: string) => {
@@ -1130,12 +1650,9 @@ function App() {
   const syncToCloud = async () => {
     setCloudState({ ...getCloudState(), status: "syncing", message: "Syncing records to cloud..." });
     try {
-      await Promise.all([
-        syncRecordsToCloud(profile, records),
-        syncModeRunsToCloud(profile, modeRuns),
-        syncShareArtifactsToCloud(profile, shareEvidence),
-      ]);
-      await finishCloudSyncWithReadback(profile, records, modeRuns, "Manual sync completed.", shareEvidence);
+      const cloudProfile = await prepareCloudProfileForSync(profile);
+      await syncCloudOutboxToCloud(cloudProfile, records, modeRuns, shareEvidence);
+      await finishCloudSyncWithReadback(cloudProfile, records, modeRuns, "Manual sync completed.", shareEvidence);
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
       setNotice((error as Error).message);
@@ -1145,28 +1662,35 @@ function App() {
   const pullCloudHistory = async () => {
     setCloudState({ ...getCloudState(), status: "syncing", message: "Pulling cloud history..." });
     try {
-      const [remoteRecords, remoteModeRuns, remoteShareEvidence] = await Promise.all([
-        loadRecordsFromCloud(profile),
-        loadModeRunsFromCloud(profile),
-        loadShareArtifactsFromCloud(profile),
+      const cloudProfile = await prepareCloudProfileForSync(profile);
+      const [remoteProfile, remoteRecords, remoteModeRuns, remoteShareEvidence] = await Promise.all([
+        loadProfileFromCloud(cloudProfile).catch(() => undefined),
+        loadRecordsFromCloud(cloudProfile),
+        loadModeRunsFromCloud(cloudProfile),
+        loadShareArtifactsFromCloud(cloudProfile),
       ]);
-      const merged = mergeMemoryRecords(records, remoteRecords);
-      const mergedModeRuns = mergeModeRuns(modeRuns, remoteModeRuns);
-      const mergedShareEvidence = mergeShareArtifacts(shareEvidence, remoteShareEvidence);
-      setRecords(merged);
-      setModeRuns(mergedModeRuns);
-      setShareEvidence(mergedShareEvidence);
-      await Promise.all([
-        syncRecordsToCloud(profile, merged),
-        syncModeRunsToCloud(profile, mergedModeRuns),
-        syncShareArtifactsToCloud(profile, mergedShareEvidence),
-      ]);
+      const snapshot = buildCloudRecoverySnapshot({
+        localProfile: cloudProfile,
+        remoteProfile,
+        localRecords: records,
+        remoteRecords,
+        localModeRuns: modeRuns,
+        remoteModeRuns,
+        localShareArtifacts: shareEvidence,
+        remoteShareArtifacts: remoteShareEvidence,
+      });
+      setProfile(snapshot.profile);
+      setAccountEmail(snapshot.profile.email);
+      setRecords(snapshot.records);
+      setModeRuns(snapshot.modeRuns);
+      setShareEvidence(snapshot.shareArtifacts);
+      await syncCloudOutboxToCloud(snapshot.profile, snapshot.records, snapshot.modeRuns, snapshot.shareArtifacts);
       await finishCloudSyncWithReadback(
-        profile,
-        merged,
-        mergedModeRuns,
-        `Pulled ${remoteRecords.length} cloud records, ${remoteModeRuns.length} mode proof runs and ${remoteShareEvidence.length} share manifests.`,
-        mergedShareEvidence,
+        snapshot.profile,
+        snapshot.records,
+        snapshot.modeRuns,
+        `Pulled ${snapshot.remoteRecordCount} cloud records, ${snapshot.remoteModeRunCount} mode proof runs and ${snapshot.remoteShareArtifactCount} share manifests.`,
+        snapshot.shareArtifacts,
       );
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
@@ -1176,33 +1700,52 @@ function App() {
 
   const requestMagicLink = async () => {
     try {
-      await sendMagicLink(accountEmail);
-      setNotice(`Magic link sent to ${accountEmail}. Open it to enable cloud sync.`);
+      const result = await sendMagicLink(accountEmail);
+      setNotice(`Magic link sent to ${result.email}. Open it to enable cloud sync.`);
     } catch (error) {
       setNotice((error as Error).message);
     }
   };
 
-  const requestGoogleSignIn = () => {
+  const requestGoogleSignIn = async () => {
     try {
-      startGoogleSignIn();
+      await startGoogleSignIn();
     } catch (error) {
       setNotice((error as Error).message);
     }
   };
 
   const updateProfile = (patch: Partial<typeof profile>) => {
-    const next = { ...profile, ...patch };
+    const next = {
+      ...profile,
+      ...patch,
+      friendCode: patch.friendCode !== undefined ? normalizeFriendCode(patch.friendCode) : profile.friendCode,
+    };
     setProfile(next);
+    if (patch.email !== undefined) setAccountEmail(next.email);
     saveProfile(next);
-    setNotice("Profile updated.");
+    syncProfileInBackground(next, "Profile updated.");
+    setNotice(profileAutosync.enabled ? "Profile updated. Cloud save queued." : "Profile updated locally.");
   };
 
   const saveCloudProfile = async () => {
-    setCloudState({ ...getCloudState(), status: "syncing", message: "Saving cloud profile..." });
+    const state = getCloudState();
+    const nextProfile = {
+      ...profile,
+      friendCode: profile.friendCode !== undefined ? normalizeFriendCode(profile.friendCode) : profile.friendCode,
+    };
+    setProfile(nextProfile);
+    saveProfile(nextProfile);
+    if (!canAutoSyncCloudWrites(state)) {
+      setCloudState(state);
+      setNotice("Profile saved locally. Sign in with Supabase to sync it across devices.");
+      return;
+    }
+    setCloudState({ ...state, status: "syncing", message: "Saving cloud profile..." });
     try {
-      await syncProfileToCloud(profile);
-      await finishCloudSyncWithReadback(profile, records, modeRuns, "Cloud profile saved.", shareEvidence);
+      const cloudProfile = await prepareCloudProfileForSync(nextProfile);
+      await syncProfileToCloud(cloudProfile);
+      await finishCloudSyncWithReadback(cloudProfile, records, modeRuns, "Cloud profile saved.", shareEvidence);
     } catch (error) {
       setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
       setNotice((error as Error).message);
@@ -1232,6 +1775,39 @@ function App() {
     }
   };
 
+  const createReadyModeRuns = async () => {
+    const playbook = buildModePlaybookPacket({ modes: gameModes, records, bracketPath, runs: modeRuns });
+    const queue = playbook.queue.filter((item) => item.runnable);
+    if (queue.length === 0) {
+      setNotice(playbook.complete ? "All tournament mode proof runs already exist." : playbook.nextAction);
+      return;
+    }
+    try {
+      const created: GameModeRun[] = [];
+      for (const item of queue) {
+        if (item.modeId === "bracket") {
+          created.push(await createBracketModeRun(bracketPath));
+          continue;
+        }
+        const mode = gameModes.find((candidate) => candidate.id === item.modeId);
+        if (!mode) continue;
+        created.push(await createGameModeRun(mode, records));
+      }
+      const createdIds = new Set(created.map((run) => run.id));
+      const nextModeRuns = [
+        ...created,
+        ...modeRuns.filter((run) => !createdIds.has(run.id) && !created.some((item) => item.modeId === run.modeId)),
+      ];
+      const bracketRun = created.find((run) => run.artifact?.kind === "bracket-path");
+      if (bracketRun?.artifact?.kind === "bracket-path") setBracketPath(bracketRun.artifact.bracketPath);
+      setModeRuns(nextModeRuns);
+      syncModeRunsInBackground(nextModeRuns, `Created ${created.length} ready tournament mode proof${created.length === 1 ? "" : "s"}.`);
+      setNotice(`Created ${created.length} ready tournament mode proof${created.length === 1 ? "" : "s"}.`);
+    } catch (error) {
+      setNotice((error as Error).message);
+    }
+  };
+
   const updateBracketPick = (pickId: string, patch: Partial<BracketPath["picks"][number]>) => {
     setBracketPath((current) => ({
       ...current,
@@ -1255,7 +1831,7 @@ function App() {
 
   const startFilecoinSeal = async () => {
     if (!selectedRecord) return;
-    setNotice(filecoinSealConfigured ? "Starting Filecoin seal workflow..." : "Seal backend is not configured yet.");
+    setNotice(filecoinSealConfigured() ? "Starting Filecoin seal workflow..." : "Seal backend is not configured yet.");
     try {
       const updated = await runSealJob(selectedRecord);
       const sealMessage =
@@ -1274,7 +1850,7 @@ function App() {
   };
 
   const startModeFilecoinSeal = async (run: GameModeRun) => {
-    setNotice(filecoinSealConfigured ? "Starting mode proof Filecoin seal workflow..." : "Seal backend is not configured yet.");
+    setNotice(filecoinSealConfigured() ? "Starting mode proof Filecoin seal workflow..." : "Seal backend is not configured yet.");
     try {
       const updated = await runModeSealJob(run);
       const nextModeRuns = modeRuns.map((item) => (item.id === updated.id ? updated : item));
@@ -1292,25 +1868,130 @@ function App() {
     }
   };
 
+  const sealMissingModeFilecoinLanes = async () => {
+    const queue = buildFilecoinAutomationSealQueue(records, modeRuns).filter((item) => item.kind === "mode" && item.runnable);
+    if (queue.length === 0) {
+      setNotice("No runnable mode Filecoin seal lanes yet. Create the missing tournament mode proofs first.");
+      return;
+    }
+    setNotice(filecoinSealConfigured() ? `Starting batch mode Filecoin seal for ${queue.length} lane${queue.length === 1 ? "" : "s"}...` : "Seal backend is not configured yet; saving needs-config mode seal jobs.");
+    let nextModeRuns = modeRuns;
+    let verified = 0;
+    let failed = 0;
+
+    for (const item of queue) {
+      const target = nextModeRuns.find((run) => run.id === item.artifactId);
+      if (!target) continue;
+      const updated = await runModeSealJob(target);
+      if (updated.sealJob?.status === "verified") verified += 1;
+      if (updated.sealJob?.status === "failed") failed += 1;
+      nextModeRuns = nextModeRuns.map((run) => (run.id === updated.id ? updated : run));
+    }
+
+    const message =
+      verified > 0
+        ? `Batch mode Filecoin seal finished: ${verified}/${queue.length} verified${failed ? `, ${failed} failed` : ""}.`
+        : filecoinSealConfigured()
+          ? `Batch mode Filecoin seal finished with ${failed} failed lane${failed === 1 ? "" : "s"}.`
+          : `Batch mode Filecoin seal queued ${queue.length} needs-config lane${queue.length === 1 ? "" : "s"}.`;
+    setModeRuns(nextModeRuns);
+    syncModeRunsInBackground(nextModeRuns, message);
+    setNotice(message);
+  };
+
+  const sealMissingFilecoinLanes = async () => {
+    const queue = buildFilecoinAutomationSealQueue(records, modeRuns).filter((item) => item.runnable);
+    if (queue.length === 0) {
+      setNotice("No runnable Filecoin seal lanes yet. Create the missing prediction or mode proof artifacts first.");
+      return;
+    }
+    setNotice(filecoinSealConfigured() ? `Starting batch Filecoin seal for ${queue.length} lane${queue.length === 1 ? "" : "s"}...` : "Seal backend is not configured yet; saving needs-config seal jobs.");
+    let nextRecords = records;
+    let nextModeRuns = modeRuns;
+    let verified = 0;
+    let failed = 0;
+
+    for (const item of queue) {
+      if (item.kind === "record") {
+        const target = nextRecords.find((record) => record.capsule.id === item.artifactId);
+        if (!target) continue;
+        const updated = await runSealJob(target);
+        if (updated.sealJob?.status === "verified") verified += 1;
+        if (updated.sealJob?.status === "failed") failed += 1;
+        nextRecords = nextRecords.map((record) => (record.capsule.id === updated.capsule.id ? updated : record));
+        continue;
+      }
+      const target = nextModeRuns.find((run) => run.id === item.artifactId);
+      if (!target) continue;
+      const updated = await runModeSealJob(target);
+      if (updated.sealJob?.status === "verified") verified += 1;
+      if (updated.sealJob?.status === "failed") failed += 1;
+      nextModeRuns = nextModeRuns.map((run) => (run.id === updated.id ? updated : run));
+    }
+
+    const message =
+      verified > 0
+        ? `Batch Filecoin seal finished: ${verified}/${queue.length} verified${failed ? `, ${failed} failed` : ""}.`
+        : filecoinSealConfigured()
+          ? `Batch Filecoin seal finished with ${failed} failed lane${failed === 1 ? "" : "s"}.`
+          : `Batch Filecoin seal queued ${queue.length} needs-config lane${queue.length === 1 ? "" : "s"}.`;
+    commitRecords(nextRecords, message);
+    setModeRuns(nextModeRuns);
+    syncModeRunsInBackground(nextModeRuns, message);
+    setNotice(message);
+  };
+
+  const resumePendingFilecoinSealJobs = async () => {
+    const queue = buildFilecoinSealResumeQueue(records, modeRuns);
+    if (queue.length === 0) return;
+    setNotice(`Resuming ${queue.length} pending Filecoin seal job${queue.length === 1 ? "" : "s"}...`);
+    let nextRecords = records;
+    let nextModeRuns = modeRuns;
+    let verified = 0;
+    let failed = 0;
+
+    for (const item of queue) {
+      if (item.kind === "record") {
+        const target = nextRecords.find((record) => record.capsule.id === item.artifactId);
+        if (!target) continue;
+        const updated = await runSealJob(target);
+        if (updated.sealJob?.status === "verified") verified += 1;
+        if (updated.sealJob?.status === "failed") failed += 1;
+        nextRecords = nextRecords.map((record) => (record.capsule.id === updated.capsule.id ? updated : record));
+        continue;
+      }
+      const target = nextModeRuns.find((run) => run.id === item.artifactId);
+      if (!target) continue;
+      const updated = await runModeSealJob(target);
+      if (updated.sealJob?.status === "verified") verified += 1;
+      if (updated.sealJob?.status === "failed") failed += 1;
+      nextModeRuns = nextModeRuns.map((run) => (run.id === updated.id ? updated : run));
+    }
+
+    const message =
+      verified > 0
+        ? `Resumed Filecoin seal jobs: ${verified}/${queue.length} verified${failed ? `, ${failed} failed` : ""}.`
+        : failed > 0
+          ? `Resumed Filecoin seal jobs with ${failed} failed job${failed === 1 ? "" : "s"} still pending.`
+          : "Resumed Filecoin seal jobs; verification is still pending.";
+    commitRecords(nextRecords, message);
+    setModeRuns(nextModeRuns);
+    syncModeRunsInBackground(nextModeRuns, message);
+  };
+
   const writeShareEvidence = (next: ShareArtifactEvidence) => {
     setShareEvidence((current) => {
       const existing = current.find((item) => item.id === next.id && item.kind === next.kind);
       const merged = existing ? { ...existing, ...next } : next;
       const nextEvidence = [merged, ...current.filter((item) => item.id !== next.id || item.kind !== next.kind)];
-      const state = getCloudState();
-      if (state.configured && state.authenticated) {
-        setCloudState({ ...state, status: "syncing", message: "Syncing share card manifest..." });
-        void syncShareArtifactsToCloud(profile, nextEvidence)
-          .then(async () => {
-            await finishCloudSyncWithReadback(profile, records, modeRuns, "Share card manifest synced.", nextEvidence);
-          })
-          .catch((error) => {
-            setCloudState({ ...getCloudState(), status: "error", message: (error as Error).message });
-            setNotice((error as Error).message);
-          });
-      }
+      syncCloudOutboxInBackground(profile, records, modeRuns, nextEvidence, "Share card manifest synced.", "Syncing share card manifest...");
       return nextEvidence;
     });
+  };
+
+  const writeShareEvidenceBatch = (nextEvidence: ShareArtifactEvidence[], reason = "Share card manifests synced.") => {
+    setShareEvidence(nextEvidence);
+    syncCloudOutboxInBackground(profile, records, modeRuns, nextEvidence, reason, "Syncing share card manifests...");
   };
 
   const publishShareImageUrl = async (
@@ -1401,6 +2082,64 @@ function App() {
     );
   };
 
+  const openNativeShareChannels = async (artifacts: ShareArtifactEvidence[]) => {
+    if (!("share" in navigator)) return false;
+    for (const artifact of artifacts) {
+      await navigator.share({
+        title: artifact.kind === "mode" ? "Kickoff Lock mode proof card" : "Kickoff Lock proof card",
+        text: `Verify this Kickoff Lock ${artifact.kind === "mode" ? "mode proof" : "prediction proof"} card.\nImage: ${artifact.imageUrl ?? "not uploaded"}`,
+        url: artifact.proofUrl,
+      });
+    }
+    return true;
+  };
+
+  const openXIntentWindow = (url?: string) => {
+    if (!url) return false;
+    return Boolean(window.open(url, "_blank", "noopener,noreferrer"));
+  };
+
+  const openMissingShareChannels = async () => {
+    const queue = buildShareChannelQueue(records, modeRuns, shareEvidence);
+    const timestamp = new Date().toISOString();
+    const xBatch = buildOpenedShareChannelArtifacts(records, modeRuns, shareEvidence, timestamp);
+    const xReady = xBatch.opened.filter((artifact) => artifact.xIntentUrl);
+    if (xReady.length === 0) {
+      setNotice(queue.nextAction);
+      return;
+    }
+    const nativeBatch = buildOpenedShareChannelArtifacts(records, modeRuns, shareEvidence, timestamp, "native");
+    try {
+      if (await openNativeShareChannels(nativeBatch.opened)) {
+        writeShareEvidenceBatch(nativeBatch.evidence, "Native share channel evidence synced.");
+        setNotice(`Opened ${nativeBatch.opened.length} native share channel${nativeBatch.opened.length === 1 ? "" : "s"} and saved channel evidence.`);
+        return;
+      }
+    } catch (error) {
+      if ((error as Error).name === "AbortError") {
+        setNotice("Share cancelled.");
+        return;
+      }
+    }
+    const openedKeys = new Set<string>();
+    for (const artifact of xReady) {
+      if (openXIntentWindow(artifact.xIntentUrl)) openedKeys.add(`${artifact.kind}:${artifact.id}`);
+    }
+    if (openedKeys.size === 0) {
+      setNotice("X share window was blocked. Allow popups for this site, then open the missing X channels again.");
+      return;
+    }
+    const openedEvidence = xBatch.opened.filter((artifact) => openedKeys.has(`${artifact.kind}:${artifact.id}`));
+    writeShareEvidenceBatch(
+      [
+        ...openedEvidence,
+        ...shareEvidence.filter((artifact) => !openedKeys.has(`${artifact.kind}:${artifact.id}`)),
+      ],
+      "X share channel evidence synced.",
+    );
+    setNotice(`Opened ${openedEvidence.length} X share channel${openedEvidence.length === 1 ? "" : "s"} and saved channel evidence.`);
+  };
+
   const shareRecordToTwitter = async (record: MemoryRecord) => {
     const publicUrl = proofUrl(record.capsule.id);
     const text = buildProofShareText(record, publicUrl);
@@ -1425,6 +2164,7 @@ function App() {
             dataUrl,
             fileName,
             imageUrl,
+            xIntentUrl,
             nativeShareOpenedAt: new Date().toISOString(),
           }));
           setNotice("Share sheet opened with proof image.");
@@ -1437,7 +2177,7 @@ function App() {
         return;
       }
     }
-    window.open(xIntentUrl, "_blank", "noopener,noreferrer");
+    const opened = openXIntentWindow(xIntentUrl);
     writeShareEvidence(await buildShareArtifactEvidence({
       id: record.capsule.id,
       kind: "record",
@@ -1446,9 +2186,9 @@ function App() {
       fileName,
       imageUrl,
       xIntentUrl,
-      xIntentOpenedAt: new Date().toISOString(),
+      ...(opened ? { xIntentOpenedAt: new Date().toISOString() } : {}),
     }));
-    setNotice("X share window opened with the public proof URL.");
+    setNotice(opened ? "X share window opened with the public proof URL." : "X share window was blocked. The card was generated, but channel evidence was not saved.");
   };
 
   const shareModeRunToTwitter = async (run: GameModeRun) => {
@@ -1475,6 +2215,7 @@ function App() {
             dataUrl,
             fileName,
             imageUrl,
+            xIntentUrl,
             nativeShareOpenedAt: new Date().toISOString(),
           }));
           setNotice("Share sheet opened with mode proof image.");
@@ -1487,7 +2228,7 @@ function App() {
         return;
       }
     }
-    window.open(xIntentUrl, "_blank", "noopener,noreferrer");
+    const opened = openXIntentWindow(xIntentUrl);
     writeShareEvidence(await buildShareArtifactEvidence({
       id: run.id,
       kind: "mode",
@@ -1496,9 +2237,9 @@ function App() {
       fileName,
       imageUrl,
       xIntentUrl,
-      xIntentOpenedAt: new Date().toISOString(),
+      ...(opened ? { xIntentOpenedAt: new Date().toISOString() } : {}),
     }));
-    setNotice("X share window opened with the public mode proof URL.");
+    setNotice(opened ? "X share window opened with the public mode proof URL." : "X share window was blocked. The mode card was generated, but channel evidence was not saved.");
   };
 
   const shareToTwitter = () => {
@@ -1562,6 +2303,12 @@ function App() {
   const copyProfileLink = async (profileId = profile.id) => {
     const copied = await copyToClipboard(profileUrl(profileId));
     setNotice(copied ? "Public profile link copied." : "Clipboard blocked. Public profile link is visible on the profile page.");
+  };
+
+  const copyFriendInviteLink = async () => {
+    const code = friendCodeFor(profile);
+    const copied = await copyToClipboard(friendInviteUrl(code));
+    setNotice(copied ? `Friend leaderboard invite copied for ${code}.` : "Clipboard blocked. Friend invite link is visible in Account.");
   };
 
   const updateMarket = (index: number, patch: Partial<PredictionDraft["markets"][number]>) => {
@@ -1755,6 +2502,7 @@ function App() {
           <ProviderHealthPanel health={providerHealth} />
           <DataContinuityEvidencePanel packet={dataContinuityEvidence} />
           {realtimeDataAudit && <RealtimeDataAuditPanel audit={realtimeDataAudit} />}
+          {dataProviderArtifact && <PublicFreeFeedProofPanel artifact={dataProviderArtifact} />}
           <IntelligenceEnrichmentEvidencePanel packet={intelligenceEnrichmentEvidence} />
           <ProviderRouteAudit items={providerRouteAudit} />
           <ProviderReadiness items={providerReadiness} />
@@ -2044,6 +2792,8 @@ function App() {
           onBracketPick={updateBracketPick}
           onSealBracket={sealBracketPath}
           onCreateModeRun={createModeRun}
+          onCreateReadyModes={() => void createReadyModeRuns()}
+          onSealReadyModeRuns={() => void sealMissingModeFilecoinLanes()}
           onSealModeRun={startModeFilecoinSeal}
         />
       )}
@@ -2077,13 +2827,41 @@ function App() {
           realtimeDataAudit={realtimeDataAudit}
           leaderboardEntries={allRemoteLeaderboard}
           leaderboardScopeEvidence={allLeaderboardEvidence}
-          sealEndpointConfigured={filecoinSealConfigured}
+          sealEndpointConfigured={filecoinSealConfigured()}
           shareImageReady={Boolean(shareImageUrl || publicShareImageUrl || publicModeShareImageUrl)}
           shareEvidence={shareEvidence}
           acceptanceEvidence={acceptanceEvidence}
           acceptanceEvidenceStatus={acceptanceEvidenceStatus}
           productionEvidence={productionEvidence}
           productionEvidenceStatus={productionEvidenceStatus}
+          publicDeploymentEvidence={publicDeploymentEvidence}
+          publicDeploymentEvidenceStatus={publicDeploymentEvidenceStatus}
+          productionBootstrapRunbook={productionBootstrapRunbook}
+          productionBootstrapRunbookStatus={productionBootstrapRunbookStatus}
+          productionAccessPreflight={productionAccessPreflight}
+          productionAccessPreflightStatus={productionAccessPreflightStatus}
+          productionEnvPlan={productionEnvPlan}
+          productionEnvPlanStatus={productionEnvPlanStatus}
+          supabaseBootstrapPlan={supabaseBootstrapPlan}
+          supabaseBootstrapPlanStatus={supabaseBootstrapPlanStatus}
+          supabaseSchemaArtifact={supabaseSchemaArtifact}
+          supabaseTargetSeedArtifact={supabaseTargetSeedArtifact}
+          accountCloudSyncArtifact={accountCloudSyncArtifact}
+          dataBootstrapPlan={dataBootstrapPlan}
+          dataBootstrapPlanStatus={dataBootstrapPlanStatus}
+          dataProviderArtifact={dataProviderArtifact}
+          dataScoutArtifact={dataScoutArtifact}
+          filecoinBootstrapPlan={filecoinBootstrapPlan}
+          filecoinBootstrapPlanStatus={filecoinBootstrapPlanStatus}
+          filecoinSealArtifact={filecoinSealArtifact}
+          cloudflarePagesDeployPlan={cloudflarePagesDeployPlan}
+          leaderboardBackendArtifact={leaderboardBackendArtifact}
+          leaderboardBackendStatus={leaderboardBackendStatus}
+          publicRestoreArtifact={publicRestoreArtifact}
+          shareChannelArtifact={shareChannelArtifact}
+          shareChannelArtifactStatus={shareChannelArtifactStatus}
+          recordShareImageUploadArtifact={recordShareImageUploadArtifact}
+          modeShareImageUploadArtifact={modeShareImageUploadArtifact}
           runtimeConfigReadiness={runtimeConfigReadiness}
           runtimeConfigSummary={runtimeConfigSummary}
           intelligenceEnrichmentEvidence={intelligenceEnrichmentEvidence}
@@ -2098,7 +2876,10 @@ function App() {
           onSignOut={signOut}
           onOpenProfile={openPublicProfile}
           onCopyProfileLink={() => copyProfileLink()}
+          onCopyFriendInvite={copyFriendInviteLink}
           onPublishMissingShareCards={publishMissingShareCards}
+          onOpenMissingShareChannels={openMissingShareChannels}
+          onSealMissingFilecoinLanes={() => void sealMissingFilecoinLanes()}
         />
       )}
       {utilityPanel && (
@@ -2209,6 +2990,18 @@ function ProviderHealthPanel({ health }: { health: ProviderHealthSnapshot }) {
           Enrichment: {health.enrichmentAudit.detail}
         </small>
       )}
+      <div className="provider-enrichment-matrix" aria-label="Provider enrichment endpoint matrix">
+        {(health.enrichmentMatrix ?? []).map((endpoint) => (
+          <article key={endpoint.key} className={endpoint.ready ? "ready" : "pending"}>
+            <span>{endpoint.label}</span>
+            <b>{endpoint.ready ? "ready" : "pending"}</b>
+            <small>
+              {endpoint.live}/{endpoint.attempted} live · {endpoint.fulfilled}/{endpoint.attempted} fulfilled · {endpoint.errors} errors
+            </small>
+            <small>{endpoint.endpoint}</small>
+          </article>
+        ))}
+      </div>
       <small>{health.detail}</small>
       {health.missingSignals.length > 0 && <p>Missing: {health.missingSignals.join(", ")}</p>}
       <p>{health.nextAction}</p>
@@ -2332,6 +3125,40 @@ function RealtimeDataAuditPanel({ audit }: { audit: RealtimeDataAudit }) {
   );
 }
 
+function PublicFreeFeedProofPanel({ artifact }: { artifact: DataProviderReadinessArtifact }) {
+  const proof = artifact.targets.publicFreeFeedReadBack;
+  const feeds = [
+    { label: "openfootball", item: proof?.openfootball },
+    { label: "TheSportsDB events", item: proof?.theSportsDb },
+    { label: "TheSportsDB table", item: proof?.theSportsDbTable },
+  ];
+  return (
+    <div
+      className={`realtime-data-audit ${artifact.acceptance.publicFreeFeedReadBack ? "audit-ready" : "audit-partial"}`}
+      aria-label="Public free feed read-back"
+    >
+      <div className="audit-head">
+        <div>
+          <strong>Public feed read-back</strong>
+          <span>{proof?.checkedAt ? `Checked ${formatDate(proof.checkedAt)}` : "not checked"}</span>
+        </div>
+        <b>{artifact.acceptance.publicFreeFeedReadBack ? "verified" : "pending"}</b>
+      </div>
+      <div className="audit-signal-grid">
+        {feeds.map(({ label, item }) => (
+          <article key={label} className={`readiness-${item?.ok ? "live" : "missing"}`}>
+            <span>{label}</span>
+            <b>{item?.ok ? "live" : "missing"}</b>
+            <small>
+              HTTP {item?.status ?? 0} · {item?.rowCount ?? 0} rows · {item?.detail ?? "not checked"}
+            </small>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ProviderRouteAudit({ items }: { items: ProviderRouteAuditItem[] }) {
   if (items.length === 0) return null;
   const active = items.find((item) => item.status === "active" || item.status === "fallback");
@@ -2403,21 +3230,24 @@ function MatchIntelligence({ match, onEnrich }: { match: Match; onEnrich: () => 
           <div className="intel-grid">
             <div>
               <strong>{match.homeTeam}</strong>
-              <span>Rank signal #{insights.home.fifaRank}</span>
+              <span>{insights.home.tablePosition ? `Table #${insights.home.tablePosition}` : `Rank signal #${insights.home.fifaRank}`}</span>
               <b>{insights.home.form.join(" ")}</b>
+              {insights.home.tablePoints !== undefined && <small>{insights.home.tablePoints} pts · {insights.home.tableRecord}</small>}
               <small>GF/GA last five: {insights.home.lastFiveGoalsFor}/{insights.home.lastFiveGoalsAgainst}</small>
               <small>{insights.home.unavailable.join(", ")}</small>
             </div>
             <div>
               <strong>{match.awayTeam}</strong>
-              <span>Rank signal #{insights.away.fifaRank}</span>
+              <span>{insights.away.tablePosition ? `Table #${insights.away.tablePosition}` : `Rank signal #${insights.away.fifaRank}`}</span>
               <b>{insights.away.form.join(" ")}</b>
+              {insights.away.tablePoints !== undefined && <small>{insights.away.tablePoints} pts · {insights.away.tableRecord}</small>}
               <small>GF/GA last five: {insights.away.lastFiveGoalsFor}/{insights.away.lastFiveGoalsAgainst}</small>
               <small>{insights.away.unavailable.join(", ")}</small>
             </div>
           </div>
           <div className="intel-notes">
             <p><b>Ranking</b>{insights.rankingSource ?? "Ranking source not attached"}</p>
+            {insights.standingsSource && <p><b>Standings</b>{insights.standingsSource}</p>}
             <p><b>H2H</b>{insights.headToHead}</p>
             <p><b>Market</b>{insights.marketLine}</p>
             <p><b>Odds</b>{insights.oddsSnapshot ?? "Waiting for odds source"}</p>
@@ -2666,6 +3496,7 @@ const buildSealAcceptanceChecks = (sealJob: SealJob, fallbackCid: string): SealA
   const pollStep = sealJob.steps.find((step) => step.id === "poll");
   const backendHealth = sealJob.backendHealth;
   const latestPoll = sealJob.pollLog?.at(-1);
+  const latestUploadStatus = sealJob.uploadStatusLog?.at(-1);
   return [
     {
       label: "Backend configured",
@@ -2693,8 +3524,19 @@ const buildSealAcceptanceChecks = (sealJob: SealJob, fallbackCid: string): SealA
     },
     {
       label: "Upload accepted",
-      detail: uploadStep?.status ?? "queued",
+      detail: sealJob.backendJobId
+        ? `${sealJob.backendJobId} · ${latestUploadStatus?.status ?? "submitted"}`
+        : uploadStep?.status ?? "queued",
       passed: uploadStep?.status === "passed",
+    },
+    {
+      label: "Upload status polled",
+      detail: sealJob.uploadStatusPolls
+        ? `${sealJob.uploadStatusPolls} job poll${sealJob.uploadStatusPolls > 1 ? "s" : ""} · ${latestUploadStatus?.detail ?? "checked"}`
+        : sealJob.backendJobId
+          ? "waiting for job status"
+          : "sync seal response",
+      passed: Boolean(sealJob.uploadStatusPolls || (!sealJob.backendJobId && sealJob.proof?.cid)),
     },
     {
       label: "CID returned",
@@ -2804,6 +3646,18 @@ function SealWorkflowPanel({
         ))}
       </div>
       <SealEvidencePacketCard packet={evidencePacket} />
+      {job.uploadStatusLog && job.uploadStatusLog.length > 0 && (
+        <div className="seal-poll-log" aria-label={`${title} upload status poll log`}>
+          {job.uploadStatusLog.slice(-5).map((attempt) => (
+            <div key={`${attempt.attempt}-${attempt.checkedAt}`} className={attempt.status === "verified" ? "passed" : ""}>
+              <Clock3 size={14} />
+              <span>Job poll {attempt.attempt}</span>
+              <strong>{attempt.status}</strong>
+              <small>{attempt.httpStatus ? `HTTP ${attempt.httpStatus} · ` : ""}{attempt.detail}</small>
+            </div>
+          ))}
+        </div>
+      )}
       {job.pollLog && job.pollLog.length > 0 && (
         <div className="seal-poll-log" aria-label={`${title} verification poll log`}>
           {job.pollLog.slice(-5).map((attempt) => (
@@ -2854,9 +3708,12 @@ function SealEvidencePacketCard({ packet }: { packet: SealEvidencePacket }) {
       <div className="seal-evidence-grid">
         <span>{packet.cid ?? "CID pending"}</span>
         <span>{packet.passedSteps}/{packet.totalSteps} steps</span>
+        <span>{packet.uploadStatusPolls} upload job polls</span>
         <span>{packet.pollAttempts} poll attempts</span>
-        <span>{packet.latestPoll ? `${packet.latestPoll.status}/${packet.latestPoll.proofStatus ?? "checked"}` : "poll pending"}</span>
-        <span>{packet.registryHashMatch ? "registry hash match" : "registry pending"}</span>
+        <span>{packet.backendProductionReady ? "production backend" : "backend pending"}</span>
+        <span>{packet.uploadStatusComplete ? "upload complete" : "upload pending"}</span>
+        <span>{packet.verificationPollingComplete ? "verify complete" : "verify pending"}</span>
+        <span>{packet.registryReadBackComplete ? "registry complete" : "registry pending"}</span>
       </div>
       <small>Next action: {packet.nextAction}</small>
       {packet.blockers.length > 0 && <small>Blockers: {packet.blockers.join(", ")}</small>}
@@ -3086,7 +3943,7 @@ function MemoryDashboard({
         </div>
         <LeaderboardEvidencePacketCard packet={leaderboardPacket} />
         <LeaderboardSeasonEvidencePanel packet={leaderboardSeasonPacket} />
-        <LeaderboardEvidencePanel evidence={leaderboardScopeEvidence} />
+        <LeaderboardEvidencePanel evidence={leaderboardScopeEvidence} profileId={profile.id} />
         {leaderboard.length === 0 && <p>No leaderboard rows yet. Sync a revealed proof to populate this scope.</p>}
         {leaderboard.map((entry, index) => (
           <article key={entry.id}>
@@ -3178,6 +4035,7 @@ function VerifyDashboard({
   const localModeRun = modeProofId ? modeRuns.find((run) => run.id === modeProofId) : undefined;
   const modeRun = localModeRun ?? publicModeRun;
   const modeProofSource = localModeRun ? "local device" : publicModeRun ? "cloud public mode proof" : "unresolved";
+  const modePublicSource = localModeRun ? "local" : publicModeRun && publicModeShareArtifact ? "cloud" : publicModeRun ? "cloud-missing-share" : "unresolved";
   const localModeShareArtifact = modeRun
     ? shareEvidence.find((item) => item.kind === "mode" && item.id === modeRun.id)
     : undefined;
@@ -3190,6 +4048,7 @@ function VerifyDashboard({
       : records[0];
   const record = localRecord ?? publicRecord;
   const proofSource = localRecord ? "local device" : publicRecord ? "cloud public record" : "unresolved";
+  const proofPublicSource = localRecord ? "local" : publicRecord && publicShareArtifact ? "cloud" : publicRecord ? "cloud-missing-share" : "unresolved";
   const localShareArtifact = record
     ? shareEvidence.find((item) => item.kind === "record" && item.id === record.capsule.id)
     : undefined;
@@ -3226,17 +4085,49 @@ function VerifyDashboard({
       ? buildRecordProofMeta(record, publicUrl, fallbackMetaImage, recordShareArtifact)
       : undefined;
   const modeScorecard = modeRun
-    ? buildModePublicProofScorecard(modeRun, modeRunUrl(modeRun.id), modeShareArtifact)
+    ? buildModePublicProofScorecard(
+        modeRun,
+        modeRunUrl(modeRun.id),
+        modeShareArtifact,
+        publicMeta?.kind === "mode" ? publicMeta : undefined,
+      )
     : undefined;
   const modeJudgeSummary = modeRun
     ? buildModePublicProofJudgeSummary(modeRun, modeRunUrl(modeRun.id), modeShareArtifact)
     : undefined;
+  const modeShareKit = modeRun
+    ? buildModePublicProofShareKit(modeRun, modeRunUrl(modeRun.id), modeShareArtifact)
+    : undefined;
   const recordScorecard = record
-    ? buildRecordPublicProofScorecard(record, publicUrl, recordShareArtifact)
+    ? buildRecordPublicProofScorecard(
+        record,
+        publicUrl,
+        recordShareArtifact,
+        publicMeta?.kind === "record" ? publicMeta : undefined,
+      )
     : undefined;
   const recordJudgeSummary = record
     ? buildRecordPublicProofJudgeSummary(record, publicUrl, recordShareArtifact)
     : undefined;
+  const recordShareKit = record
+    ? buildRecordPublicProofShareKit(record, publicUrl, recordShareArtifact)
+    : undefined;
+  const recordHeroImage = recordShareArtifact?.imageUrl ?? shareImageUrl;
+  const recordHeroImageLabel = recordShareArtifact?.imageUrl
+    ? recordShareArtifact.imageUrl.startsWith("https://")
+      ? "Cloud share card"
+      : "Share card manifest"
+    : shareImageUrl
+      ? "Generated preview"
+      : "Logo fallback";
+  const modeHeroImage = modeShareArtifact?.imageUrl ?? modeShareImageUrl;
+  const modeHeroImageLabel = modeShareArtifact?.imageUrl
+    ? modeShareArtifact.imageUrl.startsWith("https://")
+      ? "Cloud mode card"
+      : "Mode card manifest"
+    : modeShareImageUrl
+      ? "Generated preview"
+      : "Logo fallback";
   useEffect(() => {
     if (publicMeta) applyPublicProofMeta(publicMeta);
   }, [
@@ -3258,7 +4149,12 @@ function VerifyDashboard({
       ]
     : [];
   return (
-    <section className="verify panel">
+    <section
+      className="verify panel"
+      data-kickoff-public-kind={modeProofId ? "mode" : proofId ? "proof" : "local"}
+      data-kickoff-public-target={modeProofId ? modeRun?.id ?? modeProofId : proofId ? record?.capsule.id ?? proofId : record?.capsule.id ?? ""}
+      data-kickoff-public-source={modeProofId ? modePublicSource : proofId ? proofPublicSource : "local"}
+    >
       <div className="panel-head">
         <div>
           <p className="eyebrow">Public verifier</p>
@@ -3284,18 +4180,30 @@ function VerifyDashboard({
             <h3>{modeRun.title}</h3>
             <p>{modeRun.summary}</p>
           </div>
-          <div className="public-scoreline" aria-label="Public mode proof scoreline">
-            <div>
-              <span>Mode</span>
-              <strong>{modeRun.modeId}</strong>
+          <div className="public-proof-visual">
+            <div className="public-scoreline" aria-label="Public mode proof scoreline">
+              <div>
+                <span>Mode</span>
+                <strong>{modeRun.modeId}</strong>
+              </div>
+              <div>
+                <span>Status</span>
+                <strong>{modeRun.status}</strong>
+              </div>
+              <div>
+                <span>Score</span>
+                <strong>{modeRun.score !== undefined ? `${modeRun.score}/100` : "--"}</strong>
+              </div>
             </div>
-            <div>
-              <span>Status</span>
-              <strong>{modeRun.status}</strong>
-            </div>
-            <div>
-              <span>Score</span>
-              <strong>{modeRun.score !== undefined ? `${modeRun.score}/100` : "--"}</strong>
+            <div className="public-proof-media" aria-label="Public mode proof visual evidence">
+              <div className="proof-preview-frame">
+                <img src={modeHeroImage || assetUrl("kickoff-lock-icon.png")} alt="Mode proof share card preview" />
+              </div>
+              <div className="proof-stamp-stack">
+                <span>{modeHeroImageLabel}</span>
+                <strong>{modeRun.filecoinProof.mode} proof</strong>
+                <small>{modeShareArtifact ? "share manifest resolved" : "share manifest pending"}</small>
+              </div>
             </div>
           </div>
           <div className="public-proof-rail">
@@ -3327,6 +4235,7 @@ function VerifyDashboard({
         </div>
       )}
       {modeJudgeSummary && <PublicProofJudgeSummaryCard summary={modeJudgeSummary} />}
+      {modeRun && modeShareKit && <PublicProofShareKitCard kit={modeShareKit} onOpenXIntent={() => onModeTwitter(modeRun)} />}
       {modeRun && (
         <div className="verify-grid">
           <div className="verify-card proof-facts">
@@ -3393,18 +4302,30 @@ function VerifyDashboard({
             <h3>{record.capsule.matchLabel}</h3>
             <p>{sealLabel} · {proofLabel} · {resultLabel}</p>
           </div>
-          <div className="public-scoreline" aria-label="Public proof scoreline">
-            <div>
-              <span>Prediction</span>
-              <strong>{record.capsule.prediction.homeScore}-{record.capsule.prediction.awayScore}</strong>
+          <div className="public-proof-visual">
+            <div className="public-scoreline" aria-label="Public proof scoreline">
+              <div>
+                <span>Prediction</span>
+                <strong>{record.capsule.prediction.homeScore}-{record.capsule.prediction.awayScore}</strong>
+              </div>
+              <div>
+                <span>Actual</span>
+                <strong>{record.result ? `${record.result.homeScore}-${record.result.awayScore}` : "--"}</strong>
+              </div>
+              <div>
+                <span>Proof</span>
+                <strong>{proofHeroStatus}</strong>
+              </div>
             </div>
-            <div>
-              <span>Actual</span>
-              <strong>{record.result ? `${record.result.homeScore}-${record.result.awayScore}` : "--"}</strong>
-            </div>
-            <div>
-              <span>Proof</span>
-              <strong>{proofHeroStatus}</strong>
+            <div className="public-proof-media" aria-label="Public proof visual evidence">
+              <div className="proof-preview-frame">
+                <img src={recordHeroImage || assetUrl("kickoff-lock-icon.png")} alt="Public proof share card preview" />
+              </div>
+              <div className="proof-stamp-stack">
+                <span>{recordHeroImageLabel}</span>
+                <strong>{record.capsule.filecoinProof.mode} proof</strong>
+                <small>{recordShareArtifact ? "share manifest resolved" : "share manifest pending"}</small>
+              </div>
             </div>
           </div>
           <div className="public-proof-rail">
@@ -3436,6 +4357,7 @@ function VerifyDashboard({
         </div>
       )}
       {recordJudgeSummary && <PublicProofJudgeSummaryCard summary={recordJudgeSummary} />}
+      {record && recordShareKit && <PublicProofShareKitCard kit={recordShareKit} onOpenXIntent={() => onTwitter(record)} />}
       <div className="cid-lookup">
         <div>
           <p className="eyebrow">Filecoin CID lookup</p>
@@ -3541,6 +4463,162 @@ function VerifyDashboard({
           )}
         </div>
       ) : null}
+    </section>
+  );
+}
+
+function PublicProofShareKitCard({
+  kit,
+  onOpenXIntent,
+}: {
+  kit: PublicProofShareKit;
+  onOpenXIntent?: () => void;
+}) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const [packageCopyStatus, setPackageCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyShareText = async () => {
+    const copied = await copyToClipboard(kit.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  const copyPublicationPackage = async () => {
+    const copied = await copyToClipboard(kit.publicationPackage.copyText);
+    setPackageCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <section className={`public-proof-share-kit ${kit.status}`} aria-label="Public proof share kit">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Share kit</p>
+          <h3>{kit.headline}</h3>
+        </div>
+        <span className="pill">{kit.artifactLabel}</span>
+      </div>
+      <div className="share-kit-main">
+        <div>
+          <span>Proof</span>
+          <strong>{kit.kind}</strong>
+          <code>{kit.proofUrl}</code>
+        </div>
+        <div>
+          <span>Image</span>
+          <strong>{kit.imageUrl ? "attached" : "not hosted"}</strong>
+          <code>{kit.imageUrl || "Generate and sync a public PNG share card."}</code>
+        </div>
+        <div>
+          <span>Copy</span>
+          <strong>{copyStatus === "copied" ? "copied" : copyStatus === "manual" ? "manual" : "ready"}</strong>
+          <button onClick={copyShareText}>
+            <Link2 size={16} /> Copy share text
+          </button>
+        </div>
+      </div>
+      <div className="share-kit-actions">
+        {kit.actions.map((action) => (
+          <article key={action.key} className={action.status}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{action.label}</strong>
+              <span>{action.status}</span>
+            </div>
+            <small>{action.detail}</small>
+          </article>
+        ))}
+      </div>
+      <div className={`share-intent-audit ${kit.intentAudit.ready ? "ready" : kit.intentAudit.publishReady ? "ready-to-open" : ""}`} aria-label="Share intent audit">
+        <div>
+          <span>Intent audit</span>
+          <strong>{kit.intentAudit.ready ? "published" : kit.intentAudit.publishReady ? "ready to open" : "needs publishing"}</strong>
+        </div>
+        <small>{kit.intentAudit.summary}</small>
+        <div className="share-intent-checks">
+          {kit.intentAudit.checks.map((check) => (
+            <article key={check.key} className={check.status}>
+              <strong>{check.label}</strong>
+              <span>{check.status}</span>
+              <small>{check.detail}</small>
+            </article>
+          ))}
+        </div>
+      </div>
+      <div className={`publication-package ${kit.publicationPackage.status}`} aria-label="Proof publication package">
+        <div>
+          <span>Publication package</span>
+          <strong>{kit.publicationPackage.status}</strong>
+          <small>{kit.publicationPackage.summary}</small>
+        </div>
+        <div className="publication-package-grid">
+          <article className={kit.publicationPackage.publishReady ? "ready" : "pending"}>
+            <strong>Publish</strong>
+            <span>{kit.publicationPackage.publishReady ? "ready" : "blocked"}</span>
+          </article>
+          <article className={kit.publicationPackage.channelReady ? "ready" : "pending"}>
+            <strong>Channel</strong>
+            <span>{kit.publicationPackage.channelReady ? "opened" : "pending"}</span>
+          </article>
+          <article className={kit.publicationPackage.ready ? "ready" : "pending"}>
+            <strong>Read-back</strong>
+            <span>{kit.publicationPackage.ready ? "ready" : "pending"}</span>
+          </article>
+        </div>
+        <small>{kit.publicationPackage.nextAction}</small>
+        <div className="publication-acceptance-checklist" aria-label="Proof publication acceptance checklist">
+          {kit.publicationPackage.acceptanceChecklist.map((check) => (
+            <article key={check.key} className={check.passed ? "passed" : "pending"}>
+              <div>
+                <CheckCircle2 size={14} />
+                <strong>{check.label}</strong>
+                <span>{check.passed ? "passed" : "pending"}</span>
+              </div>
+              <small>{check.actual}</small>
+            </article>
+          ))}
+        </div>
+        {kit.publicationPackage.blockers.length > 0 && (
+          <ul>
+            {kit.publicationPackage.blockers.map((blocker) => (
+              <li key={blocker}>{blocker}</li>
+            ))}
+          </ul>
+        )}
+        <pre>{JSON.stringify(kit.publicationPackage.payload, null, 2)}</pre>
+        <button onClick={copyPublicationPackage}>
+          <Link2 size={16} /> {packageCopyStatus === "copied" ? "Copied package" : packageCopyStatus === "manual" ? "Show package" : "Copy publication package"}
+        </button>
+      </div>
+      {kit.xIntentUrl && (
+        onOpenXIntent ? (
+          <button className="share-kit-x" onClick={onOpenXIntent}>
+            <Users size={16} /> Open X intent
+          </button>
+        ) : (
+          <a className="share-kit-x" href={kit.xIntentUrl} target="_blank" rel="noreferrer">
+            <Users size={16} /> Open X intent
+          </a>
+        )
+      )}
+      {copyStatus === "manual" && (
+        <label className="share-kit-copy">
+          <span>Manual share text</span>
+          <textarea
+            aria-label="Manual share text"
+            readOnly
+            value={kit.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      {packageCopyStatus === "manual" && (
+        <label className="share-kit-copy">
+          <span>Manual publication package</span>
+          <textarea
+            aria-label="Manual publication package"
+            readOnly
+            value={kit.publicationPackage.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <small>{kit.summary}</small>
     </section>
   );
 }
@@ -3763,6 +4841,10 @@ function SocialMetadataCard({ meta }: { meta: PublicProofMeta }) {
           </span>
         </p>
         {meta.imageManifest?.imageUrl && <p><b>Share image URL</b><code>{meta.imageManifest.imageUrl}</code></p>}
+        {meta.imageManifest?.imageMime && <p><b>Image MIME</b><span>{meta.imageManifest.imageMime}</span></p>}
+        {meta.imageManifest?.imageByteLength && (
+          <p><b>Image bytes</b><span>{meta.imageManifest.imageByteLength.toLocaleString()}</span></p>
+        )}
       </div>
     </div>
   );
@@ -3851,7 +4933,214 @@ function LeaderboardSeasonEvidencePanel({ packet }: { packet: LeaderboardSeasonE
   );
 }
 
-function LeaderboardEvidencePanel({ evidence }: { evidence: LeaderboardScopeEvidence[] }) {
+function LeaderboardBackendPanel({
+  artifact,
+  status,
+}: {
+  artifact?: LeaderboardProductionArtifact;
+  status: string;
+}) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPacket = async () => {
+    const copied = await copyToClipboard(artifact?.copyText ?? status);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  const scopes = artifact
+    ? [
+        {
+          key: "global",
+          label: "Global",
+          currentUser: artifact.acceptance.globalCurrentUser,
+          boardRows: artifact.acceptance.globalBoardRows,
+          targetQuery: artifact.targetQueries.global,
+          boardQuery: artifact.boardQueries.global,
+        },
+        {
+          key: "friend",
+          label: "Friend",
+          currentUser: artifact.acceptance.friendCurrentUser,
+          boardRows: artifact.acceptance.friendBoardRows,
+          targetQuery: artifact.targetQueries.friend,
+          boardQuery: artifact.boardQueries.friend,
+        },
+        {
+          key: "season",
+          label: "Season",
+          currentUser: artifact.acceptance.seasonCurrentUser,
+          boardRows: artifact.acceptance.seasonBoardRows,
+          targetQuery: artifact.targetQueries.season,
+          boardQuery: artifact.boardQueries.season,
+        },
+      ]
+    : [];
+  return (
+    <section className={`leaderboard-backend-plan ${artifact?.ready ? "ready" : ""}`} aria-label="Leaderboard backend artifact">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Leaderboard backend</p>
+          <h3>Backend setup stages</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <TableProperties size={16} /> {copyStatus === "copied" ? "Copied backend" : "Copy backend"}
+        </button>
+      </div>
+      <div className="leaderboard-backend-summary" aria-label="Leaderboard backend summary">
+        <div><span>Stages</span><strong>{artifact ? `${artifact.stageReadyCount}/${artifact.totalStages}` : "0/3"}</strong></div>
+        <div><span>Scopes</span><strong>{artifact ? `${artifact.acceptance.passedScopeCount}/${artifact.acceptance.requiredScopeCount}` : "0/3"}</strong></div>
+        <div><span>Boards</span><strong>{artifact ? `${artifact.acceptance.passedBoardCount}/${artifact.acceptance.requiredBoardCount}` : "0/3"}</strong></div>
+        <div><span>Targets</span><strong>{artifact?.acceptance.targetEnvReady ? "ready" : "missing"}</strong></div>
+      </div>
+      <small>{artifact ? artifact.nextAction : status}</small>
+      <div className="leaderboard-backend-stages">
+        {artifact ? (
+          artifact.stages.map((stage) => (
+            <article key={stage.id} className={`stage-${stage.status}`}>
+              <div>
+                <CheckCircle2 size={16} />
+                <strong>{stage.label}</strong>
+                <span>{stage.status}</span>
+              </div>
+              <code>{stage.command}</code>
+              <small>Missing: {stage.missingEnv.join(", ") || "none"}</small>
+              <p>{stage.detail}</p>
+            </article>
+          ))
+        ) : (
+          <article className="stage-blocked">
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>Backend artifact</strong>
+              <span>missing</span>
+            </div>
+            <code>bun run leaderboard:bootstrap</code>
+            <small>Missing: public/leaderboard-backend.json</small>
+            <p>{status}</p>
+          </article>
+        )}
+      </div>
+      {artifact ? (
+        <div className="leaderboard-backend-scopes" aria-label="Leaderboard backend scope queries">
+          {scopes.map((scope) => (
+            <article key={scope.key} className={scope.currentUser && scope.boardRows ? "stage-done" : "stage-blocked"}>
+              <div>
+                <TableProperties size={16} />
+                <strong>{scope.label} scope</strong>
+                <span>
+                  user {scope.currentUser ? "listed" : "missing"} · board {scope.boardRows ? "loaded" : "missing"}
+                </span>
+              </div>
+              <small>current-user target</small>
+              <code>{scope.targetQuery}</code>
+              <small>public board rows</small>
+              <code>{scope.boardQuery}</code>
+            </article>
+          ))}
+        </div>
+      ) : null}
+      {artifact?.queryContracts?.length ? (
+        <div className="leaderboard-backend-scopes" aria-label="Leaderboard backend query contracts">
+          {artifact.queryContracts.map((contract) => (
+            <article key={`${contract.scope}-contract`} className={contract.passed ? "stage-done" : "stage-blocked"}>
+              <div>
+                <TableProperties size={16} />
+                <strong>{contract.scope} contract</strong>
+                <span>{contract.passed ? "ready" : "blocked"}</span>
+              </div>
+              <small>target {contract.targetQueryReady ? "ok" : "missing"} · board {contract.boardQueryReady ? "ok" : "missing"}</small>
+              <code>{contract.boardQuery}</code>
+              <p>{contract.detail}</p>
+            </article>
+          ))}
+        </div>
+      ) : null}
+      {artifact?.readBackCommands?.length ? (
+        <div className="leaderboard-backend-scopes" aria-label="Leaderboard read-back commands">
+          {artifact.readBackCommands.map((item) => (
+            <article key={`${item.scope}-${item.kind}`} className={item.ready ? "stage-done" : "stage-blocked"}>
+              <div>
+                <TerminalSquare size={16} />
+                <strong>{item.label}</strong>
+                <span>{item.ready ? "curl ready" : "needs Supabase"}</span>
+              </div>
+              <code>{item.command}</code>
+            </article>
+          ))}
+        </div>
+      ) : null}
+      {copyStatus === "manual" && (
+        <label className="production-account-copy">
+          <span>Manual leaderboard backend copy</span>
+          <textarea
+            aria-label="Manual leaderboard backend copy"
+            readOnly
+            value={artifact?.copyText ?? status}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+    </section>
+  );
+}
+
+function LeaderboardQueryContractPanel({ packet }: { packet: LeaderboardQueryContractPacket }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPacket = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <div className={`leaderboard-query-contract ${packet.ready ? "passed" : ""}`} aria-label="Leaderboard query contract">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Leaderboard contract</p>
+          <h3>Current-user scope queries</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <TableProperties size={16} /> {copyStatus === "copied" ? "Copied contract" : "Copy contract"}
+        </button>
+      </div>
+      <div className="leaderboard-contract-summary">
+        <div><span>Scopes</span><strong>{packet.passedScopes}/{packet.totalScopes}</strong></div>
+        <div><span>Status</span><strong>{packet.ready ? "ready" : "pending"}</strong></div>
+        <div><span>Profile</span><strong>{packet.profileId}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Next action: {packet.nextAction}</small>
+      {copyStatus === "manual" && (
+        <label className="leaderboard-copy-fallback">
+          <span>Manual query contract copy</span>
+          <textarea
+            aria-label="Manual query contract copy"
+            readOnly
+            value={packet.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="leaderboard-contract-scopes">
+        {packet.scopes.map((scope) => (
+          <article key={scope.scope} className={scope.passed ? "passed" : ""}>
+            <div>
+              <TableProperties size={16} />
+              <strong>{scope.scope}</strong>
+              <span>{scope.passed ? "verified" : "pending"}</span>
+            </div>
+            <small>{scope.detail}</small>
+            <code>{packet.targetQueries[scope.scope]}</code>
+            <small>
+              filter {scope.filterReady ? "ok" : "missing"} · target {scope.targetQueryReady ? "ok" : "missing"} · user{" "}
+              {scope.currentUserReady ? "ok" : "missing"} · rank {scope.scopedRankReady ? "ok" : "missing"} · stats{" "}
+              {scope.statsReady ? "ok" : "missing"}
+            </small>
+            <p>{scope.action}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LeaderboardEvidencePanel({ evidence, profileId }: { evidence: LeaderboardScopeEvidence[]; profileId: string }) {
   return (
     <div className="leaderboard-evidence" aria-label="Leaderboard query evidence">
       <div className="panel-head">
@@ -3859,22 +5148,33 @@ function LeaderboardEvidencePanel({ evidence }: { evidence: LeaderboardScopeEvid
           <p className="eyebrow">Backend query evidence</p>
           <h3>Leaderboard scope read-back</h3>
         </div>
-        <span className="pill">{evidence.filter((item) => item.status === "loaded" && item.rows > 0).length}/3</span>
+        <span className="pill">{evidence.filter((item) => hasLeaderboardScopeEvidence(item, profileId)).length}/3</span>
       </div>
-      {evidence.map((item) => (
-        <article key={item.scope} className={item.status === "loaded" && item.rows > 0 ? "passed" : ""}>
-          <div>
-            <TableProperties size={16} />
-            <strong>{item.scope}</strong>
-            <span>{item.status}</span>
-          </div>
-          <small>Rows: {item.rows} · Filter: {item.filter}</small>
-          <small>Current user: {item.currentUserPresent ? `listed${item.currentUserRank ? ` · rank ${item.currentUserRank}` : ""}` : "missing"}</small>
-          <small>Checked: {item.checkedAt ? formatDate(item.checkedAt) : "not checked"}</small>
-          <small>Samples: {item.sampleIds?.join(", ") || "none"}</small>
-          {item.error && <small>Error: {item.error}</small>}
-        </article>
-      ))}
+      {evidence.map((item) => {
+        const passed = hasLeaderboardScopeEvidence(item, profileId);
+        return (
+          <article key={item.scope} className={passed ? "passed" : ""}>
+            <div>
+              <TableProperties size={16} />
+              <strong>{item.scope}</strong>
+              <span>{passed ? "verified" : item.status}</span>
+            </div>
+            <small>Rows: {item.rows} · Filter: {item.filter}</small>
+            <small>Target: {item.targetQuery ?? "not checked"}</small>
+            <small>
+              Current user:{" "}
+              {item.currentUserPresent
+                ? `listed${item.currentUserRank ? ` · rank ${item.currentUserRank}` : ""} · XP ${item.currentUserXp ?? "missing"}`
+                : "missing"}
+            </small>
+            <small>Activity: locks {item.currentUserLocks ?? "missing"} · modes {item.currentUserModeProofs ?? "missing"} · exact {item.currentUserExactHits ?? "missing"}</small>
+            {!passed && <small>Problem: {leaderboardScopeStatsProblem(item)}</small>}
+            <small>Checked: {item.checkedAt ? formatDate(item.checkedAt) : "not checked"}</small>
+            <small>Samples: {item.sampleIds?.join(", ") || "none"}</small>
+            {item.error && <small>Error: {item.error}</small>}
+          </article>
+        );
+      })}
     </div>
   );
 }
@@ -3889,6 +5189,8 @@ function ModesDashboard({
   onBracketPick,
   onSealBracket,
   onCreateModeRun,
+  onCreateReadyModes,
+  onSealReadyModeRuns,
   onSealModeRun,
 }: {
   modes: GameMode[];
@@ -3900,14 +5202,17 @@ function ModesDashboard({
   onBracketPick: (pickId: string, patch: Partial<BracketPath["picks"][number]>) => void;
   onSealBracket: () => void;
   onCreateModeRun: (mode: GameMode) => void;
+  onCreateReadyModes: () => void;
+  onSealReadyModeRuns: () => void;
   onSealModeRun: (run: GameModeRun) => void;
 }) {
   const lockedCount = records.length;
   const bracketReady = isBracketPathReady(bracketPath);
   const bracketRuns = modeRuns.filter((run) => run.modeId === "bracket" && run.artifact?.kind === "bracket-path");
-  const modePlaybook = buildModePlaybookPacket({ modes, records, bracketPath, runs: modeRuns });
   const modeEvidence = buildModeEvidencePacket(modes, modeRuns, shareEvidence, cloudState.verification);
-  const modeSettlement = buildModeSettlementPacket(modeRuns);
+  const modePlaybook = buildModePlaybookPacket({ modes, records, bracketPath, runs: modeRuns, productionEvidence: modeEvidence });
+  const modeSealQueue = buildFilecoinAutomationSealQueue(records, modeRuns).filter((item) => item.kind === "mode");
+  const modeSettlement = buildModeSettlementPacket(modeRuns, modeEvidence);
   const agentCalibrationEvidence = buildAgentCalibrationEvidencePacket(modeRuns);
   return (
     <section className="modes panel">
@@ -3918,7 +5223,12 @@ function ModesDashboard({
         </div>
         <span className="pill">{lockedCount} active locks</span>
       </div>
-      <ModePlaybookPanel packet={modePlaybook} />
+      <ModePlaybookPanel
+        packet={modePlaybook}
+        modeSealQueue={modeSealQueue}
+        onCreateReadyModes={onCreateReadyModes}
+        onSealReadyModeRuns={onSealReadyModeRuns}
+      />
       <ModeEvidencePacketCard packet={modeEvidence} />
       <ModeSettlementPacketCard packet={modeSettlement} />
       <AgentCalibrationEvidencePanel packet={agentCalibrationEvidence} />
@@ -3996,12 +5306,13 @@ function ModesDashboard({
           const readiness = getModeReadiness(mode.id, records);
           const runs = modeRuns.filter((run) => run.modeId === mode.id);
           const productized = readiness.ready ? Math.max(mode.progress, 88) : mode.progress;
+          const statusLabel = readiness.ready ? "ready" : mode.status === "playable" ? "needs input" : mode.status;
           return (
             <article key={mode.id}>
               <div className="mode-top">
                 <Flame size={20} />
                 <span className={`pill mode-${readiness.ready ? "playable" : mode.status}`}>
-                  {readiness.ready ? "ready" : mode.status}
+                  {statusLabel}
                 </span>
               </div>
               <h3>{mode.title}</h3>
@@ -4048,37 +5359,65 @@ function ModesDashboard({
       </div>
       <div className="mode-rules">
         <h3>Acceptance rule</h3>
-        <p>Each mode creates a proof run with hash, CID and linked capsules; production acceptance also requires cloud content read-back, anonymous mode proof links and generated public share cards for all four mode types.</p>
+        <p>Each mode creates a proof run with hash, CID and linked capsules; production acceptance also requires cloud content read-back, anonymous mode proof links and generated public share cards for all six required mode types.</p>
       </div>
     </section>
   );
 }
 
-function ModePlaybookPanel({ packet }: { packet: ModePlaybookPacket }) {
+function ModePlaybookPanel({
+  packet,
+  modeSealQueue,
+  onCreateReadyModes,
+  onSealReadyModeRuns,
+}: {
+  packet: ModePlaybookPacket;
+  modeSealQueue: FilecoinAutomationQueueItem[];
+  onCreateReadyModes: () => void;
+  onSealReadyModeRuns: () => void;
+}) {
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const runnableModeSealLanes = modeSealQueue.filter((item) => item.runnable);
+  const missingModeSealArtifacts = modeSealQueue.filter((item) => !item.runnable);
   const copyPacket = async () => {
     const copied = await copyToClipboard(packet.copyText);
     setCopyStatus(copied ? "copied" : "manual");
   };
   return (
-    <div className={`mode-playbook-packet ${packet.complete ? "passed" : ""}`} aria-label="Mode playbook packet">
+    <div
+      className={`mode-playbook-packet ${packet.productionComplete ? "passed" : packet.complete ? "partial" : ""}`}
+      aria-label="Mode playbook packet"
+    >
       <div className="panel-head">
         <div>
           <p className="eyebrow">Mode playbook</p>
           <h3>Tournament mode lanes</h3>
         </div>
-        <button onClick={copyPacket}>
-          <TableProperties size={16} /> {copyStatus === "copied" ? "Copied playbook" : copyStatus === "manual" ? "Manual copy" : "Copy playbook"}
-        </button>
+        <div className="button-row">
+          <button onClick={onCreateReadyModes} disabled={packet.runnableQueue === 0}>
+            <FileCheck2 size={16} /> Create ready modes
+          </button>
+          <button onClick={onSealReadyModeRuns} disabled={runnableModeSealLanes.length === 0}>
+            <UploadCloud size={16} /> Seal mode lanes
+          </button>
+          <button onClick={copyPacket}>
+            <TableProperties size={16} /> {copyStatus === "copied" ? "Copied playbook" : copyStatus === "manual" ? "Manual copy" : "Copy playbook"}
+          </button>
+        </div>
       </div>
       <div className="mode-playbook-summary">
         <div><span>Sealed</span><strong>{packet.sealedModes}/{packet.totalModes}</strong></div>
+        <div><span>Production</span><strong>{packet.productionReadyModes}/{packet.totalModes}</strong></div>
         <div><span>Ready</span><strong>{packet.readyToSealModes}/{packet.totalModes}</strong></div>
+        <div><span>Queue</span><strong>{packet.runnableQueue}/{packet.queue.length}</strong></div>
+        <div><span>Seal lanes</span><strong>{runnableModeSealLanes.length}/{modeSealQueue.length}</strong></div>
         <div><span>Runs</span><strong>{packet.totalRuns}</strong></div>
-        <div><span>Status</span><strong>{packet.complete ? "complete" : "active"}</strong></div>
+        <div><span>Status</span><strong>{packet.productionComplete ? "production" : packet.complete ? "proof-ready" : "active"}</strong></div>
       </div>
       <p>{packet.summary}</p>
+      <small>Production gaps: {packet.productionMissingModes.join(", ") || "none"}</small>
       <small>Next action: {packet.nextAction}</small>
+      <small>Mode seal queue: {runnableModeSealLanes.length} runnable · {missingModeSealArtifacts.length} missing proof artifact{missingModeSealArtifacts.length === 1 ? "" : "s"}</small>
       {copyStatus === "manual" && (
         <label className="mode-playbook-copy">
           <span>Manual playbook copy</span>
@@ -4090,6 +5429,18 @@ function ModePlaybookPanel({ packet }: { packet: ModePlaybookPacket }) {
           />
         </label>
       )}
+      <div className="mode-creation-queue" aria-label="Mode creation queue">
+        {packet.queue.map((item) => (
+          <article key={item.modeId} className={item.runnable ? "runnable" : "missing"}>
+            <div>
+              <FileCheck2 size={16} />
+              <strong>{item.title}</strong>
+              <span>{item.runnable ? "queued" : item.status}</span>
+            </div>
+            <small>{item.nextAction}</small>
+          </article>
+        ))}
+      </div>
       <div className="mode-playbook-list">
         {packet.items.map((item) => (
           <article key={item.modeId} className={`mode-playbook-${item.status}`}>
@@ -4144,6 +5495,20 @@ function ModeEvidencePacketCard({ packet }: { packet: ModeEvidencePacket }) {
           </article>
         ))}
       </div>
+      <div className="mode-evidence-list" aria-label="Mode acceptance claims">
+        {packet.acceptanceClaims.map((claim) => (
+          <article key={claim.modeId} className={claim.accepted ? "passed" : ""}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{claim.modeId}</strong>
+              <span>{claim.accepted ? "accepted" : "blocked"}</span>
+            </div>
+            <small>Artifact: {claim.artifactKind ?? "missing"} / {claim.expectedArtifactKind}</small>
+            <small>Hash: {claim.payloadHashReady ? "ok" : "missing"} · CID: {claim.cid ?? "missing"}</small>
+            <small>Missing: {claim.missing.join(", ") || "none"}</small>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
@@ -4153,7 +5518,7 @@ function ModeSettlementPacketCard({ packet }: { packet: ModeSettlementPacket }) 
     await copyToClipboard(packet.copyText);
   };
   return (
-    <div className={`mode-settlement-packet ${packet.pendingRuns === 0 && packet.runs > 0 ? "passed" : ""}`} aria-label="Mode settlement packet">
+    <div className={`mode-settlement-packet ${packet.productionComplete ? "passed" : packet.pendingRuns === 0 && packet.runs > 0 ? "partial" : ""}`} aria-label="Mode settlement packet">
       <div className="panel-head">
         <div>
           <p className="eyebrow">Mode settlement</p>
@@ -4166,11 +5531,28 @@ function ModeSettlementPacketCard({ packet }: { packet: ModeSettlementPacket }) 
       <div className="mode-settlement-summary">
         <div><span>Runs</span><strong>{packet.runs}</strong></div>
         <div><span>Settled</span><strong>{packet.settledRuns}</strong></div>
+        <div><span>Accepted</span><strong>{packet.acceptedModes}/{packet.requiredModes || "-"}</strong></div>
+        <div><span>Ready modes</span><strong>{packet.settlementReadyModes}/{packet.requiredModes || "-"}</strong></div>
         <div><span>Avg score</span><strong>{packet.averageScore}</strong></div>
         <div><span>Bonus XP</span><strong>{packet.bonusXp}</strong></div>
       </div>
       <p>{packet.summary}</p>
       <small>Next action: {packet.nextAction}</small>
+      {packet.acceptanceItems.length > 0 && (
+        <div className="mode-settlement-list" aria-label="Mode settlement acceptance matrix">
+          {packet.acceptanceItems.map((item) => (
+            <article key={item.modeId} className={item.productionReady && item.settlementReady ? "passed" : item.settlementReady ? "partial" : ""}>
+              <div>
+                <CheckCircle2 size={16} />
+                <strong>{item.title}</strong>
+                <span>{item.productionReady ? "accepted" : "blocked"}</span>
+              </div>
+              <small>Run: {item.runId ?? "missing"} · Settlement: {item.settlementStatus ?? "missing"}{item.score !== undefined ? ` · ${item.score}/100` : ""}</small>
+              <small>Missing: {item.missing.join(", ") || "none"}</small>
+            </article>
+          ))}
+        </div>
+      )}
       <div className="mode-settlement-list">
         {packet.items.length === 0 ? (
           <article>
@@ -4179,7 +5561,7 @@ function ModeSettlementPacketCard({ packet }: { packet: ModeSettlementPacket }) 
               <strong>No mode proof runs yet</strong>
               <span>pending</span>
             </div>
-            <small>Create a bracket, parlay, Agent vs Human or upset proof to start settlement tracking.</small>
+            <small>Create a bracket, parlay, Agent vs Human, group path, upset or penalty pressure proof to start settlement tracking.</small>
           </article>
         ) : (
           packet.items.slice(0, 6).map((item) => (
@@ -4276,29 +5658,171 @@ function AgentCalibrationEvidencePanel({ packet }: { packet: AgentCalibrationEvi
 }
 
 function ModeRunArtifact({ artifact }: { artifact?: GameModeRun["artifact"] }) {
-  if (!artifact) return <span>Generic mode proof</span>;
+  if (!artifact) return <div className="mode-artifact"><span>Generic mode proof</span></div>;
   if (artifact.kind === "parlay-ticket") {
+    const chainHitLegs = artifact.chainHitLegs ?? artifact.hitLegs;
+    const chainLabel =
+      artifact.chainBustedAt !== undefined
+        ? `busted at leg ${artifact.chainBustedAt}`
+        : artifact.chainStatus === "complete"
+          ? "completed"
+          : "live";
     return (
-      <span>
-        Parlay ticket · {artifact.legs.length} legs · {artifact.settledLegs} settled · {artifact.hitLegs} hits
-      </span>
+      <div className="mode-artifact" aria-label="Parlay ticket artifact">
+        <div className="mode-artifact-head">
+          <span>Parlay chain</span>
+          <strong>{chainHitLegs}/{artifact.legs.length} · {chainLabel}</strong>
+        </div>
+        <div className="mode-artifact-grid">
+          {artifact.legs.map((leg) => (
+            <article key={leg.capsuleId}>
+              <b>{leg.chainStep ?? `Leg ${leg.sequenceIndex ?? ""}`.trim()}</b>
+              <small>{leg.matchLabel}</small>
+              <small>{leg.pick} · {leg.confidence}%</small>
+              <span>{leg.chainStatus ?? (leg.resultScore !== undefined ? `${leg.resultScore}/100` : "pending")}</span>
+            </article>
+          ))}
+        </div>
+      </div>
     );
   }
   if (artifact.kind === "agent-calibration") {
     return (
-      <span>
-        Calibration · {artifact.samples.length} samples · avg error {artifact.averageCalibrationError}
-      </span>
+      <div className="mode-artifact" aria-label="Agent calibration artifact">
+        <div className="mode-artifact-head">
+          <span>Calibration</span>
+          <strong>Avg error {artifact.averageCalibrationError}</strong>
+        </div>
+        <div className="mode-artifact-grid">
+          {artifact.samples.map((sample) => (
+            <article key={sample.capsuleId}>
+              <b>{sample.matchLabel}</b>
+              <small>Confidence {sample.confidence} · score {sample.totalScore}</small>
+              <span>{sample.winnerHit ? "winner hit" : "miss"}</span>
+            </article>
+          ))}
+        </div>
+      </div>
     );
   }
   if (artifact.kind === "upset-ticket") {
     return (
-      <span>
-        Upset ticket · {artifact.picks.length} picks · {artifact.hitPicks}/{artifact.resolvedPicks} hits · {artifact.bonusXp} bonus XP
-      </span>
+      <div className="mode-artifact" aria-label="Upset ticket artifact">
+        <div className="mode-artifact-head">
+          <span>Upset ticket</span>
+          <strong>{artifact.bonusXp} bonus XP</strong>
+        </div>
+        <div className="mode-artifact-grid">
+          {artifact.picks.map((pick) => (
+            <article key={pick.capsuleId}>
+              <b>{pick.matchLabel}</b>
+              <small>{pick.predictedWinner} · {pick.confidence}% · x{pick.multiplier}</small>
+              <span>{pick.resultScore !== undefined ? `${pick.resultScore}/100` : "pending"}</span>
+            </article>
+          ))}
+        </div>
+      </div>
     );
   }
-  return <span>Bracket path · {artifact.bracketPath.picks.length} picks</span>;
+  if (artifact.kind === "group-table-path") {
+    const actualRows = artifact.table.filter(
+      (row) => row.actualPoints !== undefined || row.actualGoalDifference !== undefined,
+    ).length;
+    return (
+      <div className="mode-artifact group-table-artifact" aria-label="Group table path artifact">
+        <div className="mode-artifact-head">
+          <span>Group path</span>
+          <strong>
+            {artifact.topTwo.join(" / ") || "top two pending"} · {artifact.winnerHits}/{artifact.resolvedMatches} hits
+          </strong>
+        </div>
+        <div className="group-table-summary" aria-label="Group path settlement summary">
+          <span>{artifact.picks.length} locks</span>
+          <span>{artifact.resolvedMatches} resolved matches</span>
+          <span>{actualRows} teams with actual table data</span>
+        </div>
+        <div className="mode-artifact-grid group-table-grid">
+          {artifact.table.slice(0, 6).map((row) => (
+            <article key={row.team}>
+              <b>{row.projectedRank}. {row.team}</b>
+              <small>
+                Pred {row.predictedPoints} pts · GD {row.predictedGoalDifference >= 0 ? "+" : ""}{row.predictedGoalDifference}
+              </small>
+              <small>
+                Actual {row.actualPoints ?? "--"} pts · GD{" "}
+                {row.actualGoalDifference === undefined
+                  ? "--"
+                  : `${row.actualGoalDifference >= 0 ? "+" : ""}${row.actualGoalDifference}`}
+              </small>
+              <span>{row.locks} lock{row.locks === 1 ? "" : "s"}</span>
+            </article>
+          ))}
+        </div>
+        <div className="group-pick-grid" aria-label="Group path pick audit">
+          {artifact.picks.slice(0, 6).map((pick) => (
+            <article key={pick.capsuleId} className={pick.winnerHit ? "hit" : pick.winnerHit === false ? "miss" : ""}>
+              <b>{pick.matchLabel}</b>
+              <small>{pick.predictedWinner} · {pick.predictedScore}</small>
+              <span>{pick.actualScore ? `${pick.actualScore} · ${pick.winnerHit ? "hit" : "miss"}` : "pending"}</span>
+            </article>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (artifact.kind === "penalty-pressure-ticket") {
+    return (
+      <div className="mode-artifact" aria-label="Penalty pressure artifact">
+        <div className="mode-artifact-head">
+          <span>Penalty pressure</span>
+          <strong>
+            {artifact.resolvedPicks > 0
+              ? `${artifact.hitPicks}/${artifact.resolvedPicks} pressure hits`
+              : `avg pressure ${artifact.averagePressure}`}
+          </strong>
+        </div>
+        <div className="mode-artifact-grid">
+          {artifact.takers.map((taker) => (
+            <article key={taker.capsuleId} className={taker.pressureHit ? "hit" : taker.pressureHit === false ? "miss" : ""}>
+              <b>{taker.matchLabel}</b>
+              <small>{taker.pressurePick} · {taker.pickType} · {taker.confidence}%</small>
+              <span>
+                {taker.resultScore !== undefined
+                  ? `${taker.resultScore}/100 · ${taker.pressureHit ? "hit" : "miss"}`
+                  : `pressure ${taker.pressureRating}`}
+              </span>
+            </article>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="mode-artifact" aria-label="Bracket path artifact">
+      <div className="mode-artifact-head">
+        <span>Bracket path</span>
+        <strong>
+          {artifact.resolvedPicks !== undefined && artifact.resolvedPicks > 0
+            ? `${artifact.hitPicks ?? 0}/${artifact.resolvedPicks} hits`
+            : `${artifact.bracketPath.picks.length} picks`}
+        </strong>
+      </div>
+      <div className="mode-artifact-grid">
+        {artifact.bracketPath.picks.map((pick) => (
+          <article key={pick.id}>
+            <b>{pick.matchLabel}</b>
+            <small>{pick.stage} · {pick.confidence}%</small>
+            <span>
+              {pick.winner}
+              {artifact.settlements?.find((item) => item.matchLabel === pick.matchLabel)?.winnerHit !== undefined
+                ? ` · ${artifact.settlements.find((item) => item.matchLabel === pick.matchLabel)?.winnerHit ? "hit" : "miss"}`
+                : ""}
+            </span>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function PublicProfileDashboard({
@@ -4321,16 +5845,22 @@ function PublicProfileDashboard({
   const shareManifestCount = profile.shareArtifacts.filter(isPublishableShareArtifact).length;
   const fallbackMetaImage = new URL(assetUrl("kickoff-lock-icon.png"), window.location.href).toString();
   const profileMeta = buildProfileMeta(profile, profileUrl(profile.id), fallbackMetaImage);
+  const publicSource = status.includes("Cloud profile loaded") ? "cloud" : status.includes("Public fixture") ? "fixture" : "local";
   const profileArchiveEvidence = buildProfileArchiveEvidencePacket({
     profile,
     profileUrl: profileUrl(profile.id),
-    source: status.includes("Cloud profile loaded") ? "public-page" : "local-preview",
+    source: publicSource === "cloud" ? "public-page" : "local-preview",
   });
   useEffect(() => {
     applyPublicProofMeta(profileMeta);
   }, [profileMeta.canonicalUrl, profileMeta.title, profileMeta.description]);
   return (
-    <section className="public-profile panel">
+    <section
+      className="public-profile panel"
+      data-kickoff-public-kind="profile"
+      data-kickoff-public-target={profile.id}
+      data-kickoff-public-source={publicSource}
+    >
       <div
         className="public-profile-hero"
         style={imageLayer(
@@ -4403,7 +5933,7 @@ function PublicProfileDashboard({
           </div>
           <span className="pill">{latestModeRuns.length} shown</span>
         </div>
-        {latestModeRuns.length === 0 && <p>No public mode proofs yet. Create a bracket, parlay, calibration or upset proof, then sync cloud history.</p>}
+          {latestModeRuns.length === 0 && <p>No public mode proofs yet. Create a bracket, parlay, calibration, group path, upset or penalty pressure proof, then sync cloud history.</p>}
         {latestModeRuns.map((run) => (
           <article key={run.id}>
             <div>
@@ -4426,6 +5956,9 @@ function ProfileArchiveEvidencePanel({ packet }: { packet: ProfileArchiveEvidenc
   const copyPacket = async () => {
     await navigator.clipboard?.writeText(packet.copyText);
   };
+  const copyManifest = async () => {
+    await navigator.clipboard?.writeText(packet.manifestJson);
+  };
   return (
     <section className={`profile-archive-evidence ${packet.ready ? "ready" : ""}`} aria-label="Profile archive evidence packet">
       <div className="panel-head">
@@ -4433,9 +5966,14 @@ function ProfileArchiveEvidencePanel({ packet }: { packet: ProfileArchiveEvidenc
           <p className="eyebrow">Profile archive</p>
           <h3>Profile archive packet</h3>
         </div>
-        <button onClick={copyPacket}>
-          <FileCheck2 size={16} /> Copy archive packet
-        </button>
+        <div className="panel-actions">
+          <button onClick={copyPacket}>
+            <FileCheck2 size={16} /> Copy archive packet
+          </button>
+          <button onClick={copyManifest}>
+            <FileCheck2 size={16} /> Copy manifest JSON
+          </button>
+        </div>
       </div>
       <div className="profile-archive-summary">
         <div><span>Locks</span><strong>{packet.records}</strong></div>
@@ -4457,6 +5995,13 @@ function ProfileArchiveEvidencePanel({ packet }: { packet: ProfileArchiveEvidenc
             <small>{check.detail}</small>
           </article>
         ))}
+      </div>
+      <div className="profile-archive-manifest" aria-label="Profile archive manifest">
+        <strong>Archive manifest</strong>
+        <span>
+          {packet.manifest.records.length} records · {packet.manifest.modeRuns.length} modes · {packet.manifest.shareCards.length} share cards
+        </span>
+        <code>{packet.manifest.records[0]?.proofUrl ?? packet.profileUrl}</code>
       </div>
       {packet.missingIds.length > 0 && <small>Missing: {packet.missingIds.slice(0, 6).join(", ")}</small>}
     </section>
@@ -4496,6 +6041,34 @@ function AccountDashboard({
   acceptanceEvidenceStatus,
   productionEvidence,
   productionEvidenceStatus,
+  publicDeploymentEvidence,
+  publicDeploymentEvidenceStatus,
+  productionBootstrapRunbook,
+  productionBootstrapRunbookStatus,
+  productionAccessPreflight,
+  productionAccessPreflightStatus,
+  productionEnvPlan,
+  productionEnvPlanStatus,
+  supabaseBootstrapPlan,
+  supabaseBootstrapPlanStatus,
+  supabaseSchemaArtifact,
+  supabaseTargetSeedArtifact,
+  accountCloudSyncArtifact,
+  dataBootstrapPlan,
+  dataBootstrapPlanStatus,
+  dataProviderArtifact,
+  dataScoutArtifact,
+  filecoinBootstrapPlan,
+  filecoinBootstrapPlanStatus,
+  filecoinSealArtifact,
+  cloudflarePagesDeployPlan,
+  leaderboardBackendArtifact,
+  leaderboardBackendStatus,
+  publicRestoreArtifact,
+  shareChannelArtifact,
+  shareChannelArtifactStatus,
+  recordShareImageUploadArtifact,
+  modeShareImageUploadArtifact,
   runtimeConfigReadiness,
   runtimeConfigSummary,
   intelligenceEnrichmentEvidence,
@@ -4510,7 +6083,10 @@ function AccountDashboard({
   onSignOut,
   onOpenProfile,
   onCopyProfileLink,
+  onCopyFriendInvite,
   onPublishMissingShareCards,
+  onOpenMissingShareChannels,
+  onSealMissingFilecoinLanes,
 }: {
   profile: ReturnType<typeof loadProfile>;
   cloudState: CloudSyncState;
@@ -4532,6 +6108,34 @@ function AccountDashboard({
   acceptanceEvidenceStatus: string;
   productionEvidence?: ProductionEvidencePacket;
   productionEvidenceStatus: string;
+  publicDeploymentEvidence?: PublicDeploymentEvidencePacket;
+  publicDeploymentEvidenceStatus: string;
+  productionBootstrapRunbook?: ProductionBootstrapRunbook;
+  productionBootstrapRunbookStatus: string;
+  productionAccessPreflight?: ProductionAccessPreflightPacket & { artifactVersion?: number; generatedAt?: string; source?: string };
+  productionAccessPreflightStatus: string;
+  productionEnvPlan?: ProductionEnvPlanPacket;
+  productionEnvPlanStatus: string;
+  supabaseBootstrapPlan?: SupabaseProductionBootstrapPlan;
+  supabaseBootstrapPlanStatus: string;
+  supabaseSchemaArtifact?: SupabaseSchemaApplyArtifact;
+  supabaseTargetSeedArtifact?: ProductionTargetSeedArtifact;
+  accountCloudSyncArtifact?: AccountCloudSyncEvidenceArtifact;
+  dataBootstrapPlan?: DataProductionBootstrapPlan;
+  dataBootstrapPlanStatus: string;
+  dataProviderArtifact?: DataProviderReadinessArtifact;
+  dataScoutArtifact?: DataTargetScoutArtifact;
+  filecoinBootstrapPlan?: FilecoinProductionBootstrapPlan;
+  filecoinBootstrapPlanStatus: string;
+  filecoinSealArtifact?: FilecoinTargetSealArtifact;
+  cloudflarePagesDeployPlan?: CloudflarePagesDeployPlan;
+  leaderboardBackendArtifact?: LeaderboardProductionArtifact;
+  leaderboardBackendStatus: string;
+  publicRestoreArtifact?: PublicRestoreEvidenceArtifact;
+  shareChannelArtifact?: ShareChannelEvidenceArtifact;
+  shareChannelArtifactStatus: string;
+  recordShareImageUploadArtifact?: ShareImageUploadArtifact;
+  modeShareImageUploadArtifact?: ShareImageUploadArtifact;
   runtimeConfigReadiness: RuntimeConfigItem[];
   runtimeConfigSummary: RuntimeConfigSummary;
   intelligenceEnrichmentEvidence: IntelligenceEnrichmentEvidencePacket;
@@ -4546,12 +6150,21 @@ function AccountDashboard({
   onSignOut: () => void;
   onOpenProfile: () => void;
   onCopyProfileLink: () => void;
+  onCopyFriendInvite: () => void;
   onPublishMissingShareCards: () => void;
+  onOpenMissingShareChannels: () => void;
+  onSealMissingFilecoinLanes: () => void;
 }) {
+  const browserRuntimeEnv = runtimeEnvTextValues();
   const syncCoverage = buildCloudSyncCoverage(cloudState, records, modeRuns, shareEvidence);
   const syncAudit = buildCloudSyncAudit(cloudState, profile, records, modeRuns, leaderboardEntries, shareEvidence);
+  const syncOutbox = buildCloudSyncOutbox(cloudState, profile, records, modeRuns, shareEvidence);
   const auditPassed = syncAudit.filter((item) => item.status === "passed").length;
+  const outboxVerified = syncOutbox.filter((item) => item.status === "verified").length;
+  const outboxQueued = syncOutbox.reduce((total, item) => total + item.queued, 0);
   const verification = cloudState.verification;
+  const profileAutosync = buildProfileAutosyncStatus(cloudState);
+  const cloudWriteAutosync = canAutoSyncCloudWrites(cloudState);
   const productionReadiness = buildProductionReadiness({
     cloudState,
     profile,
@@ -4577,57 +6190,91 @@ function AccountDashboard({
     health: providerHealth,
     audit: realtimeDataAudit,
   });
+  const freeDataSourceEvidence = buildFreeDataSourceEvidencePacket({
+    matches,
+    routeAudit: providerRouteAudit,
+  });
   const shareImageEvidence = shareEvidence.filter((item) => item.imageGenerated).length;
-  const shareChannelEvidence = shareEvidence.filter((item) => item.xIntentOpenedAt || item.nativeShareOpenedAt).length;
-  const productionTargetRecord = records.find((record) => record.capsule.locked) ?? records[0];
-  const productionTargetMode = modeRuns[0];
-  const productionTargetImage = shareEvidence.find((item) => item.imageUrl?.startsWith("https://"))?.imageUrl;
-  const productionRecordProof =
-    productionTargetRecord?.sealJob?.proof?.mode === "real"
-      ? productionTargetRecord.sealJob.proof
-      : productionTargetRecord?.capsule.filecoinProof.mode === "real"
-        ? productionTargetRecord.capsule.filecoinProof
-        : undefined;
-  const productionModeProof =
-    productionTargetMode?.sealJob?.proof?.mode === "real"
-      ? productionTargetMode.sealJob.proof
-      : productionTargetMode?.filecoinProof.mode === "real"
-        ? productionTargetMode.filecoinProof
-        : undefined;
-  const productionVerifyEnv = buildProductionVerifyEnv({
-    userId: profile.cloudMode === "supabase" ? profile.id : "",
-    profileId: profile.cloudMode === "supabase" ? profile.id : "",
-    proofId: productionTargetRecord?.capsule.id,
-    modeId: productionTargetMode?.id,
-    filecoinRecordCid: productionRecordProof?.cid,
-    filecoinRecordPayloadHash:
-      productionTargetRecord?.sealJob?.uploadPayloadHash ??
-      productionTargetRecord?.sealJob?.proof?.payloadHash,
-    filecoinModeCid: productionModeProof?.cid,
-    filecoinModePayloadHash:
-      productionTargetMode?.sealJob?.uploadPayloadHash ??
-      productionTargetMode?.sealJob?.proof?.payloadHash,
-    friendCode: productionFriendCode(profile.location, profile.email),
-    shareImageUrl: productionTargetImage,
-    allowFailures: true,
+  const shareChannelEvidencePacket = buildShareChannelEvidencePacket(records, modeRuns, shareEvidence);
+  const publicProofPublicationLedger = buildPublicProofPublicationLedger([
+    ...records.map((record) =>
+      buildRecordPublicProofShareKit(
+        record,
+        proofUrl(record.capsule.id),
+        shareEvidence.find((item) => item.kind === "record" && item.id === record.capsule.id),
+      ),
+    ),
+    ...modeRuns.map((run) =>
+      buildModePublicProofShareKit(
+        run,
+        modeRunUrl(run.id),
+        shareEvidence.find((item) => item.kind === "mode" && item.id === run.id),
+      ),
+    ),
+  ]);
+  const productionShareChannelEvidence = shareEvidence.filter(
+    (item) => isProductionShareArtifact(item) && hasShareChannelEvidence(item),
+  );
+  const recordShareChannelEvidence = productionShareChannelEvidence.filter((item) => item.kind === "record").length;
+  const modeShareChannelEvidence = productionShareChannelEvidence.filter((item) => item.kind === "mode").length;
+  const activeFriendCode = friendCodeFor(profile);
+  const productionVerifyEnv = buildProductionVerifyEnvFromArtifacts({
+    profile,
+    records,
+    modeRuns,
+    shareEvidence,
+    publicProfileUrl: profileUrl(profile.id),
   });
   const productionDoctor = buildProductionDoctorReport(
-    { ...import.meta.env, ...parseEnvText(productionVerifyEnv) },
+    { ...browserRuntimeEnv, ...parseEnvText(productionVerifyEnv) },
     productionEvidence,
   );
   const productionAccountBootstrap = buildProductionAccountBootstrapPacket({
     envText: productionVerifyEnv,
-    publicAppUrl: import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin + import.meta.env.BASE_URL,
+    runtimeEnv: browserRuntimeEnv,
+    publicAppUrl: configuredPublicAppUrl() || fallbackPublicAppUrl(),
+  });
+  const productionEnvLedger = buildProductionEnvLedger(productionVerifyEnv);
+  const productionAcceptanceCollector = buildProductionAcceptanceCollector({
+    runtimeEnv: { ...browserRuntimeEnv, ...parseEnvText(productionVerifyEnv) },
+    verifyEnvText: productionVerifyEnv,
+    ledger: productionEnvLedger,
+    accessPreflightArtifact: productionAccessPreflight,
+    supabaseBootstrapPlan,
+    supabaseSchemaArtifact,
+    supabaseTargetSeedArtifact,
+    accountCloudSyncEvidence: accountCloudSyncArtifact,
+    dataBootstrapPlan,
+    dataProviderArtifact,
+    dataScoutArtifact,
+    filecoinBootstrapPlan,
+    filecoinSealArtifact,
+    cloudflarePagesDeployPlan,
+    leaderboardArtifact: leaderboardBackendArtifact,
+    publicRestoreArtifact,
+    shareChannelArtifact,
+    shareImageUploadArtifacts: {
+      record: recordShareImageUploadArtifact,
+      mode: modeShareImageUploadArtifact,
+    },
+  });
+  const productionGoalAudit = buildProductionGoalAudit({
+    productionEvidence,
+    acceptanceEvidence,
+    envPlan: productionEnvPlan,
+    productionCollector: productionAcceptanceCollector,
   });
   const productionLaunchPacket = buildProductionLaunchPacket(productionDoctor);
-  const brandAssetPacket = buildBrandAssetPacket(import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin + import.meta.env.BASE_URL);
+  const brandAssetPacket = buildBrandAssetPacket(configuredPublicAppUrl() || fallbackPublicAppUrl());
   const filecoinAutomationEvidence = buildFilecoinAutomationEvidencePacket(records, modeRuns);
+  const filecoinSealLifecycle = buildFilecoinSealLifecyclePacket(records, modeRuns);
   const accountHandoff = buildAccountHandoffPacket({
     profile,
     cloudState,
     records,
     modeRuns,
     shareEvidence,
+    leaderboardScopeEvidence,
     productionVerifyEnv,
     publicProfileUrl: profileUrl(profile.id),
     missingRuntimeEnv: productionDoctor.runtime.missingEnvKeys,
@@ -4640,6 +6287,15 @@ function AccountDashboard({
     shareEvidence,
     leaderboardScopeEvidence,
     publicProfileUrl: profileUrl(profile.id),
+    productionEvidence,
+  });
+  const accountCloudSyncEvidence = buildAccountCloudSyncEvidenceArtifact({
+    profile,
+    cloudState,
+    records,
+    modeRuns,
+    shareArtifacts: shareEvidence,
+    leaderboardEntries,
   });
   const profileArchiveEvidence = buildProfileArchiveEvidencePacket({
     profile: buildPublicProfile(profile, records, modeRuns, shareEvidence),
@@ -4652,6 +6308,7 @@ function AccountDashboard({
     entries: leaderboardEntries,
     evidence: leaderboardScopeEvidence,
   });
+  const leaderboardQueryContract = buildLeaderboardQueryContractPacket(profile, leaderboardScopeEvidence);
   const publicProfileArchiveCount =
     (verification?.publicProfileRecordIds?.length ?? 0) +
     (verification?.publicProfileModeRunIds?.length ?? 0) +
@@ -4747,9 +6404,30 @@ function AccountDashboard({
             <span>Location</span>
             <input value={profile.location} onChange={(event) => onProfile({ location: event.target.value })} />
           </label>
+          <label>
+            <span>Friend leaderboard code</span>
+            <input
+              value={activeFriendCode}
+              onChange={(event) => onProfile({ friendCode: event.target.value })}
+              aria-label="Friend leaderboard code"
+            />
+          </label>
           <div className="profile-meta">
             <code>{profile.id}</code>
             <span>{profile.cloudMode} profile</span>
+            <span aria-label="Profile autosync status">{profileAutosync.label}</span>
+            <small>{profileAutosync.detail}</small>
+          </div>
+          <div className="friend-code-panel" aria-label="Friend leaderboard invite">
+            <div>
+              <Users size={16} />
+              <strong>{activeFriendCode}</strong>
+              <span>Shared friend scope for the leaderboard</span>
+            </div>
+            <code>{friendInviteUrl(activeFriendCode)}</code>
+            <button onClick={onCopyFriendInvite}>
+              <Link2 size={16} /> Copy friend invite
+            </button>
           </div>
         </div>
         <div className="cloud-card">
@@ -4759,11 +6437,11 @@ function AccountDashboard({
           <div className="cloud-status-grid" aria-label="Cloud sync status">
             <div>
               <span>Auth</span>
-              <strong>{cloudState.authenticated ? "signed in" : "local"}</strong>
+              <strong>{cloudState.authenticated ? "signed in" : cloudState.refreshable ? "refreshable" : "local"}</strong>
             </div>
             <div>
               <span>Auto reconcile</span>
-              <strong>{cloudState.authenticated ? "enabled" : "waiting"}</strong>
+              <strong>{cloudWriteAutosync ? "enabled" : "waiting"}</strong>
             </div>
             <div>
               <span>Records</span>
@@ -4775,7 +6453,7 @@ function AccountDashboard({
             </div>
             <div>
               <span>Pending sync</span>
-              <strong>{syncCoverage.pendingItems}</strong>
+              <strong>{outboxQueued || syncCoverage.pendingItems}</strong>
             </div>
             <div>
               <span>Read-back</span>
@@ -4791,7 +6469,11 @@ function AccountDashboard({
             </div>
             <div>
               <span>Share channel</span>
-              <strong>{shareChannelEvidence > 0 ? `${shareChannelEvidence} opened` : "not exercised"}</strong>
+              <strong>
+                {productionShareChannelEvidence.length > 0
+                  ? `record ${recordShareChannelEvidence}/${records.length} · mode ${modeShareChannelEvidence}/${modeRuns.length}`
+                  : "not exercised"}
+              </strong>
             </div>
             <div>
               <span>Last synced</span>
@@ -4811,6 +6493,7 @@ function AccountDashboard({
               </div>
             ))}
           </div>
+          <CloudSyncOutboxPanel items={syncOutbox} verified={outboxVerified} />
           <div className="cloud-audit" aria-label="Cloud sync audit">
             <div className="panel-head">
               <div>
@@ -4833,27 +6516,48 @@ function AccountDashboard({
             ))}
           </div>
           <RuntimeConfigPanel items={runtimeConfigReadiness} summary={runtimeConfigSummary} />
-          <ProductionVerifyTargetsPanel envText={productionVerifyEnv} />
-          <ProductionAccountBootstrapPanel packet={productionAccountBootstrap} />
+          <ProductionBootstrapRunbookPanel runbook={productionBootstrapRunbook} status={productionBootstrapRunbookStatus} />
+          <ProductionAccessPreflightPanel packet={productionAccessPreflight} status={productionAccessPreflightStatus} />
+          <ProductionEnvPlanPanel packet={productionEnvPlan} status={productionEnvPlanStatus} />
+          <ProductionVerifyTargetsPanel envText={productionVerifyEnv} ledger={productionEnvLedger} />
+          <ProductionAcceptanceCollectorPanel packet={productionAcceptanceCollector} />
+          <ProductionGoalAuditPanel packet={productionGoalAudit} />
+          <ProductionAccountBootstrapPanel
+            packet={productionAccountBootstrap}
+            bootstrapPlan={supabaseBootstrapPlan}
+            bootstrapPlanStatus={supabaseBootstrapPlanStatus}
+          />
           <AccountHandoffPanel packet={accountHandoff} />
+          <AccountCloudSyncEvidencePanel packet={accountCloudSyncEvidence} />
           <AccountRecoveryEvidencePanel packet={accountRecovery} />
           <ProfileArchiveEvidencePanel packet={profileArchiveEvidence} />
           <BrandAssetPacketPanel packet={brandAssetPacket} />
           <ProductionDoctorPanel report={productionDoctor} />
-          <FilecoinAutomationEvidencePanel packet={filecoinAutomationEvidence} />
+          <FilecoinAutomationEvidencePanel packet={filecoinAutomationEvidence} onSealMissing={onSealMissingFilecoinLanes} />
+          <FilecoinSealLifecyclePanel packet={filecoinSealLifecycle} />
+          <FilecoinBootstrapPanel plan={filecoinBootstrapPlan} status={filecoinBootstrapPlanStatus} />
+          <RealtimeDataBootstrapPanel plan={dataBootstrapPlan} status={dataBootstrapPlanStatus} />
+          <FreeDataSourceEvidencePanel packet={freeDataSourceEvidence} />
           <RealtimeDataEvidencePacketPanel packet={realtimeDataEvidence} />
           <DataContinuityEvidencePanel packet={dataContinuityEvidence} />
           <IntelligenceEnrichmentEvidencePanel packet={intelligenceEnrichmentEvidence} />
           <ProductionLaunchPacketPanel packet={productionLaunchPacket} />
+          <PublicDeploymentEvidencePanel packet={publicDeploymentEvidence} status={publicDeploymentEvidenceStatus} />
           <ProductionEvidencePanel evidence={productionEvidence} status={productionEvidenceStatus} />
           <CloudReadbackLedger verification={verification} records={records} modeRuns={modeRuns} shareEvidence={shareEvidence} />
           <LeaderboardSeasonEvidencePanel packet={leaderboardSeasonPacket} />
-          <LeaderboardEvidencePanel evidence={leaderboardScopeEvidence} />
+          <LeaderboardBackendPanel artifact={leaderboardBackendArtifact} status={leaderboardBackendStatus} />
+          <LeaderboardQueryContractPanel packet={leaderboardQueryContract} />
+          <LeaderboardEvidencePanel evidence={leaderboardScopeEvidence} profileId={profile.id} />
+          <ShareChannelBootstrapPanel artifact={shareChannelArtifact} status={shareChannelArtifactStatus} />
+          <PublicProofPublicationLedgerPanel ledger={publicProofPublicationLedger} />
+          <ShareChannelEvidencePanel packet={shareChannelEvidencePacket} />
           <ShareArtifactLedger
             records={records}
             modeRuns={modeRuns}
             evidence={shareEvidence}
             onPublishMissing={onPublishMissingShareCards}
+            onOpenMissingChannels={onOpenMissingShareChannels}
           />
           <label>
             <span>Magic link email</span>
@@ -4883,6 +6587,9 @@ function AccountDashboard({
             </button>
             <button onClick={onCopyProfileLink}>
               <Link2 size={18} /> Copy profile link
+            </button>
+            <button onClick={onCopyFriendInvite}>
+              <Users size={18} /> Copy friend invite
             </button>
           </div>
           <div className="schema-note">
@@ -4952,9 +6659,312 @@ function RuntimeConfigPanel({
   );
 }
 
-function ProductionVerifyTargetsPanel({ envText }: { envText: string }) {
+function ProductionBootstrapRunbookPanel({
+  runbook,
+  status,
+}: {
+  runbook?: ProductionBootstrapRunbook;
+  status: string;
+}) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const summary = summarizeProductionBootstrapRunbook(runbook, status);
+  const copyRunbook = async () => {
+    const copied = await copyToClipboard(summary.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  const visibleBlockedSteps = summary.blockedSteps;
+  return (
+    <div className={`production-bootstrap-runbook ${summary.ready ? "ready" : ""}`} aria-label="Production bootstrap runbook">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Bootstrap runbook</p>
+          <h3>Production completion pipeline</h3>
+        </div>
+        <button onClick={copyRunbook}>
+          <FileCheck2 size={16} /> {copyStatus === "copied" ? "Copied runbook" : "Copy runbook"}
+        </button>
+      </div>
+      <div className="production-bootstrap-summary">
+        <div>
+          <span>Steps</span>
+          <strong>{summary.passedSteps}/{summary.totalSteps}</strong>
+        </div>
+        <div>
+          <span>Failed</span>
+          <strong>{summary.failedSteps}</strong>
+        </div>
+        <div>
+          <span>Mode</span>
+          <strong>{summary.mode}</strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <strong>{summary.ready ? "ready" : "blocked"}</strong>
+        </div>
+      </div>
+      <p>{summary.nextAction}</p>
+      <div className="production-bootstrap-commands" aria-label="Production bootstrap commands">
+        {summary.commands.slice(0, 6).map((command) => (
+          <code key={command}>{command}</code>
+        ))}
+      </div>
+      {copyStatus === "manual" && (
+        <label className="production-bootstrap-copy">
+          <span>Manual runbook copy</span>
+          <textarea
+            aria-label="Manual production bootstrap runbook copy"
+            readOnly
+            value={summary.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="production-bootstrap-acceptance" aria-label="Production bootstrap acceptance checklist">
+        {summary.acceptanceChecklist.map((item) => (
+          <article key={item.id} className={`acceptance-${item.status}`}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{item.label}</strong>
+              <span>{item.passedSteps}/{item.totalSteps}</span>
+            </div>
+            <code>{item.command}</code>
+            {item.missingEnv.length > 0 && (
+              <div className="production-bootstrap-missing" aria-label={`${item.label} missing values`}>
+                {item.missingEnv.slice(0, 5).map((missing) => (
+                  <span key={missing}>{missing}</span>
+                ))}
+              </div>
+            )}
+            <p>{item.evidence}</p>
+          </article>
+        ))}
+      </div>
+      <div className="production-bootstrap-steps" aria-label="Production bootstrap blocked steps">
+        {runbook ? (
+          visibleBlockedSteps.length > 0 ? (
+            visibleBlockedSteps.map((step) => (
+              <article key={step.id} className={`bootstrap-${step.status}`}>
+                <div>
+                  <CheckCircle2 size={16} />
+                  <strong>{step.label}</strong>
+                  <span>{step.status}</span>
+                </div>
+                <code>{step.command}</code>
+                <small>{productionBootstrapStepProgress(step)}</small>
+                {step.parsedMissingEnv && step.parsedMissingEnv.length > 0 && (
+                  <div className="production-bootstrap-missing" aria-label={`${step.label} missing values`}>
+                    {step.parsedMissingEnv.slice(0, 8).map((item) => (
+                      <span key={item}>{item}</span>
+                    ))}
+                  </div>
+                )}
+                <p>{productionBootstrapStepDetail(step)}</p>
+              </article>
+            ))
+          ) : (
+            <article className="bootstrap-passed">
+              <div>
+                <CheckCircle2 size={16} />
+                <strong>All bootstrap stages</strong>
+                <span>passed</span>
+              </div>
+              <code>bun run verify:production && bun run goal:audit</code>
+              <p>Every production bootstrap stage completed in this artifact.</p>
+            </article>
+          )
+        ) : (
+          <article className="bootstrap-failed">
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>Runbook artifact</strong>
+              <span>missing</span>
+            </div>
+            <code>bun run production:bootstrap -- --json</code>
+            <p>{status}</p>
+          </article>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProductionEnvPlanPanel({
+  packet,
+  status,
+}: {
+  packet?: ProductionEnvPlanPacket;
+  status: string;
+}) {
+  const copyPlan = async () => {
+    await navigator.clipboard?.writeText(packet?.copyText ?? status);
+  };
+  const missingRows = packet?.rows.filter((row) => row.required && row.status !== "filled").slice(0, 8) ?? [];
+  return (
+    <div className={`production-env-plan ${packet?.ready ? "ready" : ""}`} aria-label="Production env plan">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Env plan</p>
+          <h3>Production setup map</h3>
+        </div>
+        <button onClick={copyPlan}>
+          <FileCheck2 size={16} /> Copy plan
+        </button>
+      </div>
+      <div className="production-env-summary" aria-label="Production env plan summary">
+        <div>
+          <span>Missing</span>
+          <strong>{packet?.missingRequired.length ?? 0}</strong>
+        </div>
+        <div>
+          <span>Invalid</span>
+          <strong>{packet?.invalidRequired.length ?? 0}</strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <strong>{packet?.ready ? "ready" : "collecting"}</strong>
+        </div>
+      </div>
+      <small>{packet ? packet.nextAction : status}</small>
+      {packet ? (
+        <>
+          <div className="production-env-groups" aria-label="Production env plan groups">
+            {packet.groups.map((group) => (
+              <article key={group.group} className={group.ready ? "env-ready" : "env-missing"}>
+                <span>{group.label}</span>
+                <strong>{group.filled}/{group.total}</strong>
+              </article>
+            ))}
+          </div>
+          <div className="production-env-ledger compact" aria-label="Production env plan missing rows">
+            {missingRows.map((row) => (
+              <article key={row.key} className={`env-${row.status}`}>
+                <div>
+                  <CheckCircle2 size={16} />
+                  <strong>{row.label}</strong>
+                  <span>{row.status}</span>
+                </div>
+                <code>{row.key}</code>
+                <small>{row.command}</small>
+                <p>{row.action}</p>
+              </article>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="production-env-ledger">
+          <article className="env-missing">
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>Plan artifact</strong>
+              <span>missing</span>
+            </div>
+            <code>public/production-env-plan.json</code>
+            <small>bun run env:production:plan</small>
+            <p>{status}</p>
+          </article>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProductionAccessPreflightPanel({
+  packet,
+  status,
+}: {
+  packet?: ProductionAccessPreflightPacket;
+  status: string;
+}) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPreflight = async () => {
+    const copied = await copyToClipboard(packet?.copyText ?? status);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  const stages = packet?.stages ?? [];
+  return (
+    <div className={`production-access-preflight ${packet?.ready ? "ready" : ""}`} aria-label="Production access preflight">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Access preflight</p>
+          <h3>Production account access</h3>
+        </div>
+        <button onClick={copyPreflight}>
+          <FileCheck2 size={16} /> {copyStatus === "copied" ? "Copied preflight" : "Copy preflight"}
+        </button>
+      </div>
+      <div className="production-env-summary" aria-label="Production access preflight summary">
+        <div>
+          <span>Stages</span>
+          <strong>{packet ? `${packet.stageReadyCount}/${packet.totalStages}` : "0/5"}</strong>
+        </div>
+        <div>
+          <span>Cloudflare</span>
+          <strong>{packet?.cliAuthenticated.cloudflare ? "auth" : "missing"}</strong>
+        </div>
+        <div>
+          <span>Supabase</span>
+          <strong>{packet?.cliAuthenticated.supabase ? "auth" : "missing"}</strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <strong>{packet?.ready ? "ready" : "blocked"}</strong>
+        </div>
+      </div>
+      <small>{packet ? packet.nextAction : status}</small>
+      <div className="production-env-ledger compact" aria-label="Production access preflight stages">
+        {packet ? (
+          stages.map((stage) => (
+            <article key={stage.id} className={`env-${stage.status === "ready" ? "filled" : "missing"}`}>
+              <div>
+                <CheckCircle2 size={16} />
+                <strong>{stage.label}</strong>
+                <span>{stage.status}</span>
+              </div>
+              <code>{stage.command}</code>
+              <small>{stage.missingEnv.join(", ") || "none missing"}</small>
+              <p>{stage.status === "ready" ? stage.detail : stage.nextAction}</p>
+            </article>
+          ))
+        ) : (
+          <article className="env-missing">
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>Preflight artifact</strong>
+              <span>missing</span>
+            </div>
+            <code>public/production-access-preflight.json</code>
+            <small>bun run access:preflight</small>
+            <p>{status}</p>
+          </article>
+        )}
+      </div>
+      {copyStatus === "manual" && (
+        <label className="production-bootstrap-copy">
+          <span>Manual access preflight copy</span>
+          <textarea
+            aria-label="Manual production access preflight copy"
+            readOnly
+            value={packet?.copyText ?? status}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
+
+function ProductionVerifyTargetsPanel({
+  envText,
+  ledger,
+}: {
+  envText: string;
+  ledger: ProductionEnvLedgerPacket;
+}) {
   const copyTargets = async () => {
     await navigator.clipboard?.writeText(envText);
+  };
+  const copyLedger = async () => {
+    await navigator.clipboard?.writeText(ledger.copyText);
   };
   const envRows = envText.split("\n").filter((line) => line.includes("="));
   const filled = envRows.filter((line) => line.split("=").slice(1).join("=").trim().length > 0).length;
@@ -4971,14 +6981,189 @@ function ProductionVerifyTargetsPanel({ envText }: { envText: string }) {
         <button onClick={copyTargets}>
           <Link2 size={16} /> Copy env
         </button>
+        <button onClick={copyLedger}>
+          <FileCheck2 size={16} /> Copy ledger
+        </button>
         <span>Paste into <code>.env.production.local</code>, fill blanks, then run <code>bun run verify:production</code>.</span>
+      </div>
+      <div className="production-env-summary" aria-label="Production env ledger summary">
+        <div>
+          <span>Required keys</span>
+          <strong>{ledger.requiredFilled}/{ledger.requiredTotal}</strong>
+        </div>
+        <div>
+          <span>All keys</span>
+          <strong>{ledger.filled}/{ledger.total}</strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <strong>{ledger.ready ? "ready" : "collecting"}</strong>
+        </div>
+      </div>
+      <small>Next env action: {ledger.nextAction}</small>
+      <div className="production-env-groups" aria-label="Production env groups">
+        {ledger.groups.map((group) => (
+          <article key={group.group} className={group.ready ? "env-ready" : "env-missing"}>
+            <span>{group.label}</span>
+            <strong>{group.filled}/{group.total}</strong>
+          </article>
+        ))}
+      </div>
+      <div className="production-env-ledger" aria-label="Production env ledger">
+        {ledger.rows.map((row) => (
+          <article key={row.key} className={`env-${row.status}`}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{row.label}</strong>
+              <span>{row.status}</span>
+            </div>
+            <code>{row.key}={row.valuePreview}</code>
+            <small>{row.command}</small>
+            {row.status !== "filled" && <p>{row.action}</p>}
+          </article>
+        ))}
       </div>
       <pre>{envText}</pre>
     </div>
   );
 }
 
-function ProductionAccountBootstrapPanel({ packet }: { packet: ProductionAccountBootstrapPacket }) {
+function ProductionAcceptanceCollectorPanel({ packet }: { packet: ProductionAcceptanceCollectorPacket }) {
+  const copyCollector = async () => {
+    await navigator.clipboard?.writeText(packet.copyText);
+  };
+  return (
+    <div className={`production-collector ${packet.ready ? "ready" : ""}`} aria-label="Production acceptance collector">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Collector</p>
+          <h3>Production acceptance collector</h3>
+        </div>
+        <button onClick={copyCollector}>
+          <FileCheck2 size={16} /> Copy collector
+        </button>
+      </div>
+      <div className="production-collector-summary">
+        <div>
+          <span>Stages</span>
+          <strong>{packet.stageReadyCount}/{packet.totalStages}</strong>
+        </div>
+        <div>
+          <span>Blocked</span>
+          <strong>{packet.blockedStages}</strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <strong>{packet.ready ? "ready" : "collecting"}</strong>
+        </div>
+      </div>
+      <p>{packet.nextAction}</p>
+      <div className="production-collector-commands">
+        {packet.commands.map((command) => (
+          <code key={command}>{command}</code>
+        ))}
+      </div>
+      <div className="production-collector-stages" aria-label="Production collector stages">
+        {packet.stages.map((stage) => (
+          <article key={stage.id} className={`collector-${stage.status}`}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{stage.label}</strong>
+              <span>{stage.status}</span>
+            </div>
+            <code>{stage.command}</code>
+            <small>Requires: {stage.requiredEnv.join(", ") || "none"}</small>
+            <small>Outputs: {stage.outputEnv.join(", ") || "none"}</small>
+            <small>Missing: {stage.missingEnv.join(", ") || "none"}</small>
+            <p>{stage.detail}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProductionGoalAuditPanel({ packet }: { packet: ProductionGoalAuditPacket }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyAudit = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <div className={`production-goal-audit ${packet.ready ? "ready" : ""}`} aria-label="Production goal audit">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Goal audit</p>
+          <h3>Original objective acceptance</h3>
+        </div>
+        <button onClick={copyAudit}>
+          <FileCheck2 size={16} /> {copyStatus === "copied" ? "Copied audit" : "Copy audit"}
+        </button>
+      </div>
+      <div className="production-goal-summary">
+        <div><span>Goals</span><strong>{packet.passedRequirements}/{packet.totalRequirements}</strong></div>
+        <div><span>Checks</span><strong>{packet.passedChecks}/{packet.totalChecks}</strong></div>
+        <div><span>Queue</span><strong>{packet.openCommands}/{packet.commandQueue.length}</strong></div>
+        <div><span>Blocked</span><strong>{packet.blockedCommands}</strong></div>
+        <div><span>Production</span><strong>{packet.productionEvidenceLoaded ? "loaded" : "missing"}</strong></div>
+        <div><span>Acceptance</span><strong>{packet.acceptanceEvidenceLoaded ? "loaded" : "missing"}</strong></div>
+        <div><span>Env plan</span><strong>{packet.envPlanLoaded ? "loaded" : "missing"}</strong></div>
+      </div>
+      {packet.blankEnvDeclarations.length > 0 && (
+        <p>Blank env: {packet.blankEnvDeclarations.slice(0, 8).map((item) => item.key).join(", ")}{packet.blankEnvDeclarations.length > 8 ? ` +${packet.blankEnvDeclarations.length - 8}` : ""}</p>
+      )}
+      <p>{packet.nextAction}</p>
+      {copyStatus === "manual" && (
+        <label className="production-goal-copy">
+          <span>Manual goal audit copy</span>
+          <textarea
+            aria-label="Manual goal audit copy"
+            readOnly
+            value={packet.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="production-goal-grid" aria-label="Production goal requirements">
+        {packet.commandQueue.map((item) => (
+          <article key={`queue-${item.id}`} className={`goal-${item.status === "done" ? "done" : "todo"}`}>
+            <div>
+              <FileCheck2 size={16} />
+              <strong>{item.label}</strong>
+              <span>{item.status}</span>
+            </div>
+            <small>{item.command}</small>
+            <small>Env: {item.envHints.join(", ") || "none"}</small>
+            <p>{item.reason}</p>
+          </article>
+        ))}
+        {packet.requirements.map((item) => (
+          <article key={item.id} className={`goal-${item.status}`}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{item.label}</strong>
+              <span>{item.status}</span>
+            </div>
+            <small>{item.passed}/{item.total} · {item.command}</small>
+            <small>Missing: {item.missing.join(", ") || "none"}</small>
+            <small>Env: {item.envHints.join(", ") || "none"}</small>
+            <p>{item.evidence}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProductionAccountBootstrapPanel({
+  packet,
+  bootstrapPlan,
+  bootstrapPlanStatus,
+}: {
+  packet: ProductionAccountBootstrapPacket;
+  bootstrapPlan?: SupabaseProductionBootstrapPlan;
+  bootstrapPlanStatus: string;
+}) {
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
   const copyPacket = async () => {
     const copied = await copyToClipboard(packet.copyText);
@@ -5008,6 +7193,7 @@ function ProductionAccountBootstrapPanel({ packet }: { packet: ProductionAccount
           <code key={command}>{command}</code>
         ))}
       </div>
+      <SupabaseBootstrapStagesPanel plan={bootstrapPlan} status={bootstrapPlanStatus} />
       {copyStatus === "manual" && (
         <label className="production-account-copy">
           <span>Manual account packet copy</span>
@@ -5033,13 +7219,25 @@ function ProductionAccountBootstrapPanel({ packet }: { packet: ProductionAccount
       </div>
       <div className="production-account-queries">
         {packet.queries.map((query) => (
-          <article key={query.scope} className={query.ready ? "passed" : ""}>
+          <article key={`${query.scope}-${query.label}`} className={query.ready ? "passed" : ""}>
             <div>
               <Database size={16} />
               <strong>{query.label}</strong>
               <span>{query.ready ? "ready" : "needs target"}</span>
             </div>
             <code>{query.path}</code>
+          </article>
+        ))}
+      </div>
+      <div className="production-account-queries" aria-label="Supabase anonymous read-back commands">
+        {packet.readBackCommands.map((item) => (
+          <article key={item.label} className={item.ready ? "passed" : ""}>
+            <div>
+              <TerminalSquare size={16} />
+              <strong>{item.label}</strong>
+              <span>{item.ready ? "curl ready" : "needs env"}</span>
+            </div>
+            <code>{item.command}</code>
           </article>
         ))}
       </div>
@@ -5056,6 +7254,142 @@ function ProductionAccountBootstrapPanel({ packet }: { packet: ProductionAccount
         ))}
       </div>
     </div>
+  );
+}
+
+function SupabaseBootstrapStagesPanel({
+  plan,
+  status,
+}: {
+  plan?: SupabaseProductionBootstrapPlan;
+  status: string;
+}) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPlan = async () => {
+    const copied = await copyToClipboard(plan?.copyText ?? status);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <section className={`supabase-bootstrap-plan ${plan?.ready ? "ready" : ""}`} aria-label="Supabase bootstrap stages">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Supabase bootstrap</p>
+          <h3>Account setup stages</h3>
+        </div>
+        <button onClick={copyPlan}>
+          <TableProperties size={16} /> {copyStatus === "copied" ? "Copied stages" : "Copy stages"}
+        </button>
+      </div>
+      <div className="supabase-bootstrap-summary" aria-label="Supabase bootstrap summary">
+        <div><span>Stages</span><strong>{plan ? `${plan.stageReadyCount}/${plan.totalStages}` : "0/4"}</strong></div>
+        <div><span>Blocked</span><strong>{plan?.blockedStages ?? 4}</strong></div>
+        <div><span>Mode</span><strong>{plan?.execute ? "execute" : "plan"}</strong></div>
+      </div>
+      <small>{plan ? plan.nextAction : status}</small>
+      <div className="supabase-bootstrap-stages">
+        {plan ? (
+          plan.stages.map((stage) => (
+            <article key={stage.id} className={`stage-${stage.status}`}>
+              <div>
+                <CheckCircle2 size={16} />
+                <strong>{stage.label}</strong>
+                <span>{stage.status}</span>
+              </div>
+              <code>{stage.command}</code>
+              <small>Missing: {stage.missingEnv.join(", ") || "none"}</small>
+              <p>{stage.detail}</p>
+            </article>
+          ))
+        ) : (
+          <article className="stage-blocked">
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>Bootstrap artifact</strong>
+              <span>missing</span>
+            </div>
+            <code>bun run supabase:bootstrap</code>
+            <small>Missing: public/supabase-bootstrap-plan.json</small>
+            <p>{status}</p>
+          </article>
+        )}
+      </div>
+      {plan?.setup && <SupabaseSetupPacketPanel packet={plan.setup} />}
+      {copyStatus === "manual" && (
+        <label className="production-account-copy">
+          <span>Manual Supabase stages copy</span>
+          <textarea
+            aria-label="Manual Supabase stages copy"
+            readOnly
+            value={plan?.copyText ?? status}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+    </section>
+  );
+}
+
+function SupabaseSetupPacketPanel({ packet }: { packet: SupabaseProductionBootstrapPlan["setup"] }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copySetup = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <section className={`supabase-setup-packet ${packet.ready ? "ready" : ""}`} aria-label="Supabase setup packet">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Supabase setup</p>
+          <h3>Hosted project handoff</h3>
+        </div>
+        <button onClick={copySetup}>
+          <FileCheck2 size={16} /> {copyStatus === "copied" ? "Copied setup" : "Copy setup"}
+        </button>
+      </div>
+      <div className="supabase-setup-summary">
+        <div><span>Project</span><strong>{packet.projectRef || "missing"}</strong></div>
+        <div><span>Steps</span><strong>{packet.checklist.filter((item) => item.status !== "blocked").length}/{packet.checklist.length}</strong></div>
+        <div><span>Status</span><strong>{packet.ready ? "ready" : "blocked"}</strong></div>
+      </div>
+      <p>{packet.nextAction}</p>
+      <div className="supabase-setup-links">
+        <a href={packet.projectDashboardUrl} target="_blank" rel="noreferrer">Project</a>
+        {packet.apiSettingsUrl && <a href={packet.apiSettingsUrl} target="_blank" rel="noreferrer">API keys</a>}
+        {packet.authRedirectUrlConfigUrl && <a href={packet.authRedirectUrlConfigUrl} target="_blank" rel="noreferrer">Auth redirect</a>}
+        {packet.storageUrl && <a href={packet.storageUrl} target="_blank" rel="noreferrer">Storage</a>}
+      </div>
+      <pre>{packet.envTemplateText}</pre>
+      {copyStatus === "manual" && (
+        <label className="production-account-copy">
+          <span>Manual Supabase setup copy</span>
+          <textarea
+            aria-label="Manual Supabase setup copy"
+            readOnly
+            value={packet.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="supabase-setup-checklist">
+        {packet.checklist.map((item) => (
+          <article key={item.id} className={`setup-${item.status}`}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{item.label}</strong>
+              <span>{item.status}</span>
+            </div>
+            {item.command && <code>{item.command}</code>}
+            {item.url && (
+              <a href={item.url} target="_blank" rel="noreferrer">
+                {item.url}
+              </a>
+            )}
+            <small>Missing: {item.missingEnv.join(", ") || "none"}</small>
+            <p>{item.action}</p>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -5126,7 +7460,13 @@ function BrandAssetPacketPanel({ packet }: { packet: BrandAssetPacket }) {
   );
 }
 
-function FilecoinAutomationEvidencePanel({ packet }: { packet: FilecoinAutomationEvidencePacket }) {
+function FilecoinAutomationEvidencePanel({
+  packet,
+  onSealMissing,
+}: {
+  packet: FilecoinAutomationEvidencePacket;
+  onSealMissing: () => void;
+}) {
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
   const copyPacket = async () => {
     const copied = await copyToClipboard(packet.copyText);
@@ -5139,14 +7479,21 @@ function FilecoinAutomationEvidencePanel({ packet }: { packet: FilecoinAutomatio
           <p className="eyebrow">Filecoin automation</p>
           <h3>One-click seal evidence</h3>
         </div>
-        <button onClick={copyPacket}>
-          <UploadCloud size={16} /> {copyStatus === "copied" ? "Copied automation" : "Copy automation"}
-        </button>
+        <div className="button-row">
+          <button onClick={onSealMissing} disabled={packet.runnableQueue === 0}>
+            <UploadCloud size={16} /> Seal queued lanes
+          </button>
+          <button onClick={copyPacket}>
+            <UploadCloud size={16} /> {copyStatus === "copied" ? "Copied automation" : "Copy automation"}
+          </button>
+        </div>
       </div>
       <div className="filecoin-automation-summary">
         <div><span>Lanes</span><strong>{packet.lanesReady}/{packet.totalLanes}</strong></div>
         <div><span>Registry</span><strong>{packet.registryMatches}/{packet.totalLanes}</strong></div>
         <div><span>Backend</span><strong>{packet.productionBackends}/{packet.totalLanes}</strong></div>
+        <div><span>Queue</span><strong>{packet.runnableQueue}/{packet.queue.length}</strong></div>
+        <div><span>Uploads</span><strong>{packet.uploadStatusPolls}</strong></div>
         <div><span>Polls</span><strong>{packet.pollAttempts}</strong></div>
       </div>
       <p>{packet.summary}</p>
@@ -5174,18 +7521,178 @@ function FilecoinAutomationEvidencePanel({ packet }: { packet: FilecoinAutomatio
           </article>
         ))}
       </div>
-      <div className="filecoin-automation-lanes">
-        {packet.lanes.map((lane) => (
-          <article key={lane.kind} className={`lane-${lane.status}`}>
+      <div className="filecoin-automation-queue" aria-label="Filecoin batch seal queue">
+        {packet.queue.map((item) => (
+          <article key={`${item.kind}-${item.modeId ?? item.artifactId ?? "missing"}`} className={item.runnable ? "runnable" : "missing"}>
             <div>
               <UploadCloud size={16} />
-              <strong>{lane.kind === "record" ? "Prediction seal" : "Mode proof seal"}</strong>
+              <strong>{item.kind === "record" ? "Prediction lane" : `${item.modeId} lane`}</strong>
+              <span>{item.runnable ? "queued" : "missing"}</span>
+            </div>
+            <small>{item.artifactId ?? "no artifact yet"}</small>
+            <small>{item.reason}</small>
+          </article>
+        ))}
+      </div>
+      <div className="filecoin-automation-lanes">
+        {packet.lanes.map((lane) => (
+          <article key={lane.laneId} className={`lane-${lane.status}`}>
+            <div>
+              <UploadCloud size={16} />
+              <strong>{lane.kind === "record" ? "Prediction seal" : `${lane.modeId ?? "Mode"} proof seal`}</strong>
               <span>{lane.status}</span>
             </div>
             <small>Artifact: {lane.artifactId ?? "missing"}</small>
             <small>CID: {lane.cid ?? "missing"}</small>
-            <small>Polls: {lane.pollAttempts} · Registry: {lane.registryHashMatch ? "hash match" : "pending"}</small>
+            <small>Upload polls: {lane.uploadStatusPolls} · Verify polls: {lane.pollAttempts} · Registry: {lane.registryHashMatch ? "hash match" : "pending"}</small>
             <small>Blockers: {lane.blockers.join(", ") || "none"}</small>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FilecoinSealLifecyclePanel({ packet }: { packet: FilecoinSealLifecyclePacket }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPacket = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <div className={`filecoin-lifecycle-evidence ${packet.ready ? "ready" : ""}`} aria-label="Filecoin seal lifecycle evidence">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Seal lifecycle</p>
+          <h3>Production Filecoin runbook</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <FileCheck2 size={16} /> {copyStatus === "copied" ? "Copied lifecycle" : "Copy lifecycle"}
+        </button>
+      </div>
+      <div className="filecoin-lifecycle-summary">
+        <div><span>Complete</span><strong>{packet.completeArtifacts}/{packet.totalArtifacts}</strong></div>
+        <div><span>Read-back</span><strong>{packet.registryProofs}/{packet.totalArtifacts}</strong></div>
+        <div><span>Production</span><strong>{packet.productionBackends}/{packet.totalArtifacts}</strong></div>
+        <div><span>Resumable</span><strong>{packet.resumableArtifacts}</strong></div>
+        <div><span>Resume queue</span><strong>{packet.resumeQueueReady}/{packet.resumeQueue.length}</strong></div>
+        <div><span>Upload polls</span><strong>{packet.uploadStatusPolls}</strong></div>
+        <div><span>Verify polls</span><strong>{packet.verificationPolls}</strong></div>
+        <div><span>Dossiers</span><strong>{packet.readBackDossierReady}/{packet.totalArtifacts}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Next action: {packet.nextAction}</small>
+      <div className="filecoin-lifecycle-dossiers" aria-label="Filecoin judge read-back dossiers">
+        {packet.readBackDossiers.map((dossier) => (
+          <article key={dossier.id} className={dossier.ready ? "passed" : "pending"}>
+            <div className="filecoin-lifecycle-dossier-head">
+              <div>
+                <FileCheck2 size={16} />
+                <strong>{dossier.label}</strong>
+              </div>
+              <span>{dossier.passedSteps}/{dossier.totalSteps}</span>
+            </div>
+            <small>{dossier.artifactId ?? "missing artifact"} · {dossier.modeId ?? dossier.kind}</small>
+            <div className="filecoin-lifecycle-dossier-steps">
+              {dossier.steps.map((step) => (
+                <div key={step.route} className={step.passed ? "passed" : "pending"}>
+                  <span>{step.label}</span>
+                  <small>{step.verdict}</small>
+                  <small>Fields: {step.requiredFields.join(", ")}</small>
+                  {step.command && <code>{step.command}</code>}
+                </div>
+              ))}
+            </div>
+            {dossier.blockers.length > 0 && <small>Blockers: {dossier.blockers.slice(0, 3).join(" · ")}</small>}
+          </article>
+        ))}
+      </div>
+      {packet.readBackCommands.length > 0 && (
+        <div className="filecoin-lifecycle-readbacks" aria-label="Filecoin CID read-back commands">
+          {packet.readBackCommands.map((command) => (
+            <article key={command.id} className={command.ready ? "passed" : "pending"}>
+              <div>
+                <FileCheck2 size={16} />
+                <strong>{command.label}</strong>
+                <span>{command.ready ? "ready" : "pending"}</span>
+              </div>
+              <small>{command.authMode}</small>
+              <code>{command.command}</code>
+            </article>
+          ))}
+        </div>
+      )}
+      {copyStatus === "manual" && (
+        <label className="filecoin-lifecycle-copy">
+          <span>Manual lifecycle copy</span>
+          <textarea
+            aria-label="Manual lifecycle copy"
+            readOnly
+            value={packet.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="filecoin-lifecycle-checks">
+        {packet.checks.map((check) => (
+          <article key={check.key} className={check.passed ? "passed" : "pending"}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{check.label}</strong>
+              <span>{check.passed ? "passed" : "pending"}</span>
+            </div>
+            <small>{check.detail}</small>
+          </article>
+        ))}
+      </div>
+      {packet.resumeQueue.length > 0 && (
+        <div className="filecoin-lifecycle-resume-queue" aria-label="Filecoin resume queue">
+          {packet.resumeQueue.map((item) => (
+            <article key={item.id} className={item.canResume ? "resume-ready" : `resume-${item.risk}`}>
+              <div>
+                <UploadCloud size={16} />
+                <strong>{item.label}</strong>
+                <span>{item.canResume ? "ready" : item.risk}</span>
+              </div>
+              <small>{item.artifactId ?? "missing artifact"} · {item.backendJobId ?? "no backend job"}</small>
+              <small>{item.nextActionDetail}</small>
+              <small>Upload polls {item.uploadStatusPolls} · Verify polls {item.verificationPolls}</small>
+              {item.uploadStatusUrl && <small>Status URL: {item.uploadStatusUrl}</small>}
+              {item.blockers.length > 0 && <small>Blockers: {item.blockers.join(", ")}</small>}
+            </article>
+          ))}
+        </div>
+      )}
+      <div className="filecoin-lifecycle-artifacts">
+        {packet.artifacts.map((artifact) => (
+          <article key={`${artifact.kind}-${artifact.modeId ?? artifact.artifactId ?? "missing"}`} className={`lifecycle-${artifact.status}`}>
+            <div className="filecoin-lifecycle-artifact-head">
+              <div>
+                <strong>{artifact.kind === "record" ? "Prediction proof" : `${artifact.modeId} mode proof`}</strong>
+                <span>{artifact.title}</span>
+              </div>
+              <b>{artifact.passedStages}/{artifact.totalStages}</b>
+            </div>
+            <div className="filecoin-lifecycle-meta">
+              <span>{artifact.status}</span>
+              <span>resume {artifact.resumeRisk}</span>
+              <span>action {artifact.resumeNextAction}</span>
+              <span>{artifact.artifactId ?? "missing artifact"}</span>
+              <span>{artifact.cid ?? "CID pending"}</span>
+              <span>{artifact.backendJobId ?? "job pending"}</span>
+            </div>
+            <div className="filecoin-lifecycle-stages">
+              {artifact.stages.map((stage) => (
+                <div key={stage.key} className={stage.passed ? "passed" : "pending"}>
+                  <CheckCircle2 size={14} />
+                  <span>{stage.label}</span>
+                  <small>{stage.detail}</small>
+                </div>
+              ))}
+            </div>
+            <small>Resume evidence: {artifact.resumeEvidence.join(" · ")}</small>
+            <small>Resume action: {artifact.resumeNextActionDetail}</small>
+            <small>Next: {artifact.nextAction}</small>
           </article>
         ))}
       </div>
@@ -5216,6 +7723,14 @@ function AccountHandoffPanel({ packet }: { packet: AccountHandoffPacket }) {
           <strong>{packet.pendingSyncItems}</strong>
         </div>
         <div>
+          <span>Clean renders</span>
+          <strong>{packet.cleanSessionArtifacts}</strong>
+        </div>
+        <div>
+          <span>Leaderboard</span>
+          <strong>{packet.leaderboardScopes.length}/3</strong>
+        </div>
+        <div>
           <span>Verify env</span>
           <strong>{packet.envFilled}/{packet.envTotal}</strong>
         </div>
@@ -5240,6 +7755,83 @@ function AccountHandoffPanel({ packet }: { packet: AccountHandoffPacket }) {
         ))}
       </div>
       <small>Next action: {packet.nextAction}</small>
+    </div>
+  );
+}
+
+function AccountCloudSyncEvidencePanel({ packet }: { packet: AccountCloudSyncEvidenceArtifact }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "summary" | "json" | "manual">("idle");
+  const copySummary = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "summary" : "manual");
+  };
+  const copyJson = async () => {
+    const copied = await copyToClipboard(`${JSON.stringify(packet, null, 2)}\n`);
+    setCopyStatus(copied ? "json" : "manual");
+  };
+  const copiedLabel =
+    copyStatus === "summary" ? "Copied summary" : copyStatus === "json" ? "Copied JSON" : copyStatus === "manual" ? "Manual copy" : "Copy summary";
+  return (
+    <div className={`account-cloud-evidence ${packet.ready ? "ready" : ""}`} aria-label="Account cloud sync evidence">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Cloud account evidence</p>
+          <h3>Browser runtime sync packet</h3>
+        </div>
+        <div className="packet-actions">
+          <button onClick={copySummary}>
+            <FileCheck2 size={16} /> {copiedLabel}
+          </button>
+          <button onClick={copyJson}>
+            <Download size={16} /> Copy JSON
+          </button>
+        </div>
+      </div>
+      <div className="account-cloud-evidence-summary">
+        <div>
+          <span>Status</span>
+          <strong>{packet.ready ? "ready" : "needs proof"}</strong>
+        </div>
+        <div>
+          <span>History hash</span>
+          <strong>{packet.verifiedTotals.contentFingerprints}/{packet.localTotals.historyArtifacts}</strong>
+        </div>
+        <div>
+          <span>Public proofs</span>
+          <strong>{packet.verifiedTotals.publicProofs}/{packet.localTotals.publicProofs}</strong>
+        </div>
+        <div>
+          <span>Share images</span>
+          <strong>{packet.verifiedTotals.publicShareImages}/{packet.localTotals.shareArtifacts}</strong>
+        </div>
+        <div>
+          <span>Profile archive</span>
+          <strong>{packet.verifiedTotals.publicProfileArchives}/{packet.localTotals.historyArtifacts}</strong>
+        </div>
+        <div>
+          <span>Leaderboard</span>
+          <strong>{packet.expectedIds.leaderboardScopes.length}/3</strong>
+        </div>
+      </div>
+      <div className="account-cloud-acceptance" aria-label="Account cloud acceptance gates">
+        {Object.entries(packet.acceptance).map(([key, passed]) => (
+          <span key={key} className={passed ? "passed" : ""}>{key.replace(/([A-Z])/g, " $1")}</span>
+        ))}
+      </div>
+      <p>{packet.ready ? "Current browser state proves Supabase account sync, public restore, share images and leaderboard read-back." : packet.missing[0] ?? "Cloud sync evidence is not ready yet."}</p>
+      <small>Profile: {packet.profileId} · source {packet.source} · fingerprint {packet.evidenceFingerprint.slice(0, 16)}</small>
+      <small>Next action: {packet.nextAction}</small>
+      {copyStatus === "manual" && (
+        <label className="account-cloud-copy">
+          <span>Manual account evidence copy</span>
+          <textarea
+            aria-label="Manual account evidence copy"
+            readOnly
+            value={JSON.stringify(packet, null, 2)}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
     </div>
   );
 }
@@ -5285,6 +7877,24 @@ function AccountRecoveryEvidencePanel({ packet }: { packet: AccountRecoveryEvide
       <p>{packet.summary}</p>
       <small>Leaderboard scopes: {packet.leaderboardScopes.length > 0 ? packet.leaderboardScopes.join(", ") : "none yet"}</small>
       <small>Next action: {packet.nextAction}</small>
+      <div className="account-recovery-proof-ledger" aria-label="Recovery proof ledger">
+        {packet.recoveryProofs.map((proof) => (
+          <article key={`${proof.kind}-${proof.id}`} className={`proof-${proof.status}`}>
+            <div>
+              <strong>{proof.label}</strong>
+              <span>{proof.kind}</span>
+            </div>
+            <small>{proof.id}</small>
+            <div className="proof-ledger-flags">
+              <span className={proof.cloudRow ? "on" : ""}>cloud</span>
+              <span className={proof.contentFingerprint ? "on" : ""}>hash</span>
+              <span className={proof.publicArchive ? "on" : ""}>public</span>
+              <span className={proof.cleanSession ? "on" : ""}>clean</span>
+            </div>
+            {proof.blockers.length > 0 ? <p>{proof.blockers[0]}</p> : null}
+          </article>
+        ))}
+      </div>
       {copyStatus === "manual" && (
         <label className="account-recovery-copy">
           <span>Manual recovery copy</span>
@@ -5364,6 +7974,178 @@ function ProductionDoctorPanel({ report }: { report: ProductionDoctorReport }) {
   );
 }
 
+function FilecoinBootstrapPanel({
+  plan,
+  status,
+}: {
+  plan?: FilecoinProductionBootstrapPlan;
+  status: string;
+}) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPlan = async () => {
+    const copied = await copyToClipboard(plan?.copyText ?? status);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <section className={`filecoin-bootstrap-plan ${plan?.ready ? "ready" : ""}`} aria-label="Filecoin bootstrap stages">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Filecoin bootstrap</p>
+          <h3>Seal API setup stages</h3>
+        </div>
+        <button onClick={copyPlan}>
+          <UploadCloud size={16} /> {copyStatus === "copied" ? "Copied stages" : "Copy stages"}
+        </button>
+      </div>
+      <div className="filecoin-bootstrap-summary" aria-label="Filecoin bootstrap summary">
+        <div><span>Stages</span><strong>{plan ? `${plan.stageReadyCount}/${plan.totalStages}` : "0/4"}</strong></div>
+        <div><span>Blocked</span><strong>{plan?.blockedStages ?? 4}</strong></div>
+        <div><span>Mode</span><strong>{plan?.execute ? "execute" : "plan"}</strong></div>
+      </div>
+      <small>{plan ? plan.nextAction : status}</small>
+      <div className="filecoin-bootstrap-stages">
+        {plan ? (
+          plan.stages.map((stage) => (
+            <article key={stage.id} className={`stage-${stage.status}`}>
+              <div>
+                <CheckCircle2 size={16} />
+                <strong>{stage.label}</strong>
+                <span>{stage.status}</span>
+              </div>
+              <code>{stage.command}</code>
+              <small>Missing: {stage.missingEnv.join(", ") || "none"}</small>
+              <p>{stage.detail}</p>
+            </article>
+          ))
+        ) : (
+          <article className="stage-blocked">
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>Bootstrap artifact</strong>
+              <span>missing</span>
+            </div>
+            <code>bun run filecoin:bootstrap</code>
+            <small>Missing: public/filecoin-bootstrap-plan.json</small>
+            <p>{status}</p>
+          </article>
+        )}
+      </div>
+      {plan?.readBackCommands?.length ? (
+        <div className="filecoin-bootstrap-stages" aria-label="Filecoin read-back commands">
+          {plan.readBackCommands.map((item) => (
+            <article key={item.label} className={item.ready ? "stage-done" : "stage-blocked"}>
+              <div>
+                <TerminalSquare size={16} />
+                <strong>{item.label}</strong>
+                <span>{item.ready ? "curl ready" : "needs target"}</span>
+              </div>
+              <code>{item.command}</code>
+              {item.expectedPayloadHash ? <small>Expected payload hash: {item.expectedPayloadHash}</small> : null}
+            </article>
+          ))}
+        </div>
+      ) : null}
+      {copyStatus === "manual" && (
+        <label className="production-account-copy">
+          <span>Manual Filecoin stages copy</span>
+          <textarea
+            aria-label="Manual Filecoin stages copy"
+            readOnly
+            value={plan?.copyText ?? status}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+    </section>
+  );
+}
+
+function RealtimeDataBootstrapPanel({
+  plan,
+  status,
+}: {
+  plan?: DataProductionBootstrapPlan;
+  status: string;
+}) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPlan = async () => {
+    const copied = await copyToClipboard(plan?.copyText ?? status);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <section className={`realtime-bootstrap-plan ${plan?.ready ? "ready" : ""}`} aria-label="Realtime data bootstrap stages">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Realtime bootstrap</p>
+          <h3>Data provider setup stages</h3>
+        </div>
+        <button onClick={copyPlan}>
+          <Database size={16} /> {copyStatus === "copied" ? "Copied stages" : "Copy stages"}
+        </button>
+      </div>
+      <div className="realtime-bootstrap-summary" aria-label="Realtime data bootstrap summary">
+        <div><span>Stages</span><strong>{plan ? `${plan.stageReadyCount}/${plan.totalStages}` : "0/4"}</strong></div>
+        <div><span>Blocked</span><strong>{plan?.blockedStages ?? 4}</strong></div>
+        <div><span>Mode</span><strong>{plan?.execute ? "execute" : "plan"}</strong></div>
+      </div>
+      <small>{plan ? plan.nextAction : status}</small>
+      <div className="realtime-bootstrap-stages">
+        {plan ? (
+          plan.stages.map((stage) => (
+            <article key={stage.id} className={`stage-${stage.status}`}>
+              <div>
+                <CheckCircle2 size={16} />
+                <strong>{stage.label}</strong>
+                <span>{stage.status}</span>
+              </div>
+              <code>{stage.command}</code>
+              <small>Missing: {stage.missingEnv.join(", ") || "none"}</small>
+              <p>{stage.detail}</p>
+            </article>
+          ))
+        ) : (
+          <article className="stage-blocked">
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>Bootstrap artifact</strong>
+              <span>missing</span>
+            </div>
+            <code>bun run data:bootstrap</code>
+            <small>Missing: public/data-bootstrap-plan.json</small>
+            <p>{status}</p>
+          </article>
+        )}
+      </div>
+      {plan?.readBackCommands?.length ? (
+        <div className="realtime-bootstrap-stages" aria-label="Realtime data read-back commands">
+          {plan.readBackCommands.map((item) => (
+            <article key={`${item.label}-${item.fixtureId ?? item.source}`} className={item.ready ? "stage-done" : "stage-blocked"}>
+              <div>
+                <TerminalSquare size={16} />
+                <strong>{item.label}</strong>
+                <span>{item.ready ? "curl ready" : "needs proxy"}</span>
+              </div>
+              <code>{item.command}</code>
+              {item.fixtureId ? <small>Fixture target: {item.fixtureId}</small> : null}
+            </article>
+          ))}
+        </div>
+      ) : null}
+      {copyStatus === "manual" && (
+        <label className="production-account-copy">
+          <span>Manual realtime stages copy</span>
+          <textarea
+            aria-label="Manual realtime stages copy"
+            readOnly
+            value={plan?.copyText ?? status}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+    </section>
+  );
+}
+
 function RealtimeDataEvidencePacketPanel({ packet }: { packet: RealtimeDataEvidencePacket }) {
   const copyPacket = async () => {
     await copyToClipboard(packet.copyText);
@@ -5390,6 +8172,7 @@ function RealtimeDataEvidencePacketPanel({ packet }: { packet: RealtimeDataEvide
       </div>
       <p>{packet.summary}</p>
       <small>Matches: {packet.matchCount} total · {packet.liveMatches} live · {packet.finishedMatches} final · {packet.upcomingMatches} upcoming</small>
+      <small>Target fixtures: {packet.fixtures.filter((fixture) => fixture.productionReady).length}/{packet.fixtures.length} ready</small>
       <small>Next action: {packet.nextAction}</small>
       <div className="realtime-data-evidence-grid">
         {packet.signals.map((signal) => (
@@ -5400,6 +8183,80 @@ function RealtimeDataEvidencePacketPanel({ packet }: { packet: RealtimeDataEvide
               <span>{signal.status}</span>
             </div>
             <small>{signal.provider} · {signal.sample}</small>
+            <p>{signal.action}</p>
+          </article>
+        ))}
+      </div>
+      <div className="realtime-fixture-grid" aria-label="Realtime target fixture rows">
+        {packet.fixtures.map((fixture) => (
+          <article key={fixture.id} className={fixture.productionReady ? "data-ready" : "data-gap"}>
+            <div>
+              <Timer size={16} />
+              <strong>{fixture.label}</strong>
+              <span>{fixture.readySignals}/{fixture.totalSignals}</span>
+            </div>
+            <small>{fixture.source} · {fixture.status} · {formatDate(fixture.kickoffAt)}</small>
+            <small>Live signals: {fixture.liveSignals} · Missing: {fixture.missingSignals.join(", ") || "none"}</small>
+            <p>{fixture.detail}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FreeDataSourceEvidencePanel({ packet }: { packet: FreeDataSourceEvidencePacket }) {
+  const copyPacket = async () => {
+    await copyToClipboard(packet.copyText);
+  };
+  return (
+    <div
+      className={`free-data-source-packet ${packet.productionReady ? "passed" : packet.continuityReady ? "continuity" : ""}`}
+      aria-label="Free data source evidence"
+    >
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Free feeds</p>
+          <h3>Realtime source boundary</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <Database size={16} /> Copy free-feed evidence
+        </button>
+      </div>
+      <div className="free-data-summary">
+        <div><span>Routes</span><strong>{packet.activeRoutes}/{packet.routes.length}</strong></div>
+        <div><span>Matches</span><strong>{packet.freeMatchCount}</strong></div>
+        <div><span>Continuity</span><strong>{packet.continuityReady ? "ready" : "pending"}</strong></div>
+        <div><span>Cross-source</span><strong>{packet.scheduleSourceCount}/{packet.scoreSourceCount}</strong></div>
+        <div><span>Production gaps</span><strong>{packet.productionGapSignals.length}</strong></div>
+        <div><span>Production</span><strong>{packet.productionReady ? "ready" : "needs paid/API"}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Cross-source samples: {packet.crossSourceSamples.join(", ") || "none"}</small>
+      <small>Production gaps: {packet.productionGapSignals.join(", ") || "none"}</small>
+      <small>Next action: {packet.nextAction}</small>
+      <div className="free-data-routes" aria-label="Free feed routes">
+        {packet.routes.map((route) => (
+          <article key={route.source} className={route.active ? "data-ready" : "data-gap"}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{route.label}</strong>
+              <span>{route.routeStatus}</span>
+            </div>
+            <small>{route.matchCount} matches · samples {route.sampleIds.join(", ") || "none"}</small>
+            <p>{route.capability}</p>
+          </article>
+        ))}
+      </div>
+      <div className="free-data-signals" aria-label="Free feed signal coverage">
+        {packet.signals.map((signal) => (
+          <article key={signal.key} className={signal.status === "covered" ? "data-ready" : "data-gap"}>
+            <div>
+              <Radar size={16} />
+              <strong>{signal.label}</strong>
+              <span>{signal.status}</span>
+            </div>
+            <small>{signal.sampleCount}/{signal.totalFreeMatches} · {signal.provider} · {signal.sample}</small>
             <p>{signal.action}</p>
           </article>
         ))}
@@ -5430,6 +8287,8 @@ function IntelligenceEnrichmentEvidencePanel({ packet }: { packet: IntelligenceE
         <div><span>Endpoints</span><strong>{packet.requiredReady}/{packet.requiredTotal}</strong></div>
         <div><span>Fixtures</span><strong>{packet.attemptedFixtures}/{packet.totalFixtures}</strong></div>
         <div><span>Live rows</span><strong>{packet.liveSignals}</strong></div>
+        <div><span>Content</span><strong>{packet.contentSamples}</strong></div>
+        <div><span>Quality gaps</span><strong>{packet.qualityIssueCount}</strong></div>
         <div><span>Source</span><strong>{packet.source}</strong></div>
       </div>
       <p>{packet.summary}</p>
@@ -5444,6 +8303,10 @@ function IntelligenceEnrichmentEvidencePanel({ packet }: { packet: IntelligenceE
             </div>
             <small>{item.detail}</small>
             <small>{item.endpoint}</small>
+            {item.contentSampleLabels.length > 0 && <small>Content {item.contentSampleLabels.join(", ")}</small>}
+            {item.qualityIssues.map((issue) => (
+              <small key={issue}>{issue}</small>
+            ))}
             <p>{item.sampleIds.length > 0 ? `Samples ${item.sampleIds.join(", ")}` : item.action}</p>
           </article>
         ))}
@@ -5471,12 +8334,39 @@ function ProductionLaunchPacketPanel({ packet }: { packet: ProductionLaunchPacke
         <div><span>Runtime</span><strong>{packet.runtime}</strong></div>
         <div><span>Evidence</span><strong>{packet.evidence}</strong></div>
         <div><span>Open</span><strong>{packet.openSteps}/{packet.totalSteps}</strong></div>
+        <div><span>Commands</span><strong>{packet.openCommands} open</strong></div>
+        <div><span>Blocked</span><strong>{packet.blockedCommands}</strong></div>
+        <div><span>Target env</span><strong>{packet.targetEnvKeys.length}</strong></div>
       </div>
       <p>{packet.summary}</p>
       <small>Next action: {packet.nextAction}</small>
+      <div className="production-launch-env" aria-label="Production launch env queue">
+        <div>
+          <span>Missing runtime env</span>
+          <p>{packet.missingRuntimeEnv.join(", ") || "none"}</p>
+        </div>
+        <div>
+          <span>Target env keys</span>
+          <p>{packet.targetEnvKeys.join(", ") || "none"}</p>
+        </div>
+      </div>
       <div className="production-launch-commands">
         {packet.commands.map((command) => (
           <code key={command}>{command}</code>
+        ))}
+      </div>
+      <div className="production-launch-queue" aria-label="Production launch command queue">
+        {packet.commandQueue.map((item) => (
+          <article key={item.id} className={`queue-${item.status}`}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{item.label}</strong>
+              <span>{item.status}</span>
+            </div>
+            <code>{item.command}</code>
+            <small>Runtime env: {item.runtimeEnv.join(", ") || "none"}</small>
+            <small>Target env: {item.targetEnv.join(", ") || "none"}</small>
+          </article>
         ))}
       </div>
       <div className="production-launch-grid">
@@ -5490,6 +8380,70 @@ function ProductionLaunchPacketPanel({ packet }: { packet: ProductionLaunchPacke
             <small>Command: {step.command}</small>
             <small>Runtime env: {step.missingEnv.join(", ") || "none"}</small>
             <small>Target env: {step.targetEnv.join(", ") || "none"}</small>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PublicDeploymentEvidencePanel({
+  packet,
+  status,
+}: {
+  packet?: PublicDeploymentEvidencePacket;
+  status: string;
+}) {
+  const copyPacket = async () => {
+    await copyToClipboard(packet?.copyText ?? status);
+  };
+  return (
+    <div className={`public-deployment-evidence ${packet?.ready ? "ready" : ""}`} aria-label="Public deployment evidence">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Deployment evidence</p>
+          <h3>Live Pages release</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <FileCheck2 size={16} /> Copy deployment
+        </button>
+      </div>
+      <div className="public-deployment-summary">
+        <div><span>Checks</span><strong>{packet ? `${packet.checks.filter((check) => check.passed).length}/${packet.checks.length}` : "not loaded"}</strong></div>
+        <div><span>Pages</span><strong>{packet?.pagesBuildStatus ?? "unknown"}</strong></div>
+        <div><span>Commit</span><strong>{packet?.expectedCommit ?? packet?.pagesBuildCommit?.slice(0, 12) ?? "unknown"}</strong></div>
+        <div><span>Bundle</span><strong>{packet?.liveBundle ?? "missing"}</strong></div>
+      </div>
+      <p>{packet?.summary ?? status}</p>
+      <small>Next action: {packet?.nextAction ?? "Run bun run deploy:evidence after deploy:pages."}</small>
+      <div className="public-deployment-assets">
+        <div>
+          <span>Expected bundle</span>
+          <code>{packet?.expectedBundle ?? "missing"}</code>
+        </div>
+        <div>
+          <span>Live bundle</span>
+          <code>{packet?.liveBundle ?? "missing"}</code>
+        </div>
+        <div>
+          <span>Expected stylesheet</span>
+          <code>{packet?.expectedStylesheet ?? "missing"}</code>
+        </div>
+        <div>
+          <span>Live stylesheet</span>
+          <code>{packet?.liveStylesheet ?? "missing"}</code>
+        </div>
+      </div>
+      <div className="public-deployment-checks">
+        {(packet?.checks ?? []).map((check) => (
+          <article key={check.key} className={check.passed ? "passed" : "failed"}>
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>{check.label}</strong>
+              <span>{check.passed ? "passed" : "failed"}</span>
+            </div>
+            <small>{check.detail}</small>
+            {check.url && <code>{check.url}</code>}
           </article>
         ))}
       </div>
@@ -5687,16 +8641,289 @@ function CloudReadbackLedger({
   );
 }
 
+function CloudSyncOutboxPanel({ items, verified }: { items: CloudSyncOutboxItem[]; verified: number }) {
+  return (
+    <div className="cloud-outbox" aria-label="Cloud sync outbox">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Sync outbox</p>
+          <h3>Queued cloud writes</h3>
+        </div>
+        <span className="pill">{verified}/{items.length}</span>
+      </div>
+      {items.map((item) => (
+        <article key={item.key} className={`outbox-${item.status}`}>
+          <div>
+            <UploadCloud size={16} />
+            <strong>{item.label}</strong>
+            <span>{item.status}</span>
+          </div>
+          <progress value={item.verified} max={Math.max(1, item.total)} />
+          <small>{item.queued} queued · {item.detail}</small>
+          <p>{item.action}</p>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ShareChannelBootstrapPanel({
+  artifact,
+  status,
+}: {
+  artifact?: ShareChannelEvidenceArtifact;
+  status: string;
+}) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyArtifact = async () => {
+    const copied = await copyToClipboard(artifact?.copyText ?? status);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  const targetRows = artifact
+    ? [
+        {
+          key: "record",
+          label: "Record share channel",
+          passed: artifact.acceptance.recordChannelOpened,
+          detail: artifact.targets.proofId || "missing proof id",
+        },
+        ...artifact.targets.modeIds.map((modeId, index) => ({
+          key: `mode-${modeId}`,
+          label: `Mode share channel ${index + 1}`,
+          passed: index < artifact.acceptance.modeChannelCount,
+          detail: modeId,
+        })),
+      ]
+    : [];
+  return (
+    <section className={`share-bootstrap-plan ${artifact?.ready ? "ready" : ""}`} aria-label="Public sharing bootstrap artifact">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Public sharing bootstrap</p>
+          <h3>Share card setup stages</h3>
+        </div>
+        <button onClick={copyArtifact}>
+          <FileCheck2 size={16} /> {copyStatus === "copied" ? "Copied sharing" : "Copy sharing"}
+        </button>
+      </div>
+      <div className="share-bootstrap-summary" aria-label="Public sharing bootstrap summary">
+        <div><span>Stages</span><strong>{artifact ? `${artifact.stageReadyCount}/${artifact.totalStages}` : "0/5"}</strong></div>
+        <div><span>Targets</span><strong>{artifact ? `${artifact.acceptance.passedTargetCount}/${artifact.acceptance.requiredTargetCount}` : "0/5"}</strong></div>
+        <div><span>Modes</span><strong>{artifact ? `${artifact.acceptance.modeChannelCount}/${artifact.acceptance.requiredModeChannelCount}` : "0/4"}</strong></div>
+      </div>
+      <small>{artifact ? artifact.nextAction : status}</small>
+      <div className="share-bootstrap-stages">
+        {artifact ? (
+          artifact.stages.map((stage) => (
+            <article key={stage.id} className={`stage-${stage.status}`}>
+              <div>
+                <CheckCircle2 size={16} />
+                <strong>{stage.label}</strong>
+                <span>{stage.status}</span>
+              </div>
+              <code>{stage.command}</code>
+              <small>Missing: {stage.missingEnv.join(", ") || "none"}</small>
+              <p>{stage.detail}</p>
+            </article>
+          ))
+        ) : (
+          <article className="stage-blocked">
+            <div>
+              <CheckCircle2 size={16} />
+              <strong>Share-channel artifact</strong>
+              <span>missing</span>
+            </div>
+            <code>bun run sharing:bootstrap</code>
+            <small>Missing: public/share-channel-evidence.json</small>
+            <p>{status}</p>
+          </article>
+        )}
+      </div>
+      {artifact ? (
+        <div className="share-bootstrap-targets" aria-label="Public sharing target channels">
+          {targetRows.map((row) => (
+            <article key={row.key} className={row.passed ? "stage-done" : "stage-blocked"}>
+              <div>
+                <FileCheck2 size={16} />
+                <strong>{row.label}</strong>
+                <span>{row.passed ? "channel opened" : "channel missing"}</span>
+              </div>
+              <code>{row.detail}</code>
+            </article>
+          ))}
+        </div>
+      ) : null}
+      {copyStatus === "manual" && (
+        <label className="production-account-copy">
+          <span>Manual public sharing copy</span>
+          <textarea
+            aria-label="Manual public sharing copy"
+            readOnly
+            value={artifact?.copyText ?? status}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+    </section>
+  );
+}
+
+function PublicProofPublicationLedgerPanel({ ledger }: { ledger: PublicProofPublicationLedger }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyLedger = async () => {
+    const copied = await copyToClipboard(ledger.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <div className={`publication-ledger ${ledger.ready ? "ready" : ""}`} aria-label="Public proof publication ledger">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Public share cards</p>
+          <h3>Publication ledger</h3>
+        </div>
+        <button onClick={copyLedger}>
+          <FileCheck2 size={16} /> {copyStatus === "copied" ? "Copied publication ledger" : "Copy publication ledger"}
+        </button>
+      </div>
+      <div className="publication-ledger-summary">
+        <div><span>Targets</span><strong>{ledger.totalTargets}</strong></div>
+        <div><span>Publish</span><strong>{ledger.publishReady}/{ledger.totalTargets}</strong></div>
+        <div><span>Channel</span><strong>{ledger.channelReady}/{ledger.totalTargets}</strong></div>
+        <div><span>Read-back</span><strong>{ledger.readBackReady}/{ledger.totalTargets}</strong></div>
+        <div><span>Hosting gaps</span><strong>{ledger.missingProductionUrls}</strong></div>
+      </div>
+      <p>{ledger.summary}</p>
+      <small>Next action: {ledger.nextAction}</small>
+      {copyStatus === "manual" && (
+        <label className="share-channel-copy">
+          <span>Manual publication ledger copy</span>
+          <textarea
+            aria-label="Manual publication ledger copy"
+            readOnly
+            value={ledger.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="publication-ledger-rows" aria-label="Public proof publication ledger rows">
+        {ledger.rows.length === 0 ? (
+          <article>
+            <div>
+              <FileCheck2 size={16} />
+              <strong>No public share targets yet</strong>
+              <span>missing-image</span>
+            </div>
+            <small>Create a lock or mode proof, then generate a public share card.</small>
+          </article>
+        ) : (
+          ledger.rows.map((row) => (
+            <article key={`${row.kind}-${row.id}`} className={row.status}>
+              <div>
+                <FileCheck2 size={16} />
+                <strong>{row.title}</strong>
+                <span>{row.status}</span>
+              </div>
+              <small>{row.kind}:{row.id} · checks {row.passedChecks}/{row.totalChecks}</small>
+              <small>Proof: {row.proofUrl || "missing"}</small>
+              <small>Image: {row.imageUrl || "not publicly hosted"}</small>
+              <code>{row.readBackCommand}</code>
+              <small>{row.action}</small>
+            </article>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ShareChannelEvidencePanel({ packet }: { packet: ShareChannelEvidencePacket }) {
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "manual">("idle");
+  const copyPacket = async () => {
+    const copied = await copyToClipboard(packet.copyText);
+    setCopyStatus(copied ? "copied" : "manual");
+  };
+  return (
+    <div className={`share-channel-evidence ${packet.ready ? "ready" : ""}`} aria-label="Share channel evidence packet">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Share channels</p>
+          <h3>X/native share evidence</h3>
+        </div>
+        <button onClick={copyPacket}>
+          <FileCheck2 size={16} /> {copyStatus === "copied" ? "Copied evidence" : "Copy share evidence"}
+        </button>
+      </div>
+      <div className="share-channel-summary">
+        <div><span>Cards</span><strong>{packet.productionCards}/{packet.totalArtifacts}</strong></div>
+        <div><span>Opened</span><strong>{packet.openedChannels}/{packet.totalArtifacts}</strong></div>
+        <div><span>Ready</span><strong>{packet.readyToOpen}</strong></div>
+        <div><span>Missing</span><strong>{packet.missingProductionCards}</strong></div>
+      </div>
+      <p>{packet.summary}</p>
+      <small>Next action: {packet.nextAction}</small>
+      {copyStatus === "manual" && (
+        <label className="share-channel-copy">
+          <span>Manual share-channel evidence copy</span>
+          <textarea
+            aria-label="Manual share-channel evidence copy"
+            readOnly
+            value={packet.copyText}
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </label>
+      )}
+      <div className="share-channel-rows" aria-label="Share channel evidence rows">
+        {packet.rows.length === 0 ? (
+          <article>
+            <div>
+              <Users size={16} />
+              <strong>No share targets yet</strong>
+              <span>missing-card</span>
+            </div>
+            <small>Create record locks or mode proofs, then generate public share cards.</small>
+          </article>
+        ) : (
+          packet.rows.map((row) => (
+            <article key={`${row.kind}-${row.id}`} className={row.status}>
+              <div>
+                <Users size={16} />
+                <strong>{row.label}</strong>
+                <span>{row.status}</span>
+              </div>
+              <small>Channel: {row.channel}</small>
+              <small>Image: {row.imageUrl || "not publicly hosted"}</small>
+              <div className="share-channel-row-actions">
+                {row.xIntentUrl ? (
+                  <a href={row.xIntentUrl} target="_blank" rel="noreferrer">
+                    <Users size={14} /> Open X
+                  </a>
+                ) : (
+                  <span>X intent not ready</span>
+                )}
+                <code>{row.openCommand || "Generate a valid X intent first."}</code>
+              </div>
+              <code>{row.readBackCommand}</code>
+              <small>{row.action}</small>
+            </article>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ShareArtifactLedger({
   records,
   modeRuns,
   evidence,
   onPublishMissing,
+  onOpenMissingChannels,
 }: {
   records: MemoryRecord[];
   modeRuns: GameModeRun[];
   evidence: ShareArtifactEvidence[];
   onPublishMissing: () => void;
+  onOpenMissingChannels: () => void;
 }) {
   const artifactFor = (id: string, kind: ShareArtifactEvidence["kind"]) =>
     evidence.find((item) => item.id === id && item.kind === kind);
@@ -5718,6 +8945,7 @@ function ShareArtifactLedger({
   ];
   const publishable = rows.filter((row) => isPublishableShareArtifact(row.evidence)).length;
   const queue = buildSharePublishQueue(records, modeRuns, evidence);
+  const channelQueue = buildShareChannelQueue(records, modeRuns, evidence);
   return (
     <div className="share-artifact-ledger" aria-label="Share artifact ledger">
       <div className="panel-head">
@@ -5731,7 +8959,11 @@ function ShareArtifactLedger({
         <button disabled={rows.length === 0 || queue.missingProduction === 0} onClick={onPublishMissing}>
           <ImageDown size={16} /> Publish missing cards
         </button>
+        <button disabled={channelQueue.runnable === 0} onClick={onOpenMissingChannels}>
+          <Users size={16} /> Open missing X channels
+        </button>
         <span>{publishable}/{rows.length} PNG manifests · {queue.missingProduction} need public image URL evidence</span>
+        <span>{channelQueue.openedChannels}/{rows.length} share channels · {channelQueue.runnable} ready to open</span>
       </div>
       {rows.length === 0 ? (
         <article>
@@ -5744,7 +8976,7 @@ function ShareArtifactLedger({
       ) : (
         rows.map((row) => {
           const ready = isPublishableShareArtifact(row.evidence);
-          const production = isProductionShareArtifact(row.evidence);
+          const production = isProductionShareCardEvidence(row.evidence);
           const channel = row.evidence?.nativeShareOpenedAt ? "native share" : row.evidence?.xIntentOpenedAt ? "X intent" : "not opened";
           return (
             <article key={`${row.kind}-${row.id}`} className={production ? "passed" : ready ? "partial" : ""}>
@@ -5959,6 +9191,19 @@ function ProductionReadinessPanel({
             <progress value={item.passed} max={item.total} />
             <small>{item.passed}/{item.total} · {item.evidence}</small>
             <p>{item.nextAction}</p>
+            {item.checks.some((check) => !check.passed) && (
+              <div className="production-checks">
+                {item.checks
+                  .filter((check) => !check.passed)
+                  .slice(0, 3)
+                  .map((check) => (
+                    <span key={check.id}>
+                      <b>{check.label}</b>
+                      <small>{check.command ?? check.evidence}</small>
+                    </span>
+                  ))}
+              </div>
+            )}
           </article>
         ))}
       </div>

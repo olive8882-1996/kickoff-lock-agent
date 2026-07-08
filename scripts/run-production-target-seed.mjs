@@ -1,14 +1,23 @@
-import { readFile } from "node:fs/promises";
-import { basename, resolve } from "node:path";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { basename, dirname, resolve } from "node:path";
 import { parseEnvText } from "../src/productionEvidence.ts";
 import {
+  buildProductionTargetSeedArtifact,
   buildProductionTargetSeedReport,
   upsertProductionTargetSeed,
+  verifyProductionTargetSeedAuthUser,
 } from "../src/productionTargetSeed.ts";
 import { productionShareImageUploadTarget, uploadSupabaseShareImage } from "../src/shareImageUpload.ts";
 import { buildSupabaseProductionDoctorReport } from "../src/supabaseProductionDoctor.ts";
 
-const envFiles = [".env.example", ".env", ".env.local", ".env.production", ".env.production.local"];
+const includeExample = process.argv.includes("--include-example");
+const envFiles = [
+  ...(includeExample ? [".env.example"] : []),
+  ".env",
+  ".env.local",
+  ".env.production",
+  ".env.production.local",
+];
 const defaultShareImageFile = "public/generated/kickoff-production-share.png";
 
 const argValue = (name) => {
@@ -32,28 +41,40 @@ const loadEnv = async () => {
 
 const dryRun = process.argv.includes("--dry-run");
 const json = process.argv.includes("--json");
+const noWrite = process.argv.includes("--no-write");
+const outArg = argValue("out");
+const outputPath = resolve(outArg || "public/supabase-target-seed.json");
 const uploadShareImage = process.argv.includes("--upload-share-image");
+const uploadModeShareImage = process.argv.includes("--upload-mode-share-image") || Boolean(argValue("mode-share-image"));
 const { env, loaded } = await loadEnv();
 let uploadedShareImage;
-if (uploadShareImage) {
-  const imagePath = resolve(argValue("share-image") || defaultShareImageFile);
+let uploadedModeShareImage;
+
+const uploadImage = async (kind, imagePath) => {
   const bytes = await readFile(imagePath);
   const upload = await uploadSupabaseShareImage(
     env,
     productionShareImageUploadTarget(env, {
       fileName: basename(imagePath),
-      kind: "record",
+      kind,
     }),
     new Uint8Array(bytes),
   );
+  return upload;
+};
+
+if (uploadShareImage) {
+  const imagePath = resolve(argValue("share-image") || defaultShareImageFile);
+  const upload = await uploadImage("record", imagePath);
   uploadedShareImage = upload.result;
   if (!upload.ready || !uploadedShareImage) {
     if (json) {
-      console.log(JSON.stringify({ envFiles: loaded, dryRun, uploadShareImage, shareImageUpload: upload }, null, 2));
+      console.log(JSON.stringify({ envFiles: loaded, dryRun, uploadShareImage, uploadModeShareImage, shareImageUpload: upload }, null, 2));
     } else {
       console.log("Production target seed");
       console.log(`Env files: ${loaded.join(", ") || "none"}`);
-      console.log(`Share image upload failed: ${upload.missing.join(", ") || "unknown"}`);
+      if (!includeExample) console.log("Example env: ignored by default; pass --include-example to audit placeholders.");
+      console.log(`Record share image upload failed: ${upload.missing.join(", ") || "unknown"}`);
       console.log("");
       console.log("Set VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, or run without --upload-share-image using an existing KICKOFF_SEED_SHARE_IMAGE_URL.");
     }
@@ -63,48 +84,129 @@ if (uploadShareImage) {
   env.KICKOFF_SEED_SHARE_IMAGE_URL = uploadedShareImage.publicUrl;
   env.KICKOFF_VERIFY_SHARE_IMAGE_URL = uploadedShareImage.publicUrl;
 }
+if (uploadModeShareImage) {
+  const imagePath = resolve(argValue("mode-share-image") || argValue("share-image") || defaultShareImageFile);
+  const upload = await uploadImage("mode", imagePath);
+  uploadedModeShareImage = upload.result;
+  if (!upload.ready || !uploadedModeShareImage) {
+    if (json) {
+      console.log(JSON.stringify({ envFiles: loaded, dryRun, uploadShareImage, uploadModeShareImage, shareImageUpload: uploadedShareImage, modeShareImageUpload: upload }, null, 2));
+    } else {
+      console.log("Production target seed");
+      console.log(`Env files: ${loaded.join(", ") || "none"}`);
+      if (!includeExample) console.log("Example env: ignored by default; pass --include-example to audit placeholders.");
+      console.log(`Mode share image upload failed: ${upload.missing.join(", ") || "unknown"}`);
+      console.log("");
+      console.log("Set VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY, or run without --upload-mode-share-image to reuse the record share image for the mode artifact.");
+    }
+    process.exitCode = 1;
+    process.exit();
+  }
+  env.KICKOFF_SEED_MODE_SHARE_IMAGE_URL = uploadedModeShareImage.publicUrl;
+  env.KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL = uploadedModeShareImage.publicUrl;
+}
 const report = await buildProductionTargetSeedReport(env);
 
 if (!report.seed) {
+  const artifact = buildProductionTargetSeedArtifact(report, { envFiles: loaded, dryRun, upserted: false });
+  if (!noWrite) {
+    await mkdir(dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, `${JSON.stringify(artifact, null, 2)}\n`);
+  }
   if (json) {
-    console.log(JSON.stringify({ envFiles: loaded, dryRun, uploadShareImage, shareImageUpload: uploadedShareImage, ...report }, null, 2));
+    console.log(JSON.stringify(artifact, null, 2));
   } else {
     console.log("Production target seed");
     console.log(`Env files: ${loaded.join(", ") || "none"}`);
+    if (!includeExample) console.log("Example env: ignored by default; pass --include-example to audit placeholders.");
+    console.log(`Evidence: ${noWrite ? "not written (--no-write)" : outputPath}`);
     console.log(`Missing required env: ${report.missing.join(", ") || "none"}`);
     console.log("");
-    console.log("Set Supabase URL, anon key, service role key and a public generated share image URL before writing target rows.");
+    console.log(
+      "Set Supabase URL, anon key, service role key, a real Auth user id, a public record share image URL and a public mode share image URL before writing target rows.",
+    );
   }
   process.exitCode = 1;
 } else {
+  let upserted = false;
+  let authUser;
+  let doctor;
   if (!dryRun && !report.ready) {
     console.log("Production target seed");
     console.log(`Env files: ${loaded.join(", ") || "none"}`);
+    if (!includeExample) console.log("Example env: ignored by default; pass --include-example to audit placeholders.");
+    console.log(`Evidence: ${noWrite ? "not written (--no-write)" : outputPath}`);
     console.log(`Missing required env for Supabase write: ${report.missing.join(", ") || "none"}`);
     console.log("");
     console.log("Run with --dry-run to preview target rows without writing to Supabase.");
     process.exitCode = 1;
   } else if (!dryRun) {
+    authUser = await verifyProductionTargetSeedAuthUser(env, report.seed.targets.userId);
+    if (!authUser.ready) {
+      const artifact = buildProductionTargetSeedArtifact(report, {
+        envFiles: loaded,
+        dryRun,
+        upserted: false,
+        authUser,
+      });
+      if (!noWrite) {
+        await mkdir(dirname(outputPath), { recursive: true });
+        await writeFile(outputPath, `${JSON.stringify(artifact, null, 2)}\n`);
+      }
+      if (json) {
+        console.log(JSON.stringify(artifact, null, 2));
+      } else {
+        console.log("Production target seed");
+        console.log(`Env files: ${loaded.join(", ") || "none"}`);
+        if (!includeExample) console.log("Example env: ignored by default; pass --include-example to audit placeholders.");
+        console.log(`Evidence: ${noWrite ? "not written (--no-write)" : outputPath}`);
+        console.log(`Auth user read-back failed: ${authUser.detail}`);
+        if (authUser.url) console.log(`Auth URL: ${authUser.url}`);
+        console.log("");
+        console.log("Create/sign in the Supabase user first, then rerun seed:production-targets with KICKOFF_SEED_USER_ID set to that Auth user id.");
+      }
+      process.exitCode = 1;
+      process.exit();
+    }
     await upsertProductionTargetSeed(env, report.seed);
+    upserted = true;
   }
-  const doctor = dryRun || !report.ready ? undefined : await buildSupabaseProductionDoctorReport({ ...env, ...parseEnvText(report.seed.verifyEnv) });
+  doctor = dryRun || !report.ready ? undefined : await buildSupabaseProductionDoctorReport({ ...env, ...parseEnvText(report.seed.verifyEnv) });
+  const artifact = buildProductionTargetSeedArtifact(report, {
+    envFiles: loaded,
+    dryRun,
+    upserted,
+    authUser,
+    doctor,
+  });
+  if (!noWrite) {
+    await mkdir(dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, `${JSON.stringify(artifact, null, 2)}\n`);
+  }
   if (json) {
-    console.log(JSON.stringify({ envFiles: loaded, dryRun, uploadShareImage, shareImageUpload: uploadedShareImage, ...report, doctor }, null, 2));
+    console.log(JSON.stringify(artifact, null, 2));
   } else {
     console.log("Production target seed");
     console.log(`Env files: ${loaded.join(", ") || "none"}`);
+    if (!includeExample) console.log("Example env: ignored by default; pass --include-example to audit placeholders.");
+    console.log(`Evidence: ${noWrite ? "not written (--no-write)" : outputPath}`);
     console.log(`Mode: ${dryRun ? "dry-run" : "upserted to Supabase"}`);
     if (uploadedShareImage) {
-      console.log(`Share image upload: ${uploadedShareImage.publicUrl}`);
+      console.log(`Record share image upload: ${uploadedShareImage.publicUrl}`);
+    }
+    if (uploadedModeShareImage) {
+      console.log(`Mode share image upload: ${uploadedModeShareImage.publicUrl}`);
     }
     console.log("");
     console.log("Targets:");
     console.log(`  user/profile: ${report.seed.targets.userId}`);
     console.log(`  prediction proof: ${report.seed.targets.proofId}`);
     console.log(`  mode proof: ${report.seed.targets.modeId}`);
+    console.log(`  mode proof set: ${report.seed.targets.modeIds.join(", ")}`);
     console.log(`  friend scope: ${report.seed.targets.friendCode}`);
     console.log(`  season scope: ${report.seed.targets.seasonKey}`);
     console.log(`  share image: ${report.seed.targets.shareImageUrl}`);
+    console.log(`  mode share image: ${report.seed.targets.modeShareImageUrl}`);
     console.log("");
     console.log("Add this to .env.production.local:");
     console.log(report.seed.verifyEnv.trimEnd());

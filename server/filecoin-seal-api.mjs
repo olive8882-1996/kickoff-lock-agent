@@ -6,11 +6,23 @@ import { Synapse } from "@filoz/synapse-sdk";
 
 const port = Number(process.env.PORT ?? 8787);
 const privateKey = process.env.SYNAPSE_PRIVATE_KEY;
-const mockMode = process.env.FILECOIN_SEAL_MOCK === "1";
+const truthyFlag = (value) => /^(1|true|yes|on)$/i.test(String(value ?? "").trim());
+const mockMode = truthyFlag(process.env.FILECOIN_SEAL_MOCK);
 const proofStorePath = process.env.FILECOIN_PROOF_STORE_PATH;
 const sealToken = process.env.FILECOIN_SEAL_TOKEN;
 const maxUploadBytes = Number(process.env.FILECOIN_MAX_UPLOAD_BYTES || 262_144);
+const allowOrigin = process.env.ALLOW_ORIGIN ?? "*";
 const proofStore = new Map();
+const jobStore = new Map();
+
+const corsRestricted = () => {
+  try {
+    const url = new URL(allowOrigin);
+    return url.protocol === "https:" && allowOrigin !== "*";
+  } catch {
+    return false;
+  }
+};
 
 const productionBlockers = () => {
   const blockers = [];
@@ -18,6 +30,7 @@ const productionBlockers = () => {
   if (!privateKey) blockers.push("SYNAPSE_PRIVATE_KEY is missing");
   if (!sealToken) blockers.push("FILECOIN_SEAL_TOKEN is missing");
   if (!proofStorePath) blockers.push("FILECOIN_PROOF_STORE_PATH is missing");
+  if (!corsRestricted()) blockers.push("ALLOW_ORIGIN must be a deployed HTTPS app origin");
   if (!Number.isFinite(maxUploadBytes) || maxUploadBytes <= 0) blockers.push("FILECOIN_MAX_UPLOAD_BYTES is invalid");
   return blockers;
 };
@@ -33,15 +46,18 @@ const sealApiHealth = () => {
     blockers,
     service: "kickoff-lock-filecoin-seal-api",
     proofCount: proofStore.size,
+    jobCount: jobStore.size,
     persistence: proofStorePath ? "file" : "memory",
     maxUploadBytes,
+    allowOrigin: corsRestricted() ? "restricted" : "wildcard-or-invalid",
+    corsRestricted: corsRestricted(),
     proofStorePath: proofStorePath ? "configured" : undefined,
-    endpoints: ["POST /seal", "GET /verify?cid=", "GET /proof/:cid"],
+    endpoints: ["POST /seal", "POST /seal?async=1", "GET /jobs/:id", "GET /verify?cid=", "GET /proof/:cid"],
   };
 };
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": process.env.ALLOW_ORIGIN ?? "*",
+  "Access-Control-Allow-Origin": allowOrigin,
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type,Authorization",
 };
@@ -170,6 +186,17 @@ const loadProofStore = async () => {
     for (const proof of proofs) {
       if (proof?.cid) proofStore.set(String(proof.cid), proof);
     }
+    const jobs = Array.isArray(parsed?.jobs) ? parsed.jobs : [];
+    for (const storedJob of jobs) {
+      if (!storedJob?.jobId) continue;
+      const job = { ...storedJob };
+      if (["queued", "running"].includes(job.status) && !job.proof?.cid) {
+        job.status = "failed";
+        job.error = "Seal job was interrupted before completion; resubmit the payload.";
+        job.updatedAt = new Date().toISOString();
+      }
+      jobStore.set(String(job.jobId), job);
+    }
   } catch (error) {
     if (error.code !== "ENOENT") {
       console.warn(`Could not load Filecoin proof store at ${proofStorePath}: ${error.message}`);
@@ -177,7 +204,7 @@ const loadProofStore = async () => {
   }
 };
 
-const persistProofStore = async () => {
+const persistSealStore = async () => {
   if (!proofStorePath) return;
   await mkdir(dirname(proofStorePath), { recursive: true });
   const tmpPath = `${proofStorePath}.tmp`;
@@ -188,6 +215,16 @@ const persistProofStore = async () => {
         version: 1,
         updatedAt: new Date().toISOString(),
         proofs: Array.from(proofStore.values()),
+        jobs: Array.from(jobStore.values()).map((job) => ({
+          jobId: job.jobId,
+          status: job.status,
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt,
+          payloadHash: job.payloadHash,
+          byteLength: job.byteLength,
+          proof: job.proof,
+          error: job.error,
+        })),
       },
       null,
       2,
@@ -209,8 +246,63 @@ const registerProof = async (proof, bytes) => {
     checkedAt: new Date().toISOString(),
   };
   proofStore.set(String(proof.cid), storedProof);
-  await persistProofStore();
+  await persistSealStore();
   return storedProof;
+};
+
+const publicJob = (job) => ({
+  ok: job.status !== "failed",
+  jobId: job.jobId,
+  status: job.status,
+  createdAt: job.createdAt,
+  updatedAt: job.updatedAt,
+  payloadHash: job.payloadHash,
+  byteLength: job.byteLength,
+  cid: job.proof?.cid,
+  proof: job.proof,
+  error: job.error,
+});
+
+const sealBytes = async (bytes) => {
+  const proof = mockMode ? await pseudoProof(bytes) : await uploadWithSynapse(bytes);
+  return registerProof(proof, bytes);
+};
+
+const createSealJob = (bytes) => {
+  const payloadHash = sha256Hex(bytes);
+  const jobId = `seal-job-${payloadHash.slice(0, 16)}-${Date.now().toString(36)}`;
+  const now = new Date().toISOString();
+  const job = {
+    jobId,
+    status: "queued",
+    createdAt: now,
+    updatedAt: now,
+    payloadHash,
+    byteLength: bytes.length,
+  };
+  jobStore.set(jobId, job);
+  void persistSealStore().catch((error) => console.warn(`Could not persist Filecoin seal job ${jobId}: ${error.message}`));
+
+  void (async () => {
+    job.status = "running";
+    job.updatedAt = new Date().toISOString();
+    await persistSealStore().catch((error) => console.warn(`Could not persist Filecoin seal job ${jobId}: ${error.message}`));
+    try {
+      job.proof = await sealBytes(bytes);
+      job.status = "verified";
+      job.updatedAt = new Date().toISOString();
+      await persistSealStore();
+    } catch (error) {
+      job.status = "failed";
+      job.error = error.message;
+      job.updatedAt = new Date().toISOString();
+      await persistSealStore().catch((persistError) =>
+        console.warn(`Could not persist failed Filecoin seal job ${jobId}: ${persistError.message}`),
+      );
+    }
+  })();
+
+  return job;
 };
 
 const storedProofFor = (cid) => {
@@ -254,6 +346,15 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (
+    req.method === "GET" &&
+    (url.pathname === "/verify" || url.pathname.startsWith("/proof/") || url.pathname.startsWith("/jobs/")) &&
+    !isAuthorized(req)
+  ) {
+    json(res, 401, { error: "Missing or invalid seal API token" });
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/verify") {
     const result = storedProofFor(url.searchParams.get("cid") ?? "");
     json(res, result.status, result.body);
@@ -266,8 +367,19 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "GET" && url.pathname.startsWith("/jobs/")) {
+    const jobId = decodeURIComponent(url.pathname.replace(/^\/jobs\//, ""));
+    const job = jobStore.get(jobId);
+    if (!job) {
+      json(res, 404, { ok: false, jobId, status: "missing", error: "Seal job is not registered by this seal API instance." });
+      return;
+    }
+    json(res, job.status === "failed" ? 500 : 200, publicJob(job));
+    return;
+  }
+
   if (req.method !== "POST" || url.pathname !== "/seal") {
-    json(res, 404, { error: "Use POST /seal, GET /verify?cid=, GET /proof/:cid or GET /health" });
+    json(res, 404, { error: "Use POST /seal, POST /seal?async=1, GET /jobs/:id, GET /verify?cid=, GET /proof/:cid or GET /health" });
     return;
   }
 
@@ -286,8 +398,15 @@ const server = createServer(async (req, res) => {
       json(res, 400, { error: invalidPayload });
       return;
     }
-    const proof = mockMode ? await pseudoProof(bytes) : await uploadWithSynapse(bytes);
-    json(res, 200, await registerProof(proof, bytes));
+    if (url.searchParams.get("async") === "1") {
+      const job = createSealJob(bytes);
+      json(res, 202, {
+        ...publicJob(job),
+        statusUrl: `/jobs/${encodeURIComponent(job.jobId)}`,
+      });
+      return;
+    }
+    json(res, 200, await sealBytes(bytes));
   } catch (error) {
     json(res, error.statusCode ?? 500, { error: error.message });
   }

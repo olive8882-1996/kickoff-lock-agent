@@ -1,0 +1,94 @@
+name: Deploy Kickoff Lock Agent to Cloudflare Pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kickoff-lock-cloudflare-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: bunx playwright install --with-deps chromium
+
+      - name: Generate acceptance evidence
+        run: bun run verify:acceptance
+
+      - name: Generate browser runtime config
+        env:
+          VITE_PUBLIC_APP_URL: ${{ vars.VITE_PUBLIC_APP_URL }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_REDIRECT_URL: ${{ vars.VITE_SUPABASE_REDIRECT_URL }}
+          VITE_SUPABASE_SHARE_BUCKET: ${{ vars.VITE_SUPABASE_SHARE_BUCKET }}
+          VITE_DATA_PROXY_URL: ${{ vars.VITE_DATA_PROXY_URL }}
+          VITE_DATA_PROXY_SAME_ORIGIN: ${{ vars.VITE_DATA_PROXY_SAME_ORIGIN }}
+          VITE_ODDS_API_SPORT_KEY: ${{ vars.VITE_ODDS_API_SPORT_KEY }}
+          VITE_FILECOIN_SEAL_API: ${{ vars.VITE_FILECOIN_SEAL_API }}
+          VITE_FILECOIN_SEAL_SAME_ORIGIN: ${{ vars.VITE_FILECOIN_SEAL_SAME_ORIGIN }}
+        run: bun run runtime:config
+
+      - name: Check Pages Functions bundle
+        run: bun run pages:functions:build
+
+      - name: Build app
+        run: bun run build
+
+      - name: Deploy Cloudflare Pages with Functions
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT_NAME: ${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }}
+          CLOUDFLARE_PAGES_BRANCH: main
+          CLOUDFLARE_STRICT_RUNTIME_SECRETS: "1"
+          VITE_DATA_PROXY_SAME_ORIGIN: ${{ vars.VITE_DATA_PROXY_SAME_ORIGIN }}
+          VITE_ODDS_API_SPORT_KEY: ${{ vars.VITE_ODDS_API_SPORT_KEY }}
+          APIFOOTBALL_KEY: ${{ secrets.APIFOOTBALL_KEY }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+          VITE_FILECOIN_SEAL_SAME_ORIGIN: ${{ vars.VITE_FILECOIN_SEAL_SAME_ORIGIN }}
+          FILECOIN_SEAL_UPSTREAM_URL: ${{ secrets.FILECOIN_SEAL_UPSTREAM_URL }}
+          FILECOIN_SEAL_TOKEN: ${{ secrets.FILECOIN_SEAL_TOKEN }}
+          ALLOW_ORIGIN: ${{ vars.VITE_PUBLIC_APP_URL }}
+        run: bun scripts/deploy-cloudflare-pages.mjs --skip-build
+
+      - name: Generate diagnostic production evidence
+        env:
+          KICKOFF_VERIFY_ALLOW_FAILURES: "1"
+          VITE_PUBLIC_APP_URL: ${{ vars.VITE_PUBLIC_APP_URL }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_DATA_PROXY_URL: ${{ vars.VITE_DATA_PROXY_URL }}
+          VITE_DATA_PROXY_SAME_ORIGIN: ${{ vars.VITE_DATA_PROXY_SAME_ORIGIN }}
+          APIFOOTBALL_KEY: ${{ secrets.APIFOOTBALL_KEY }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          THE_ODDS_API_KEY: ${{ secrets.THE_ODDS_API_KEY }}
+          VITE_ODDS_API_SPORT_KEY: ${{ vars.VITE_ODDS_API_SPORT_KEY }}
+          VITE_FILECOIN_SEAL_API: ${{ vars.VITE_FILECOIN_SEAL_API }}
+          VITE_FILECOIN_SEAL_SAME_ORIGIN: ${{ vars.VITE_FILECOIN_SEAL_SAME_ORIGIN }}
+          FILECOIN_SEAL_UPSTREAM_URL: ${{ secrets.FILECOIN_SEAL_UPSTREAM_URL }}
+          FILECOIN_SEAL_TOKEN: ${{ secrets.FILECOIN_SEAL_TOKEN }}
+          ALLOW_ORIGIN: ${{ vars.VITE_PUBLIC_APP_URL }}
+        run: bun run verify:production

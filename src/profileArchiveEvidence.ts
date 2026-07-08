@@ -1,4 +1,5 @@
 import type { CloudSyncVerification, PublicProfile, ShareArtifactEvidence } from "./types";
+import { stableJson } from "./proof";
 
 export type ProfileArchiveEvidenceStatus = "passed" | "pending" | "blocked";
 
@@ -7,6 +8,45 @@ export type ProfileArchiveEvidenceCheck = {
   label: string;
   status: ProfileArchiveEvidenceStatus;
   detail: string;
+};
+
+export type ProfileArchiveManifest = {
+  profileId: string;
+  profileUrl: string;
+  records: Array<{
+    id: string;
+    matchLabel: string;
+    proofUrl: string;
+    cid: string;
+    payloadHash: string;
+    proofStatus: string;
+    shareCardId?: string;
+    shareImageUrl?: string;
+    shareImageHash?: string;
+  }>;
+  modeRuns: Array<{
+    id: string;
+    modeId: string;
+    title: string;
+    proofUrl: string;
+    cid: string;
+    payloadHash: string;
+    proofStatus: string;
+    shareCardId?: string;
+    shareImageUrl?: string;
+    shareImageHash?: string;
+  }>;
+  shareCards: Array<{
+    id: string;
+    kind: ShareArtifactEvidence["kind"];
+    proofUrl: string;
+    fileName?: string;
+    imageUrl?: string;
+    imageHash?: string;
+    imageByteLength?: number;
+    publishable: boolean;
+    publicImage: boolean;
+  }>;
 };
 
 export type ProfileArchiveEvidencePacket = {
@@ -23,6 +63,8 @@ export type ProfileArchiveEvidencePacket = {
   expectedArchives: number;
   contentFingerprints: number;
   publicProofLinks: number;
+  manifest: ProfileArchiveManifest;
+  manifestJson: string;
   ready: boolean;
   checks: ProfileArchiveEvidenceCheck[];
   missingIds: string[];
@@ -50,6 +92,66 @@ const statusFor = (blocked: boolean, passed: boolean): ProfileArchiveEvidenceSta
 
 const unique = (items: string[]) => Array.from(new Set(items.filter(Boolean)));
 
+const profileScopedUrl = (profileUrl: string, key: "proof" | "mode", id: string) => {
+  try {
+    const url = new URL(profileUrl);
+    url.search = "";
+    url.searchParams.set(key, id);
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return `${profileUrl}${profileUrl.includes("?") ? "&" : "?"}${key}=${encodeURIComponent(id)}`;
+  }
+};
+
+const artifactFor = (artifacts: ShareArtifactEvidence[], id: string, kind: ShareArtifactEvidence["kind"]) =>
+  artifacts.find((artifact) => artifact.id === id && artifact.kind === kind);
+
+const buildManifest = (profile: PublicProfile, profileUrl: string): ProfileArchiveManifest => ({
+  profileId: profile.id,
+  profileUrl,
+  records: profile.records.map((record) => {
+    const artifact = artifactFor(profile.shareArtifacts, record.capsule.id, "record");
+    return {
+      id: record.capsule.id,
+      matchLabel: record.capsule.matchLabel,
+      proofUrl: artifact?.proofUrl || profileScopedUrl(profileUrl, "proof", record.capsule.id),
+      cid: record.capsule.filecoinProof.cid,
+      payloadHash: record.capsule.payloadHash,
+      proofStatus: record.capsule.filecoinProof.proofStatus,
+      shareCardId: artifact ? cloudIdFor(artifact) : undefined,
+      shareImageUrl: artifact?.imageUrl,
+      shareImageHash: artifact?.imageHash,
+    };
+  }),
+  modeRuns: profile.modeRuns.map((run) => {
+    const artifact = artifactFor(profile.shareArtifacts, run.id, "mode");
+    return {
+      id: run.id,
+      modeId: run.modeId,
+      title: run.title,
+      proofUrl: artifact?.proofUrl || profileScopedUrl(profileUrl, "mode", run.id),
+      cid: run.filecoinProof.cid,
+      payloadHash: run.payloadHash,
+      proofStatus: run.filecoinProof.proofStatus,
+      shareCardId: artifact ? cloudIdFor(artifact) : undefined,
+      shareImageUrl: artifact?.imageUrl,
+      shareImageHash: artifact?.imageHash,
+    };
+  }),
+  shareCards: profile.shareArtifacts.map((artifact) => ({
+    id: artifact.id,
+    kind: artifact.kind,
+    proofUrl: artifact.proofUrl,
+    fileName: artifact.fileName,
+    imageUrl: artifact.imageUrl,
+    imageHash: artifact.imageHash,
+    imageByteLength: artifact.imageByteLength,
+    publishable: hasPublishableImage(artifact),
+    publicImage: hasPublicImage(artifact),
+  })),
+});
+
 export const buildProfileArchiveEvidencePacket = ({
   profile,
   profileUrl,
@@ -64,6 +166,12 @@ export const buildProfileArchiveEvidencePacket = ({
   const verifiedProfileModeRuns = verification?.publicProfileModeRunIds?.length ?? 0;
   const verifiedProfileShareArtifacts = verification?.publicProfileShareArtifactIds?.length ?? 0;
   const verifiedArchives = verifiedProfileRecords + verifiedProfileModeRuns + verifiedProfileShareArtifacts;
+  const verifiedProfileRecordContent = verification?.publicProfileRecordContentIds?.length ?? verifiedProfileRecords;
+  const verifiedProfileModeRunContent = verification?.publicProfileModeRunContentIds?.length ?? verifiedProfileModeRuns;
+  const verifiedProfileShareArtifactContent =
+    verification?.publicProfileShareArtifactContentIds?.length ?? verifiedProfileShareArtifacts;
+  const verifiedArchiveFingerprints =
+    verifiedProfileRecordContent + verifiedProfileModeRunContent + verifiedProfileShareArtifactContent;
   const publishableShareCards = profile.shareArtifacts.filter(hasPublishableImage).length;
   const publicImageCards = profile.shareArtifacts.filter(hasPublicImage).length;
   const contentFingerprints =
@@ -71,12 +179,17 @@ export const buildProfileArchiveEvidencePacket = ({
     (verification?.modeRunContentIds?.length ?? 0) +
     (verification?.shareArtifactContentIds?.length ?? 0);
   const publicProofLinks = verification?.publicProofs ?? 0;
+  const manifest = buildManifest(profile, profileUrl);
+  const manifestJson = stableJson(manifest);
   const expectedProofLinks = recordIds.length + modeRunIds.length;
   const hasVerification = Boolean(verification);
   const missingIds = unique([
     ...(verification?.missingPublicProfileRecordIds ?? recordIds),
     ...(verification?.missingPublicProfileModeRunIds ?? modeRunIds),
     ...(verification?.missingPublicProfileShareArtifactIds ?? shareArtifactIds),
+    ...(verification?.missingPublicProfileRecordContentIds ?? []),
+    ...(verification?.missingPublicProfileModeRunContentIds ?? []),
+    ...(verification?.missingPublicProfileShareArtifactContentIds ?? []),
     ...(verification?.missingRecordContentIds ?? []),
     ...(verification?.missingModeRunContentIds ?? []),
     ...(verification?.missingShareArtifactContentIds ?? []),
@@ -89,7 +202,8 @@ export const buildProfileArchiveEvidencePacket = ({
     verifiedProfileRecords >= recordIds.length &&
     verifiedProfileModeRuns >= modeRunIds.length &&
     verifiedProfileShareArtifacts >= shareArtifactIds.length;
-  const contentReady = hasVerification && contentFingerprints >= expectedArchives;
+  const archiveContentReady = hasVerification && verifiedArchiveFingerprints >= expectedArchives;
+  const contentReady = hasVerification && contentFingerprints >= expectedArchives && archiveContentReady;
   const shareImagesReady = profile.shareArtifacts.length > 0 && publicImageCards >= profile.shareArtifacts.length;
   const publicProofsReady = hasVerification && publicProofLinks >= expectedProofLinks;
   const ready = publicArchiveReady && contentReady && (profile.shareArtifacts.length === 0 || shareImagesReady) && publicProofsReady;
@@ -106,7 +220,7 @@ export const buildProfileArchiveEvidencePacket = ({
       label: "Anonymous archive read-back",
       status: statusFor(!hasVerification && source !== "public-page", publicArchiveReady),
       detail: hasVerification
-        ? `${verifiedArchives}/${expectedArchives} profile archives read anonymously`
+        ? `${verifiedArchives}/${expectedArchives} profile archives read anonymously · ${verifiedArchiveFingerprints}/${expectedArchives} archive fingerprints`
         : source === "public-page"
           ? `${expectedArchives} archive item${expectedArchives === 1 ? "" : "s"} rendered on this profile page`
           : "cloud read-back has not run",
@@ -116,7 +230,7 @@ export const buildProfileArchiveEvidencePacket = ({
       label: "Content fingerprints",
       status: statusFor(!hasVerification && source !== "public-page", contentReady),
       detail: hasVerification
-        ? `${contentFingerprints}/${expectedArchives} remote fingerprints match`
+        ? `${contentFingerprints}/${expectedArchives} remote fingerprints, ${verifiedArchiveFingerprints}/${expectedArchives} profile archive fingerprints match`
         : "waiting for cloud verification",
     },
     {
@@ -161,6 +275,7 @@ export const buildProfileArchiveEvidencePacket = ({
     `Public proof links: ${publicProofLinks}/${expectedProofLinks}`,
     `Share cards: ${publishableShareCards}/${profile.shareArtifacts.length}`,
     `Public images: ${publicImageCards}/${profile.shareArtifacts.length}`,
+    `Manifest: ${manifest.records.length} records, ${manifest.modeRuns.length} modes, ${manifest.shareCards.length} share cards`,
     `Ready: ${ready ? "yes" : "no"}`,
     `Next action: ${nextAction}`,
     missingIds.length > 0 ? `Missing: ${missingIds.slice(0, 8).join(", ")}` : "",
@@ -182,6 +297,8 @@ export const buildProfileArchiveEvidencePacket = ({
     expectedArchives,
     contentFingerprints,
     publicProofLinks,
+    manifest,
+    manifestJson,
     ready,
     checks,
     missingIds,

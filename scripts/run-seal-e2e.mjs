@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
+import { rm } from "node:fs/promises";
 import { get } from "node:http";
 import { createServer } from "node:net";
+import { resolve } from "node:path";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -60,6 +62,7 @@ let preview;
 try {
   const appPort = await findOpenPort(4174);
   const sealPort = await findOpenPort(8788);
+  const sealDistDir = resolve(".e2e-dist/seal");
   const appUrl = `http://127.0.0.1:${appPort}/kickoff-lock-agent/`;
   const sealHealthUrl = `http://127.0.0.1:${sealPort}/health`;
   const env = {
@@ -76,11 +79,17 @@ try {
     stdio: "inherit",
   });
   await waitFor(sealHealthUrl, "Mock Filecoin seal API");
-  await run("bun", ["run", "build"], { env });
-  preview = spawn("bunx", ["vite", "preview", "--host", "127.0.0.1", "--port", String(appPort), "--strictPort"], {
-    env,
-    stdio: "inherit",
-  });
+  await rm(sealDistDir, { recursive: true, force: true });
+  await run("bunx", ["tsc", "-b"], { env });
+  await run("bunx", ["vite", "build", "--outDir", sealDistDir, "--emptyOutDir"], { env });
+  preview = spawn(
+    "bunx",
+    ["vite", "preview", "--host", "127.0.0.1", "--port", String(appPort), "--strictPort", "--outDir", sealDistDir],
+    {
+      env,
+      stdio: "inherit",
+    },
+  );
   await waitFor(appUrl, "Preview");
   await run("bunx", ["playwright", "test"], { env });
 } finally {

@@ -1,0 +1,29 @@
+{
+  "ready": false,
+  "fixtureIds": [],
+  "requiredSignals": 4,
+  "requiredFixtureCount": 3,
+  "checkedFixtures": 0,
+  "candidates": [],
+  "gaps": [],
+  "signalMatrix": "",
+  "verifyEnv": "KICKOFF_VERIFY_USER_ID=kickoff-production-seed\nKICKOFF_VERIFY_PROFILE_ID=kickoff-production-seed\nKICKOFF_VERIFY_PUBLIC_PROFILE_URL=\"https://olive8882-1996.github.io/kickoff-lock-agent/?profile=kickoff-production-seed\"\nKICKOFF_VERIFY_PROOF_ID=cap-prod-73dc2618d1f9\nKICKOFF_VERIFY_MODE_ID=mode-prod-bracket-f90d6276\nKICKOFF_VERIFY_MODE_IDS=\"mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118\"\nKICKOFF_VERIFY_SHARE_ARTIFACT_IDS=\"record:cap-prod-73dc2618d1f9,mode:mode-prod-bracket-f90d6276,mode:mode-prod-parlay-77bf4ef2,mode:mode-prod-agent-vs-human-f8b27b3a,mode:mode-prod-upset-9f6dd619,mode:mode-prod-group-path-b533c118\"\nKICKOFF_VERIFY_FILECOIN_RECORD_CID=\nKICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH=fa511a1f7b3df93ee8587be22154a65bb15928aa2d3d00791defb2c0d9ce0813\nKICKOFF_VERIFY_FILECOIN_MODE_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH=25c8e017e0edeff4844e2499f0b103cdf7c7c1d273a8e39cef400d1fc6dee9e6\nKICKOFF_VERIFY_FILECOIN_MODE_CIDS=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES=\"25c8e017e0edeff4844e2499f0b103cdf7c7c1d273a8e39cef400d1fc6dee9e6,194f7c221129518eb0f7f9a2f3784173234dd70d563ccd9caf8f3de36043fcad,a525977282041e432d119e86082776748b645242c6dcac3bcc9596fb2d2971f6,6cd3b0f87363b96a7ada654b16485b90f12088e1a720151d6a963255b1504afa,0dd305b53205d688d404597a20646bc97334e1130f2a6ce62168d7df699fa827\"\nKICKOFF_VERIFY_FRIEND_CODE=chengdu\nKICKOFF_VERIFY_SEASON_KEY=world-cup-run\nKICKOFF_VERIFY_LEADERBOARD_SCOPES=\"global,friend,season\"\nKICKOFF_VERIFY_FIXTURE_ID=\nKICKOFF_VERIFY_FIXTURE_IDS=\nKICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX=\nKICKOFF_VERIFY_SHARE_IMAGE_URL=https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png\nKICKOFF_VERIFY_MODE_SHARE_IMAGE_URL=https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png\nKICKOFF_VERIFY_ALLOW_FAILURES=1\n",
+  "nextAction": "Set APIFOOTBALL_KEY, VITE_APIFOOTBALL_KEY or a deployed VITE_DATA_PROXY_URL/VITE_DATA_PROXY_SAME_ORIGIN before scouting production fixture targets.",
+  "generatedAt": "2026-07-06T19:25:24.454Z",
+  "envFiles": [
+    ".env.production.local"
+  ],
+  "artifactVersion": 1,
+  "acceptance": {
+    "readyFixtureCount": 0,
+    "requiredFixtureCount": 3,
+    "completeSignalMatrix": false,
+    "fixtureSignals": [],
+    "endpointReadBackCommands": [],
+    "gaps": [],
+    "outputEnvKeys": [
+      "KICKOFF_VERIFY_FIXTURE_IDS",
+      "KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX"
+    ]
+  }
+}

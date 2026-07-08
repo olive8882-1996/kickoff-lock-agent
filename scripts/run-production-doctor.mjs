@@ -3,7 +3,14 @@ import { resolve } from "node:path";
 import { parseEnvText } from "../src/productionEvidence.ts";
 import { buildProductionDoctorReport } from "../src/productionDoctor.ts";
 
-const envFiles = [".env.example", ".env", ".env.local", ".env.production", ".env.production.local"];
+const includeExample = process.argv.includes("--include-example");
+const envFiles = [
+  ...(includeExample ? [".env.example"] : []),
+  ".env",
+  ".env.local",
+  ".env.production",
+  ".env.production.local",
+];
 
 const loadEnv = async () => {
   const merged = {};
@@ -37,6 +44,7 @@ if (process.argv.includes("--json")) {
 } else {
   console.log("Production doctor");
   console.log(`Env files: ${loaded.join(", ") || "none"}`);
+  if (!includeExample) console.log("Example env: ignored by default; pass --include-example to audit placeholders.");
   console.log(report.headline);
   console.log(`Runtime: ${report.runtime.passed}/${report.runtime.total}`);
   console.log(`Evidence: ${report.evidence.passed}/${report.evidence.total}${report.evidence.generatedAt ? ` (${report.evidence.generatedAt})` : ""}`);
@@ -55,4 +63,3 @@ if (process.argv.includes("--json")) {
 }
 
 if (!report.ready) process.exitCode = 1;
-

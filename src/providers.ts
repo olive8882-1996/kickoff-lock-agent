@@ -1,11 +1,14 @@
 import { seedMatches } from "./data/seedMatches";
 import { lookupFifaRanking } from "./data/fifaRankings";
+import { hasUsefulSignalList, placeholderPattern } from "./intelligenceSignalQuality";
+import { resolvedDataProxyUrl, runtimeConfigValue } from "./runtimeConfig";
 import type {
   DataCoverageItem,
   DataCoverageStatus,
   DataSource,
   Match,
   MatchIntelligenceScore,
+  ProviderEnrichmentMatrixItem,
   ProviderHealthSnapshot,
   ProviderEnrichmentAudit,
   ProviderResponseAudit,
@@ -18,62 +21,88 @@ import type {
 const ESPN_URL =
   "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=40";
 const WORLDCUP26_URL = "https://worldcup26.ir/get/games";
-const API_FOOTBALL_KEY = import.meta.env.VITE_APIFOOTBALL_KEY as string | undefined;
+const OPENFOOTBALL_WORLDCUP_URL =
+  "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
+const runtimeEnv = import.meta.env as Record<string, string | boolean | undefined>;
+const envValue = (key: string, fallback = "") => runtimeConfigValue(runtimeEnv, key) || fallback;
+const numberEnvValue = (key: string, fallback: number) => Math.max(0, Number(envValue(key, String(fallback))) || 0);
+const API_FOOTBALL_KEY = () => envValue("VITE_APIFOOTBALL_KEY");
 const API_FOOTBALL_HOST = "https://v3.football.api-sports.io";
-const API_FOOTBALL_ENRICHMENT_LIMIT = Math.max(
-  0,
-  Number(import.meta.env.VITE_APIFOOTBALL_ENRICHMENT_LIMIT ?? 12) || 0,
-);
-const FOOTBALL_DATA_TOKEN = import.meta.env.VITE_FOOTBALL_DATA_TOKEN as string | undefined;
-const FOOTBALL_DATA_COMPETITION = (import.meta.env.VITE_FOOTBALL_DATA_COMPETITION as string | undefined) ?? "WC";
+const API_FOOTBALL_ENRICHMENT_LIMIT = () => numberEnvValue("VITE_APIFOOTBALL_ENRICHMENT_LIMIT", 12);
+const FOOTBALL_DATA_TOKEN = () => envValue("VITE_FOOTBALL_DATA_TOKEN");
+const FOOTBALL_DATA_COMPETITION = () => envValue("VITE_FOOTBALL_DATA_COMPETITION", "WC");
 const FOOTBALL_DATA_HOST = "https://api.football-data.org/v4";
-const THESPORTSDB_KEY = (import.meta.env.VITE_THESPORTSDB_KEY as string | undefined) ?? "123";
-const THESPORTSDB_LEAGUE_ID = (import.meta.env.VITE_THESPORTSDB_LEAGUE_ID as string | undefined) ?? "4429";
-const THESPORTSDB_SEASON = (import.meta.env.VITE_THESPORTSDB_SEASON as string | undefined) ?? String(new Date().getUTCFullYear());
-const THESPORTSDB_ENRICHMENT_LIMIT = Math.max(
-  0,
-  Number(import.meta.env.VITE_THESPORTSDB_ENRICHMENT_LIMIT ?? 8) || 0,
-);
-const THESPORTSDB_HOST = `https://www.thesportsdb.com/api/v1/json/${THESPORTSDB_KEY}`;
-const ODDS_API_KEY = import.meta.env.VITE_ODDS_API_KEY as string | undefined;
-const ODDS_API_SPORT_KEY = import.meta.env.VITE_ODDS_API_SPORT_KEY as string | undefined;
+const THESPORTSDB_KEY = () => envValue("VITE_THESPORTSDB_KEY", "123");
+const THESPORTSDB_LEAGUE_ID = () => envValue("VITE_THESPORTSDB_LEAGUE_ID", "4429");
+const THESPORTSDB_SEASON = () => envValue("VITE_THESPORTSDB_SEASON", String(new Date().getUTCFullYear()));
+const THESPORTSDB_ENRICHMENT_LIMIT = () => numberEnvValue("VITE_THESPORTSDB_ENRICHMENT_LIMIT", 8);
+const THESPORTSDB_HOST = () => `https://www.thesportsdb.com/api/v1/json/${THESPORTSDB_KEY()}`;
+const ODDS_API_KEY = () => envValue("VITE_ODDS_API_KEY");
+const ODDS_API_SPORT_KEY = () => envValue("VITE_ODDS_API_SPORT_KEY");
 const ODDS_API_HOST = "https://api.the-odds-api.com/v4";
+const DATA_PROXY_URL = () => resolvedDataProxyUrl(runtimeEnv);
+const ODDS_API_CONFIGURED = () => Boolean((ODDS_API_KEY() || DATA_PROXY_URL()) && ODDS_API_SPORT_KEY());
 
-const providerRouteConfig: Array<{
+export const buildDataProxyUrl = (
+  targetUrl: string,
+  source: DataSource,
+  proxyBaseUrl = DATA_PROXY_URL(),
+) => {
+  if (!proxyBaseUrl) return targetUrl;
+  const base = typeof window === "undefined" ? "http://localhost/" : window.location.href;
+  const proxy = new URL(proxyBaseUrl, base);
+  proxy.searchParams.set("url", targetUrl);
+  proxy.searchParams.set("source", source);
+  return proxy.toString();
+};
+
+const publicDataUrl = (targetUrl: string, source: DataSource) => buildDataProxyUrl(targetUrl, source);
+
+const providerRouteConfig = (): Array<{
   key: DataSource;
   label: string;
   configured: boolean;
   detail: string;
-}> = [
+}> => [
   {
     key: "api-football",
     label: "API-Football",
-    configured: Boolean(API_FOOTBALL_KEY),
-    detail: "Fixtures plus lineups, injuries and odds when plan supports enrichment.",
+    configured: Boolean(API_FOOTBALL_KEY() || DATA_PROXY_URL()),
+    detail: DATA_PROXY_URL()
+      ? "Fixtures plus lineups, injuries and odds through the data proxy with a server-side key."
+      : "Fixtures plus lineups, injuries and odds when plan supports enrichment.",
   },
   {
     key: "football-data",
     label: "Football-Data.org",
-    configured: Boolean(FOOTBALL_DATA_TOKEN),
-    detail: `Competition ${FOOTBALL_DATA_COMPETITION} fixtures, scores, venue and team metadata.`,
+    configured: Boolean(FOOTBALL_DATA_TOKEN() || DATA_PROXY_URL()),
+    detail: `Competition ${FOOTBALL_DATA_COMPETITION()} fixtures, scores, venue and team metadata${
+      DATA_PROXY_URL() ? " through the data proxy with a server-side token" : ""
+    }.`,
   },
   {
     key: "thesportsdb",
     label: "TheSportsDB",
-    configured: Boolean(THESPORTSDB_KEY),
-    detail: `Free v1 route ${THESPORTSDB_LEAGUE_ID}/${THESPORTSDB_SEASON} for schedule, score and event details.`,
+    configured: Boolean(THESPORTSDB_KEY()),
+    detail: `Free v1 route ${THESPORTSDB_LEAGUE_ID()}/${THESPORTSDB_SEASON()} for schedule, score and event details${DATA_PROXY_URL() ? " via data proxy" : ""}.`,
+  },
+  {
+    key: "openfootball",
+    label: "openfootball",
+    configured: true,
+    detail: `Public-domain World Cup 2026 JSON schedule/results continuity feed${DATA_PROXY_URL() ? " via data proxy" : ""}.`,
   },
   {
     key: "espn",
     label: "ESPN",
     configured: true,
-    detail: "Public FIFA World Cup scoreboard fallback.",
+    detail: `Public FIFA World Cup scoreboard fallback${DATA_PROXY_URL() ? " via data proxy" : ""}.`,
   },
   {
     key: "worldcup26",
     label: "worldcup26",
     configured: true,
-    detail: "Public games fallback route.",
+    detail: `Public games fallback route${DATA_PROXY_URL() ? " via data proxy" : ""}.`,
   },
   {
     key: "seed",
@@ -181,11 +210,17 @@ const normalizeTheSportsDbStage = (round?: string | number) => {
   return `Round ${n}`;
 };
 
-const placeholderPattern =
-  /not published|not configured|configure|unavailable|waiting|waits|not loaded|not yet loaded|no injury feed|no odds|no market rows|not returned|does not publish|no betting/i;
-
-const hasUsefulList = (items?: string[]) =>
-  Boolean(items?.some((item) => item.trim() && !placeholderPattern.test(item)));
+const normalizeOpenFootballKickoff = (date: string | undefined, time: string | undefined) => {
+  const cleanDate = date?.trim() || new Date().toISOString().slice(0, 10);
+  const match = String(time ?? "").match(/^(\d{1,2}):(\d{2})(?:\s+UTC([+-]\d{1,2}))?/i);
+  if (!match) return `${cleanDate}T00:00:00.000Z`;
+  const hour = match[1]!.padStart(2, "0");
+  const minute = match[2]!;
+  const offsetHour = match[3] ? Number(match[3]) : 0;
+  const sign = offsetHour >= 0 ? "+" : "-";
+  const offset = `${sign}${String(Math.abs(offsetHour)).padStart(2, "0")}:00`;
+  return new Date(`${cleanDate}T${hour}:${minute}:00${offset}`).toISOString();
+};
 
 const listCoverage = (
   source: DataSource,
@@ -193,7 +228,7 @@ const listCoverage = (
   configuredSource: string | undefined,
 ): DataCoverageStatus => {
   if (source === "seed") return "fallback";
-  if (hasUsefulList(items)) return "live";
+  if (hasUsefulSignalList(items)) return "live";
   if (configuredSource && /endpoint/i.test(configuredSource) && !placeholderPattern.test(configuredSource)) return "configured";
   return "missing";
 };
@@ -215,21 +250,74 @@ const statusRank: Record<DataCoverageStatus, number> = {
 const isLiveOrConfigured = (item: ProviderReadinessItem) =>
   item.status === "live" || item.status === "configured";
 
-const productionEnrichmentKeys = new Set<DataCoverageItem["key"]>(["lineups", "injuries", "odds"]);
+const productionEnrichmentKeys = new Set<DataCoverageItem["key"]>(["rankings", "lineups", "injuries", "odds"]);
+const requiredEnrichmentEndpointKeys: ProviderEnrichmentMatrixItem["key"][] = [
+  "lineups",
+  "injuries",
+  "odds",
+  "standings",
+];
+
+const enrichmentEndpointLabels: Record<ProviderEnrichmentMatrixItem["key"], string> = {
+  lineups: "Lineups",
+  injuries: "Injuries",
+  odds: "Odds",
+  standings: "Standings",
+};
+
+const defaultEnrichmentEndpoint = (key: ProviderEnrichmentMatrixItem["key"]) => {
+  if (key === "lineups") return "fixtures/lineups?fixture=<fixture-id>";
+  if (key === "injuries") return "injuries?fixture=<fixture-id>";
+  if (key === "standings") return "standings?league=<league-id>&season=<season>";
+  return "odds?fixture=<fixture-id> or The Odds API h2h";
+};
+
+const endpointAuditKeyFor = (key: DataCoverageItem["key"]) => (key === "rankings" ? "standings" : key);
 
 const hasProductionEnrichmentReadback = (
   key: DataCoverageItem["key"],
   enrichmentAudit?: ProviderEnrichmentAudit,
 ) => {
   if (!productionEnrichmentKeys.has(key)) return true;
-  const endpoint = enrichmentAudit?.endpointAudits.find((item) => item.key === key);
-  return Boolean(endpoint && endpoint.attempted > 0 && endpoint.fulfilled > 0 && endpoint.live > 0);
+  const endpointKey = endpointAuditKeyFor(key);
+  const endpoint = enrichmentAudit?.endpointAudits.find((item) => item.key === endpointKey);
+  return Boolean(endpoint && endpoint.attempted > 0 && endpoint.fulfilled >= endpoint.attempted && endpoint.live >= endpoint.attempted && endpoint.errors === 0);
 };
 
 const isProductionSignalReady = (item: ProviderReadinessItem, enrichmentAudit?: ProviderEnrichmentAudit) => {
   if (!productionEnrichmentKeys.has(item.key)) return isLiveOrConfigured(item);
-  return item.status === "live" && hasProductionEnrichmentReadback(item.key, enrichmentAudit);
+  const signalReady = item.key === "rankings" ? isLiveOrConfigured(item) : item.status === "live";
+  return signalReady && hasProductionEnrichmentReadback(item.key, enrichmentAudit);
 };
+
+export const buildProviderEnrichmentMatrix = (
+  enrichmentAudit?: ProviderEnrichmentAudit,
+): ProviderEnrichmentMatrixItem[] =>
+  requiredEnrichmentEndpointKeys.map((key) => {
+    const endpoint = enrichmentAudit?.endpointAudits.find((item) => item.key === key);
+    const attempted = endpoint?.attempted ?? 0;
+    const fulfilled = endpoint?.fulfilled ?? 0;
+    const live = endpoint?.live ?? 0;
+    const errors = endpoint?.errors ?? 0;
+    const ready = attempted > 0 && fulfilled >= attempted && live >= attempted && errors === 0;
+    const endpointName = endpoint?.endpoint ?? defaultEnrichmentEndpoint(key);
+    return {
+      key,
+      label: enrichmentEndpointLabels[key],
+      endpoint: endpointName,
+      attempted,
+      fulfilled,
+      live,
+      errors,
+      ready,
+      sampleIds: endpoint?.sampleIds ?? [],
+      detail: ready
+        ? `${live}/${attempted} live read-back rows`
+        : attempted > 0
+          ? `${live}/${attempted} live, ${fulfilled}/${attempted} fulfilled, ${errors} errors`
+          : "endpoint read-back not attempted",
+    };
+  });
 
 export const buildProviderHealthSnapshot = ({
   providerSource,
@@ -255,6 +343,7 @@ export const buildProviderHealthSnapshot = ({
   const activeRoute = routeAudit.find((route) => route.status === "active" || route.status === "fallback");
   const liveOrConfiguredItems = readiness.filter(isLiveOrConfigured);
   const productionReadyItems = readiness.filter((item) => isProductionSignalReady(item, enrichmentAudit));
+  const enrichmentMatrix = buildProviderEnrichmentMatrix(enrichmentAudit);
   const missingSignals = readiness
     .filter(
       (item) =>
@@ -305,6 +394,7 @@ export const buildProviderHealthSnapshot = ({
     responseVerified,
     responseAudit,
     enrichmentAudit,
+    enrichmentMatrix,
     liveOrConfigured: liveOrConfiguredCount,
     totalSignals,
     activeRoute: activeRoute?.label,
@@ -350,15 +440,15 @@ const bestCoverage = (matches: Match[], key: DataCoverageItem["key"]) => {
 
 const envDetail = (key: DataCoverageItem["key"]) => {
   if (key === "lineups" || key === "injuries") {
-    return API_FOOTBALL_KEY
-      ? "VITE_APIFOOTBALL_KEY configured; run Enrich on API-Football fixtures."
-      : "Configure VITE_APIFOOTBALL_KEY for lineups and injuries.";
+    return API_FOOTBALL_KEY() || DATA_PROXY_URL()
+      ? "API-Football enrichment configured; run Enrich on API-Football fixtures."
+      : "Configure VITE_APIFOOTBALL_KEY or a data proxy with server-side APIFOOTBALL_KEY for lineups and injuries.";
   }
   if (key === "odds") {
-    if (API_FOOTBALL_KEY || (ODDS_API_KEY && ODDS_API_SPORT_KEY)) {
+    if (API_FOOTBALL_KEY() || DATA_PROXY_URL() || ODDS_API_CONFIGURED()) {
       return "Odds enrichment configured through API-Football or The Odds API.";
     }
-    return "Configure VITE_APIFOOTBALL_KEY or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY.";
+    return "Configure VITE_APIFOOTBALL_KEY, a data proxy with server-side APIFOOTBALL_KEY/ODDS_API_KEY, or VITE_ODDS_API_KEY plus VITE_ODDS_API_SPORT_KEY.";
   }
   return "Waiting for configured live provider.";
 };
@@ -407,9 +497,9 @@ export const buildProviderReadiness = (matches: Match[]): ProviderReadinessItem[
   for (const key of ["schedule", "rankings", "lineups", "injuries", "odds"] as const) {
     const coverage = bestCoverage(matches, key);
     const configured =
-      (key === "lineups" || key === "injuries") && API_FOOTBALL_KEY
+      (key === "lineups" || key === "injuries") && (API_FOOTBALL_KEY() || DATA_PROXY_URL())
         ? true
-        : key === "odds" && (API_FOOTBALL_KEY || (ODDS_API_KEY && ODDS_API_SPORT_KEY));
+        : key === "odds" && (API_FOOTBALL_KEY() || DATA_PROXY_URL() || ODDS_API_CONFIGURED());
     const enrichmentKey = key === "lineups" || key === "injuries" || key === "odds";
     const usableCoverage =
       coverage && (!enrichmentKey || coverage.status !== "fallback" || configured)
@@ -503,21 +593,25 @@ export const buildRealtimeDataAudit = ({
   });
   const signalHasProductionReadback = (key: DataCoverageItem["key"]) => {
     if (!productionEnrichmentKeys.has(key)) return true;
-    const endpoint = enrichmentAudit?.endpointAudits.find((item) => item.key === key);
-    return Boolean(endpoint && endpoint.attempted > 0 && endpoint.fulfilled > 0 && endpoint.live > 0);
+    const endpointKey = endpointAuditKeyFor(key);
+    const endpoint = enrichmentAudit?.endpointAudits.find((item) => item.key === endpointKey);
+    return Boolean(endpoint && endpoint.attempted > 0 && endpoint.fulfilled >= endpoint.attempted && endpoint.live >= endpoint.attempted && endpoint.errors === 0);
   };
   const missingSignals = signals
-    .filter((signal) =>
-      productionEnrichmentKeys.has(signal.key)
-        ? signal.live < signal.total || !signalHasProductionReadback(signal.key)
-        : signal.live + signal.configured < signal.total,
-    )
+    .filter((signal) => {
+      const coverageCount = signal.live + (signal.key === "rankings" ? signal.configured : 0);
+      return productionEnrichmentKeys.has(signal.key)
+        ? coverageCount < signal.total || !signalHasProductionReadback(signal.key)
+        : signal.live + signal.configured < signal.total;
+    })
     .map((signal) => signal.key);
   const apiFootballEnrichmentReadback = Boolean(
     source !== "api-football" ||
       (enrichmentAudit &&
         enrichmentAudit.attemptedFixtures > 0 &&
-        enrichmentAudit.endpointAudits.every((endpoint) => endpoint.fulfilled >= endpoint.attempted)),
+        enrichmentAudit.endpointAudits.every(
+          (endpoint) => endpoint.attempted > 0 && endpoint.fulfilled >= endpoint.attempted && endpoint.live >= endpoint.attempted && endpoint.errors === 0,
+        )),
   );
   const samples = coverageRows.slice(0, 3).map(({ match, coverage }) => {
     const missing = coverage
@@ -567,7 +661,12 @@ export const buildDataCoverage = (match: Match): DataCoverageItem[] => {
   const provider = sourceLabel(match.dataSource);
   const scoreKnown = match.homeScore !== undefined && match.awayScore !== undefined;
   const isFallback = match.dataSource === "seed";
-  const hasRanks = Boolean(match.insights?.home.fifaRank && match.insights?.away.fifaRank);
+  const hasFifaRanks = Boolean(match.insights?.home.fifaRank && match.insights?.away.fifaRank);
+  const hasTableRanks = Boolean(match.insights?.home.tablePosition && match.insights?.away.tablePosition);
+  const hasRanks = hasFifaRanks || hasTableRanks;
+  const rankingDetail = hasTableRanks
+    ? `${match.homeTeam} table #${match.insights?.home.tablePosition} (${match.insights?.home.tablePoints} pts) · ${match.awayTeam} table #${match.insights?.away.tablePosition} (${match.insights?.away.tablePoints} pts)`
+    : `${match.homeTeam} ${match.insights?.home.fifaRank} · ${match.awayTeam} ${match.insights?.away.fifaRank}`;
   const lineupStatus = listCoverage(
     match.dataSource,
     [...(match.insights?.home.probableLineup ?? []), ...(match.insights?.away.probableLineup ?? [])],
@@ -606,10 +705,8 @@ export const buildDataCoverage = (match: Match): DataCoverageItem[] => {
       key: "rankings",
       label: "Rank signal",
       status: hasRanks ? (isFallback ? "fallback" : "configured") : "missing",
-      source: hasRanks ? (match.insights?.rankingSource ?? provider) : "Not available",
-      detail: hasRanks
-        ? `${match.homeTeam} ${match.insights?.home.fifaRank} · ${match.awayTeam} ${match.insights?.away.fifaRank}`
-        : "No ranking feed attached",
+      source: hasRanks ? (match.insights?.standingsSource ?? match.insights?.rankingSource ?? provider) : "Not available",
+      detail: hasRanks ? rankingDetail : "No ranking feed attached",
     },
     {
       key: "lineups",
@@ -696,12 +793,16 @@ const applyRankingBaseline = (match: Match): Match => {
       home: {
         ...match.insights.home,
         fifaRank: homeRanking?.rank ?? match.insights.home.fifaRank,
-        form: homeRanking ? ["FIFA", "RANK", `#${homeRanking.rank}`] : match.insights.home.form,
+        form: homeRanking && !match.insights.home.tablePosition
+          ? ["FIFA", "RANK", `#${homeRanking.rank}`]
+          : match.insights.home.form,
       },
       away: {
         ...match.insights.away,
         fifaRank: awayRanking?.rank ?? match.insights.away.fifaRank,
-        form: awayRanking ? ["FIFA", "RANK", `#${awayRanking.rank}`] : match.insights.away.form,
+        form: awayRanking && !match.insights.away.tablePosition
+          ? ["FIFA", "RANK", `#${awayRanking.rank}`]
+          : match.insights.away.form,
       },
     },
   };
@@ -747,7 +848,7 @@ const insightShell = (homeTeam: string, awayTeam: string, source: string, stamp 
 
 export const loadFromEspn = async (): Promise<ProviderResult> => {
   const startedAt = Date.now();
-  const res = await timeoutFetch(ESPN_URL);
+  const res = await timeoutFetch(publicDataUrl(ESPN_URL, "espn"));
   if (!res.ok) throw new Error(`ESPN returned ${res.status}`);
   const data = await res.json();
   const events = Array.isArray(data.events) ? data.events : [];
@@ -772,14 +873,17 @@ export const loadFromEspn = async (): Promise<ProviderResult> => {
     });
   });
   if (matches.length === 0) throw new Error("ESPN returned no matches");
+  const oddsEnriched = await enrichMatchesFromOddsApi(matches, "espn");
   return {
     source: "espn",
-    matches,
+    matches: oddsEnriched.matches,
     evidence: [
       "ESPN FIFA World Cup scoreboard endpoint",
       "Live status, score, venue and kickoff metadata",
       `${matches.length} ESPN events normalized`,
+      ...(oddsEnriched.enrichmentAudit ? [oddsEnriched.enrichmentAudit.detail] : []),
     ],
+    enrichmentAudit: oddsEnriched.enrichmentAudit,
     responseAudit: providerResponseAudit({
       source: "espn",
       endpoint: "scoreboard",
@@ -793,7 +897,7 @@ export const loadFromEspn = async (): Promise<ProviderResult> => {
 
 export const loadFromWorldcup26 = async (): Promise<ProviderResult> => {
   const startedAt = Date.now();
-  const res = await timeoutFetch(WORLDCUP26_URL);
+  const res = await timeoutFetch(publicDataUrl(WORLDCUP26_URL, "worldcup26"));
   if (!res.ok) throw new Error(`worldcup26 returned ${res.status}`);
   const data = await res.json();
   const games = Array.isArray(data.games) ? data.games : [];
@@ -814,19 +918,74 @@ export const loadFromWorldcup26 = async (): Promise<ProviderResult> => {
     });
   });
   if (matches.length === 0) throw new Error("worldcup26 returned no matches");
+  const oddsEnriched = await enrichMatchesFromOddsApi(matches, "worldcup26");
   return {
     source: "worldcup26",
-    matches,
+    matches: oddsEnriched.matches,
     evidence: [
       "worldcup26 games endpoint",
       "Schedule and finished-score fallback",
       `${matches.length} worldcup26 games normalized`,
+      ...(oddsEnriched.enrichmentAudit ? [oddsEnriched.enrichmentAudit.detail] : []),
     ],
+    enrichmentAudit: oddsEnriched.enrichmentAudit,
     responseAudit: providerResponseAudit({
       source: "worldcup26",
       endpoint: "get/games",
       rowCount: games.length,
       sampleIds: games.map((game: any) => String(game.id ?? "")).filter(Boolean),
+      httpStatus: res.status,
+      startedAt,
+    }),
+  };
+};
+
+export const normalizeOpenFootballMatch = (match: any, index = 0): Match => {
+  const ft = Array.isArray(match.score?.ft) ? match.score.ft : undefined;
+  const homeScore = numberOrUndefined(ft?.[0]);
+  const awayScore = numberOrUndefined(ft?.[1]);
+  const hasFullTimeScore = homeScore !== undefined && awayScore !== undefined;
+  const homeTeam = match.team1 ?? "Home";
+  const awayTeam = match.team2 ?? "Away";
+  return withCoverage({
+    id: `openfootball-${match.num ?? match.id ?? `${match.date ?? "match"}-${index + 1}`}`,
+    homeTeam,
+    awayTeam,
+    kickoffAt: normalizeOpenFootballKickoff(match.date, match.time),
+    stage: match.group ? `${match.group} · ${match.round ?? "World Cup"}` : match.round ?? "FIFA World Cup",
+    status: hasFullTimeScore ? "finished" : "upcoming",
+    dataSource: "openfootball",
+    homeScore,
+    awayScore,
+    venue: match.ground,
+    insights: insightShell(homeTeam, awayTeam, "openfootball"),
+  });
+};
+
+export const loadFromOpenFootball = async (): Promise<ProviderResult> => {
+  const startedAt = Date.now();
+  const res = await timeoutFetch(publicDataUrl(OPENFOOTBALL_WORLDCUP_URL, "openfootball"), 7500);
+  if (!res.ok) throw new Error(`openfootball returned ${res.status}`);
+  const data = await res.json();
+  const rawMatches = Array.isArray(data.matches) ? data.matches : [];
+  const matches = rawMatches.map(normalizeOpenFootballMatch);
+  if (matches.length === 0) throw new Error("openfootball returned no matches");
+  const oddsEnriched = await enrichMatchesFromOddsApi(matches, "openfootball");
+  return {
+    source: "openfootball",
+    matches: oddsEnriched.matches,
+    evidence: [
+      "openfootball/worldcup.json 2026 public-domain JSON feed",
+      "No-key schedule and full-time score continuity route",
+      `${matches.length} openfootball matches normalized`,
+      ...(oddsEnriched.enrichmentAudit ? [oddsEnriched.enrichmentAudit.detail] : []),
+    ],
+    enrichmentAudit: oddsEnriched.enrichmentAudit,
+    responseAudit: providerResponseAudit({
+      source: "openfootball",
+      endpoint: "openfootball/worldcup.json/2026/worldcup.json",
+      rowCount: rawMatches.length,
+      sampleIds: rawMatches.map((item: any, index: number) => String(item.num ?? item.id ?? index + 1)).filter(Boolean),
       httpStatus: res.status,
       startedAt,
     }),
@@ -880,6 +1039,12 @@ const endpointLiveCount = (matches: Match[], key: DataCoverageItem["key"]) =>
     return item?.status === "live";
   }).length;
 
+const endpointReadbackCount = (matches: Match[], key: DataCoverageItem["key"]) =>
+  matches.filter((match) => {
+    const item = (match.insights?.dataCoverage ?? buildDataCoverage(match)).find((coverage) => coverage.key === key);
+    return item?.status === "live" || item?.status === "configured";
+  }).length;
+
 export const buildApiFootballEnrichmentAudit = ({
   totalFixtures,
   attemptedFixtureIds,
@@ -924,6 +1089,15 @@ export const buildApiFootballEnrichmentAudit = ({
       errors: failures.length,
       sampleIds,
     },
+    {
+      key: "standings" as const,
+      endpoint: "standings?league=<league-id>&season=<season>",
+      attempted,
+      fulfilled,
+      live: endpointReadbackCount(enrichedMatches, "rankings"),
+      errors: failures.length,
+      sampleIds,
+    },
   ];
   const liveSignals = endpointAudits.reduce((sum, item) => sum + item.live, 0);
   return {
@@ -939,17 +1113,116 @@ export const buildApiFootballEnrichmentAudit = ({
 const eventIdFromTheSportsDbMatch = (match: Match) =>
   match.id.startsWith("thesportsdb-") ? match.id.replace("thesportsdb-", "") : "";
 
+type TheSportsDbTableStanding = {
+  teamKey: string;
+  teamName: string;
+  position: number;
+  points: number;
+  record: string;
+  played?: number;
+  goalDifference?: number;
+};
+
+export const normalizeTheSportsDbTable = (data: any): TheSportsDbTableStanding[] => {
+  const rows = Array.isArray(data?.table) ? data.table : [];
+  return rows
+    .map((row: any) => {
+      const teamName = row.strTeam ?? row.name ?? row.team ?? "";
+      const position = numberOrUndefined(row.intRank ?? row.intPosition ?? row.rank);
+      const points = numberOrUndefined(row.intPoints ?? row.points);
+      if (!teamName || !position || points === undefined) return undefined;
+      const played = numberOrUndefined(row.intPlayed ?? row.played);
+      const wins = numberOrUndefined(row.intWin ?? row.won) ?? 0;
+      const draws = numberOrUndefined(row.intDraw ?? row.draw) ?? 0;
+      const losses = numberOrUndefined(row.intLoss ?? row.lost) ?? 0;
+      return {
+        teamKey: teamKey(teamName),
+        teamName,
+        position,
+        points,
+        played,
+        goalDifference: numberOrUndefined(row.intGoalDifference ?? row.intGoalsDiff ?? row.goalDifference),
+        record: `${wins}-${draws}-${losses}`,
+      } satisfies TheSportsDbTableStanding;
+    })
+    .filter(Boolean) as TheSportsDbTableStanding[];
+};
+
+const theSportsDbStandingForTeam = (standings: TheSportsDbTableStanding[], teamName: string) => {
+  const key = teamKey(teamName);
+  return standings.find((standing) => {
+    const candidate = standing.teamKey;
+    return candidate === key || candidate.includes(key) || key.includes(candidate);
+  });
+};
+
+export const mergeTheSportsDbTable = (
+  matches: Match[],
+  standings: TheSportsDbTableStanding[],
+  source = `TheSportsDB league table ${THESPORTSDB_LEAGUE_ID()}/${THESPORTSDB_SEASON()}`,
+) => matches.map((match) => {
+  const homeStanding = theSportsDbStandingForTeam(standings, match.homeTeam);
+  const awayStanding = theSportsDbStandingForTeam(standings, match.awayTeam);
+  if (!homeStanding && !awayStanding) return match;
+  return withCoverage({
+    ...match,
+    insights: match.insights
+      ? {
+          ...match.insights,
+          standingsSource: source,
+          rankingSource: [match.insights.rankingSource, source].filter(Boolean).join(" + "),
+          home: {
+            ...match.insights.home,
+            tablePosition: homeStanding?.position ?? match.insights.home.tablePosition,
+            tablePoints: homeStanding?.points ?? match.insights.home.tablePoints,
+            tableRecord: homeStanding?.record ?? match.insights.home.tableRecord,
+            form: homeStanding
+              ? [
+                  "TABLE",
+                  `#${homeStanding.position}`,
+                  `${homeStanding.points}PTS`,
+                  ...(homeStanding.played !== undefined ? [`${homeStanding.played}P`] : []),
+                  ...(homeStanding.goalDifference !== undefined ? [`GD${homeStanding.goalDifference}`] : []),
+                ]
+              : match.insights.home.form,
+          },
+          away: {
+            ...match.insights.away,
+            tablePosition: awayStanding?.position ?? match.insights.away.tablePosition,
+            tablePoints: awayStanding?.points ?? match.insights.away.tablePoints,
+            tableRecord: awayStanding?.record ?? match.insights.away.tableRecord,
+            form: awayStanding
+              ? [
+                  "TABLE",
+                  `#${awayStanding.position}`,
+                  `${awayStanding.points}PTS`,
+                  ...(awayStanding.played !== undefined ? [`${awayStanding.played}P`] : []),
+                  ...(awayStanding.goalDifference !== undefined ? [`GD${awayStanding.goalDifference}`] : []),
+                ]
+              : match.insights.away.form,
+          },
+        }
+      : match.insights,
+  });
+});
+
 export const buildTheSportsDbEnrichmentAudit = ({
   totalFixtures,
   attemptedEventIds,
   enrichedMatches,
   failures,
+  standingsRows = 0,
+  standingsOk = false,
+  standingsEndpoint = "lookuptable.php?l=<league-id>&s=<season>",
   checkedAt = new Date().toISOString(),
 }: {
   totalFixtures: number;
   attemptedEventIds: string[];
   enrichedMatches: Match[];
   failures: Array<{ eventId: string; message: string }>;
+  standingsRows?: number;
+  standingsOk?: boolean;
+  standingsEndpoint?: string;
   checkedAt?: string;
 }): ProviderEnrichmentAudit => {
   const attempted = attemptedEventIds.length;
@@ -984,14 +1257,126 @@ export const buildTheSportsDbEnrichmentAudit = ({
       errors: 0,
       sampleIds: [],
     },
+    {
+      key: "standings" as const,
+      endpoint: standingsEndpoint,
+      attempted: standingsOk ? attempted : 0,
+      fulfilled: standingsOk ? attempted : 0,
+      live: standingsOk && standingsRows > 0 ? endpointReadbackCount(enrichedMatches, "rankings") : 0,
+      errors: standingsOk ? 0 : 1,
+      sampleIds: standingsOk ? sampleIds : [],
+    },
   ];
+  const standingsDetail = standingsOk
+    ? ` · ${standingsRows} table row${standingsRows === 1 ? "" : "s"} read back`
+    : " · standings read-back missing";
   return {
     source: "thesportsdb",
     checkedAt,
     totalFixtures,
     attemptedFixtures: attempted,
     endpointAudits,
-    detail: `${attempted}/${totalFixtures} events attempted · ${lineupsLive} live lineup signal${lineupsLive === 1 ? "" : "s"} · ${failures.length} failed event${failures.length === 1 ? "" : "s"}`,
+    detail: `${attempted}/${totalFixtures} events attempted · ${lineupsLive} live lineup signal${
+      lineupsLive === 1 ? "" : "s"
+    }${standingsDetail} · ${failures.length} failed event${failures.length === 1 ? "" : "s"}`,
+  };
+};
+
+export const buildOddsApiEnrichmentAudit = ({
+  source,
+  totalFixtures,
+  attemptedMatchIds,
+  enrichedMatches,
+  errors = 0,
+  detail,
+  checkedAt = new Date().toISOString(),
+}: {
+  source: DataSource;
+  totalFixtures: number;
+  attemptedMatchIds: string[];
+  enrichedMatches: Match[];
+  errors?: number;
+  detail?: string;
+  checkedAt?: string;
+}): ProviderEnrichmentAudit => {
+  const attempted = attemptedMatchIds.length;
+  const live = endpointLiveCount(enrichedMatches, "odds");
+  return {
+    source,
+    checkedAt,
+    totalFixtures,
+    attemptedFixtures: attempted,
+    endpointAudits: [
+      {
+        key: "odds",
+        endpoint: `The Odds API sports/${ODDS_API_SPORT_KEY() || "<sport-key>"}/odds`,
+        attempted,
+        fulfilled: Math.max(0, attempted - errors),
+        live,
+        errors,
+        sampleIds: attemptedMatchIds.slice(0, 5),
+      },
+    ],
+    detail: detail ?? `The Odds API batch read-back · ${live}/${attempted} fixture odds matched · ${errors} error${errors === 1 ? "" : "s"}`,
+  };
+};
+
+export const buildFootballDataStandingsEnrichmentAudit = ({
+  totalFixtures,
+  attemptedMatchIds,
+  enrichedMatches,
+  standingsRows,
+  standingsOk,
+  endpoint,
+  checkedAt = new Date().toISOString(),
+}: {
+  totalFixtures: number;
+  attemptedMatchIds: string[];
+  enrichedMatches: Match[];
+  standingsRows: number;
+  standingsOk: boolean;
+  endpoint: string;
+  checkedAt?: string;
+}): ProviderEnrichmentAudit => {
+  const attempted = standingsOk ? attemptedMatchIds.length : 0;
+  const live = standingsOk && standingsRows > 0 ? endpointReadbackCount(enrichedMatches, "rankings") : 0;
+  return {
+    source: "football-data",
+    checkedAt,
+    totalFixtures,
+    attemptedFixtures: attempted,
+    endpointAudits: [
+      {
+        key: "standings",
+        endpoint,
+        attempted,
+        fulfilled: attempted,
+        live,
+        errors: standingsOk ? 0 : 1,
+        sampleIds: attemptedMatchIds.slice(0, 5),
+      },
+    ],
+    detail: standingsOk
+      ? `Football-Data.org standings read-back · ${live}/${attempted} fixture ranking rows matched · ${standingsRows} table row${standingsRows === 1 ? "" : "s"}`
+      : "Football-Data.org standings read-back failed.",
+  };
+};
+
+const mergeEnrichmentAudits = (
+  base: ProviderEnrichmentAudit | undefined,
+  odds: ProviderEnrichmentAudit | undefined,
+): ProviderEnrichmentAudit | undefined => {
+  if (!base) return odds;
+  if (!odds) return base;
+  const oddsEndpoint = odds.endpointAudits.find((item) => item.key === "odds");
+  return {
+    ...base,
+    checkedAt: odds.checkedAt,
+    endpointAudits: [
+      ...base.endpointAudits.filter((item) => item.key !== "odds"),
+      ...(oddsEndpoint ? [oddsEndpoint] : []),
+    ],
+    detail: `${base.detail} · ${odds.detail}`,
   };
 };
 
@@ -999,7 +1384,7 @@ const enrichApiFootballMatches = async (matches: Match[]) => {
   const targets = matches
     .map((match) => ({ match, fixtureId: fixtureIdFromApiFootballMatch(match) }))
     .filter((item) => item.fixtureId)
-    .slice(0, API_FOOTBALL_ENRICHMENT_LIMIT);
+    .slice(0, API_FOOTBALL_ENRICHMENT_LIMIT());
   if (targets.length === 0) {
     return {
       matches,
@@ -1034,23 +1419,41 @@ const enrichApiFootballMatches = async (matches: Match[]) => {
 };
 
 export const loadFromApiFootball = async (): Promise<ProviderResult> => {
-  if (!API_FOOTBALL_KEY) throw new Error("VITE_APIFOOTBALL_KEY is not configured");
+  const directApiFootballKey = API_FOOTBALL_KEY();
   const startedAt = Date.now();
   const season = new Date().getUTCFullYear();
-  const res = await timeoutFetch(`${API_FOOTBALL_HOST}/fixtures?league=1&season=${season}&next=40`, 7500, {
-    "x-apisports-key": API_FOOTBALL_KEY,
-  });
+  const fixturesEndpoint = `${API_FOOTBALL_HOST}/fixtures?league=1&season=${season}&next=40`;
+  const fixturesUrl = buildDataProxyUrl(fixturesEndpoint, "api-football");
+  if (!directApiFootballKey && fixturesUrl === fixturesEndpoint) {
+    throw new Error("VITE_APIFOOTBALL_KEY or data proxy API-Football key is not configured");
+  }
+  const [fixturesResult, standingsResult] = await Promise.allSettled([
+    timeoutFetch(fixturesUrl, 7500, fixturesUrl === fixturesEndpoint ? { "x-apisports-key": directApiFootballKey } : undefined),
+    apiFootballJson(`/standings?league=1&season=${season}`),
+  ]);
+  if (fixturesResult.status === "rejected") throw fixturesResult.reason;
+  const res = fixturesResult.value;
   if (!res.ok) throw new Error(`API-Football returned ${res.status}`);
   const data = await res.json();
   const fixtures = Array.isArray(data.response) ? data.response : [];
   const baseMatches: Match[] = fixtures.map((item: any) => normalizeApiFootballFixture(item));
   if (baseMatches.length === 0) throw new Error("API-Football returned no matches");
-  const enriched = await enrichApiFootballMatches(baseMatches);
+  let matches = baseMatches;
+  let standingsEvidence = "API-Football standings endpoint not read back.";
+  if (standingsResult.status === "fulfilled") {
+    const standings = normalizeApiFootballStandings(standingsResult.value);
+    matches = mergeFootballDataStandings(baseMatches, standings, `API-Football standings league=1 season=${season}`);
+    standingsEvidence = `${standings.length} API-Football standing rows normalized`;
+  } else {
+    standingsEvidence = `API-Football standings failed: ${(standingsResult.reason as Error).message}`;
+  }
+  const enriched = await enrichApiFootballMatches(matches);
   return {
     source: "api-football",
     matches: enriched.matches,
     evidence: [
       "API-Football fixtures endpoint",
+      standingsEvidence,
       "Fixture rows prove schedule/score only; enrichment evidence comes from lineups, injuries and odds endpoint read-back",
       enriched.enrichmentAudit.detail,
     ],
@@ -1100,29 +1503,68 @@ export const normalizeFootballDataMatch = (item: any): Match => {
 };
 
 export const loadFromFootballData = async (): Promise<ProviderResult> => {
-  if (!FOOTBALL_DATA_TOKEN) throw new Error("VITE_FOOTBALL_DATA_TOKEN is not configured");
+  const directFootballDataToken = FOOTBALL_DATA_TOKEN();
   const startedAt = Date.now();
   const season = new Date().getUTCFullYear();
-  const res = await timeoutFetch(
-    `${FOOTBALL_DATA_HOST}/competitions/${FOOTBALL_DATA_COMPETITION}/matches?season=${season}`,
-    7500,
-    { "X-Auth-Token": FOOTBALL_DATA_TOKEN },
-  );
+  const matchesEndpoint = `${FOOTBALL_DATA_HOST}/competitions/${FOOTBALL_DATA_COMPETITION()}/matches?season=${season}`;
+  const standingsEndpoint = `${FOOTBALL_DATA_HOST}/competitions/${FOOTBALL_DATA_COMPETITION()}/standings?season=${season}`;
+  const matchesUrl = buildDataProxyUrl(matchesEndpoint, "football-data");
+  const standingsUrl = buildDataProxyUrl(standingsEndpoint, "football-data");
+  if (!directFootballDataToken && matchesUrl === matchesEndpoint) {
+    throw new Error("VITE_FOOTBALL_DATA_TOKEN or data proxy Football-Data token is not configured");
+  }
+  const requestHeaders = matchesUrl === matchesEndpoint ? { "X-Auth-Token": directFootballDataToken } : undefined;
+  const [matchesResult, standingsResult] = await Promise.allSettled([
+    timeoutFetch(matchesUrl, 7500, requestHeaders),
+    timeoutFetch(standingsUrl, 7500, requestHeaders),
+  ]);
+  if (matchesResult.status === "rejected") throw matchesResult.reason;
+  const res = matchesResult.value;
   if (!res.ok) throw new Error(`Football-Data.org returned ${res.status}`);
   const data = await res.json();
-  const matches = Array.isArray(data.matches) ? data.matches.map(normalizeFootballDataMatch) : [];
-  if (matches.length === 0) throw new Error("Football-Data.org returned no matches");
+  const baseMatches: Match[] = Array.isArray(data.matches) ? data.matches.map(normalizeFootballDataMatch) : [];
+  if (baseMatches.length === 0) throw new Error("Football-Data.org returned no matches");
+  let matches: Match[] = baseMatches;
+  let standingsRows = 0;
+  let standingsOk = false;
+  let standingsEvidence = "Football-Data.org standings endpoint not read back.";
+  if (standingsResult.status === "fulfilled" && standingsResult.value.ok) {
+    const standingsData = await standingsResult.value.json();
+    const standings = normalizeFootballDataStandings(standingsData);
+    standingsRows = standings.length;
+    standingsOk = true;
+    matches = mergeFootballDataStandings(baseMatches, standings, `Football-Data.org ${FOOTBALL_DATA_COMPETITION()} standings ${season}`);
+    standingsEvidence = `${standings.length} Football-Data.org standing rows normalized`;
+  } else if (standingsResult.status === "fulfilled") {
+    standingsEvidence = `Football-Data.org standings returned ${standingsResult.value.status}`;
+  } else {
+    standingsEvidence = `Football-Data.org standings failed: ${(standingsResult.reason as Error).message}`;
+  }
+  const standingAudit = buildFootballDataStandingsEnrichmentAudit({
+    totalFixtures: matches.length,
+    attemptedMatchIds: matches.map((match) => match.id),
+    enrichedMatches: matches,
+    standingsRows,
+    standingsOk,
+    endpoint: `competitions/${FOOTBALL_DATA_COMPETITION()}/standings?season=${season}`,
+  });
+  const oddsEnriched = await enrichMatchesFromOddsApi(matches, "football-data");
+  const enrichmentAudit = mergeEnrichmentAudits(standingAudit, oddsEnriched.enrichmentAudit);
   return {
     source: "football-data",
-    matches,
+    matches: oddsEnriched.matches,
     evidence: [
-      `Football-Data.org competition ${FOOTBALL_DATA_COMPETITION} matches endpoint`,
-      "Fixtures, live/final scores, stage, venue and team metadata",
+      `Football-Data.org competition ${FOOTBALL_DATA_COMPETITION()} matches endpoint`,
+      "Fixtures, live/final scores, stage, venue, team metadata and standings when the plan exposes them",
       `${matches.length} Football-Data.org matches normalized`,
+      standingsEvidence,
+      ...(oddsEnriched.enrichmentAudit ? [oddsEnriched.enrichmentAudit.detail] : []),
+      standingAudit.detail,
     ],
+    enrichmentAudit,
     responseAudit: providerResponseAudit({
       source: "football-data",
-      endpoint: `competitions/${FOOTBALL_DATA_COMPETITION}/matches season=${season}`,
+      endpoint: `competitions/${FOOTBALL_DATA_COMPETITION()}/matches season=${season}`,
       rowCount: Array.isArray(data.matches) ? data.matches.length : 0,
       sampleIds: Array.isArray(data.matches) ? data.matches.map((item: any) => String(item.id ?? "")).filter(Boolean) : [],
       httpStatus: res.status,
@@ -1172,40 +1614,72 @@ export const normalizeTheSportsDbEvent = (event: any): Match => {
 };
 
 export const loadFromTheSportsDb = async (): Promise<ProviderResult> => {
-  const seasonUrl = `${THESPORTSDB_HOST}/eventsseason.php?id=${encodeURIComponent(THESPORTSDB_LEAGUE_ID)}&s=${encodeURIComponent(THESPORTSDB_SEASON)}`;
+  const seasonUrl = `${THESPORTSDB_HOST()}/eventsseason.php?id=${encodeURIComponent(THESPORTSDB_LEAGUE_ID())}&s=${encodeURIComponent(THESPORTSDB_SEASON())}`;
+  const tableEndpoint = `lookuptable ${THESPORTSDB_LEAGUE_ID()}/${THESPORTSDB_SEASON()}`;
+  const tableUrl = `${THESPORTSDB_HOST()}/lookuptable.php?l=${encodeURIComponent(THESPORTSDB_LEAGUE_ID())}&s=${encodeURIComponent(THESPORTSDB_SEASON())}`;
   const startedAt = Date.now();
-  const seasonRes = await timeoutFetch(seasonUrl, 7500);
+  const [seasonResult, tableResult] = await Promise.allSettled([
+    timeoutFetch(publicDataUrl(seasonUrl, "thesportsdb"), 7500),
+    timeoutFetch(publicDataUrl(tableUrl, "thesportsdb"), 7500),
+  ]);
+  if (seasonResult.status === "rejected") throw seasonResult.reason;
+  const seasonRes = seasonResult.value;
   if (!seasonRes.ok) throw new Error(`TheSportsDB season returned ${seasonRes.status}`);
   const seasonData = await seasonRes.json();
   let events = Array.isArray(seasonData.events) ? seasonData.events : [];
-  let endpoint = `eventsseason ${THESPORTSDB_LEAGUE_ID}/${THESPORTSDB_SEASON}`;
+  let endpoint = `eventsseason ${THESPORTSDB_LEAGUE_ID()}/${THESPORTSDB_SEASON()}`;
   let httpStatus = seasonRes.status;
 
   if (events.length === 0) {
     const nextRes = await timeoutFetch(
-      `${THESPORTSDB_HOST}/eventsnextleague.php?id=${encodeURIComponent(THESPORTSDB_LEAGUE_ID)}`,
+      publicDataUrl(
+        `${THESPORTSDB_HOST()}/eventsnextleague.php?id=${encodeURIComponent(THESPORTSDB_LEAGUE_ID())}`,
+        "thesportsdb",
+      ),
       7500,
     );
     if (!nextRes.ok) throw new Error(`TheSportsDB next league returned ${nextRes.status}`);
     const nextData = await nextRes.json();
     events = Array.isArray(nextData.events) ? nextData.events : [];
-    endpoint = `eventsnextleague ${THESPORTSDB_LEAGUE_ID}`;
+    endpoint = `eventsnextleague ${THESPORTSDB_LEAGUE_ID()}`;
     httpStatus = nextRes.status;
   }
 
-  const matches = events.map(normalizeTheSportsDbEvent);
-  if (matches.length === 0) throw new Error("TheSportsDB returned no World Cup events");
-  const enriched = await enrichTheSportsDbMatches(matches);
+  const baseMatches = events.map(normalizeTheSportsDbEvent);
+  if (baseMatches.length === 0) throw new Error("TheSportsDB returned no World Cup events");
+  let tableRows: TheSportsDbTableStanding[] = [];
+  let tableOk = false;
+  let tableEvidence = "TheSportsDB league table read-back missing.";
+  if (tableResult.status === "fulfilled" && tableResult.value.ok) {
+    const tableData = await tableResult.value.json();
+    tableRows = normalizeTheSportsDbTable(tableData);
+    tableOk = tableRows.length > 0;
+    tableEvidence = `${tableRows.length} TheSportsDB league table rows normalized`;
+  } else if (tableResult.status === "fulfilled") {
+    tableEvidence = `TheSportsDB league table returned ${tableResult.value.status}`;
+  } else {
+    tableEvidence = `TheSportsDB league table failed: ${(tableResult.reason as Error).message}`;
+  }
+  const matches = tableRows.length > 0
+    ? mergeTheSportsDbTable(baseMatches, tableRows, `TheSportsDB ${tableEndpoint}`)
+    : baseMatches;
+  const enriched = await enrichTheSportsDbMatches(matches, {
+    rows: tableRows.length,
+    ok: tableOk,
+    endpoint: tableEndpoint,
+  });
+  const oddsEnriched = await enrichMatchesFromOddsApi(enriched.matches, "thesportsdb", enriched.enrichmentAudit);
   return {
     source: "thesportsdb",
-    matches: enriched.matches,
+    matches: oddsEnriched.matches,
     evidence: [
       `TheSportsDB ${endpoint}`,
       "Free v1 JSON API with schedule, score, venue, event artwork and status fields",
       `${matches.length} TheSportsDB World Cup events normalized`,
-      enriched.enrichmentAudit.detail,
+      tableEvidence,
+      oddsEnriched.enrichmentAudit?.detail ?? enriched.enrichmentAudit.detail,
     ],
-    enrichmentAudit: enriched.enrichmentAudit,
+    enrichmentAudit: oddsEnriched.enrichmentAudit,
     responseAudit: providerResponseAudit({
       source: "thesportsdb",
       endpoint,
@@ -1218,27 +1692,141 @@ export const loadFromTheSportsDb = async (): Promise<ProviderResult> => {
 };
 
 const apiFootballJson = async (path: string) => {
-  if (!API_FOOTBALL_KEY) throw new Error("VITE_APIFOOTBALL_KEY is not configured");
-  const res = await timeoutFetch(`${API_FOOTBALL_HOST}${path}`, 7500, {
-    "x-apisports-key": API_FOOTBALL_KEY,
-  });
+  const targetUrl = `${API_FOOTBALL_HOST}${path}`;
+  const proxyUrl = buildDataProxyUrl(targetUrl, "api-football");
+  if (!API_FOOTBALL_KEY() && proxyUrl === targetUrl) throw new Error("VITE_APIFOOTBALL_KEY or data proxy API-Football key is not configured");
+  const headers = proxyUrl === targetUrl ? { "x-apisports-key": API_FOOTBALL_KEY() } : undefined;
+  const res = await timeoutFetch(proxyUrl, 7500, headers);
   if (!res.ok) throw new Error(`API-Football ${path} returned ${res.status}`);
   return res.json();
 };
 
 const teamKey = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
 
+type FootballDataStanding = {
+  teamKey: string;
+  teamName: string;
+  position: number;
+  points: number;
+  record: string;
+  group?: string;
+};
+
+const normalizeFootballDataStandings = (data: any): FootballDataStanding[] => {
+  const groups = Array.isArray(data?.standings) ? data.standings : [];
+  return groups.flatMap((standing: any) => {
+    const group = standing.group ?? standing.stage ?? standing.type;
+    const table = Array.isArray(standing.table) ? standing.table : [];
+    return table
+      .map((row: any) => {
+        const teamName = row.team?.shortName ?? row.team?.name ?? row.team?.tla ?? "";
+        const position = numberOrUndefined(row.position);
+        const points = numberOrUndefined(row.points);
+        if (!teamName || !position || points === undefined) return undefined;
+        return {
+          teamKey: teamKey(teamName),
+          teamName,
+          position,
+          points,
+          record: `${row.won ?? 0}-${row.draw ?? 0}-${row.lost ?? 0}`,
+          group: group ? String(group) : undefined,
+        } satisfies FootballDataStanding;
+      })
+      .filter(Boolean) as FootballDataStanding[];
+  });
+};
+
+export const normalizeApiFootballStandings = (data: any): FootballDataStanding[] => {
+  const leagues = Array.isArray(data?.response) ? data.response : [];
+  return leagues.flatMap((item: any) => {
+    const groups = Array.isArray(item?.league?.standings)
+      ? item.league.standings
+      : Array.isArray(item?.standings)
+        ? item.standings
+        : [];
+    return groups.flatMap((groupRows: any) => {
+      const table = Array.isArray(groupRows) ? groupRows : [groupRows];
+      return table
+        .map((row: any) => {
+          const teamName = row.team?.name ?? row.teamName ?? "";
+          const position = numberOrUndefined(row.rank ?? row.position);
+          const points = numberOrUndefined(row.points);
+          if (!teamName || !position || points === undefined) return undefined;
+          return {
+            teamKey: teamKey(teamName),
+            teamName,
+            position,
+            points,
+            record: `${row.all?.win ?? row.won ?? 0}-${row.all?.draw ?? row.draw ?? 0}-${row.all?.lose ?? row.lost ?? 0}`,
+            group: row.group ? String(row.group) : undefined,
+          } satisfies FootballDataStanding;
+        })
+        .filter(Boolean) as FootballDataStanding[];
+    });
+  });
+};
+
+const standingForTeam = (standings: FootballDataStanding[], teamName: string) => {
+  const key = teamKey(teamName);
+  return standings.find((standing) => {
+    const candidate = standing.teamKey;
+    return candidate === key || candidate.includes(key) || key.includes(candidate);
+  });
+};
+
+export const mergeFootballDataStandings = (
+  matches: Match[],
+  standings: FootballDataStanding[],
+  source = `Football-Data.org standings ${FOOTBALL_DATA_COMPETITION()}`,
+) => matches.map((match) => {
+  const homeStanding = standingForTeam(standings, match.homeTeam);
+  const awayStanding = standingForTeam(standings, match.awayTeam);
+  if (!homeStanding && !awayStanding) return match;
+  return withCoverage({
+    ...match,
+    insights: match.insights
+      ? {
+          ...match.insights,
+          standingsSource: source,
+          rankingSource: [match.insights.rankingSource, source].filter(Boolean).join(" + "),
+          home: {
+            ...match.insights.home,
+            tablePosition: homeStanding?.position ?? match.insights.home.tablePosition,
+            tablePoints: homeStanding?.points ?? match.insights.home.tablePoints,
+            tableRecord: homeStanding?.record ?? match.insights.home.tableRecord,
+            form: homeStanding
+              ? [`TABLE`, `#${homeStanding.position}`, `${homeStanding.points}PTS`, ...(homeStanding.group ? [homeStanding.group] : [])]
+              : match.insights.home.form,
+          },
+          away: {
+            ...match.insights.away,
+            tablePosition: awayStanding?.position ?? match.insights.away.tablePosition,
+            tablePoints: awayStanding?.points ?? match.insights.away.tablePoints,
+            tableRecord: awayStanding?.record ?? match.insights.away.tableRecord,
+            form: awayStanding
+              ? [`TABLE`, `#${awayStanding.position}`, `${awayStanding.points}PTS`, ...(awayStanding.group ? [awayStanding.group] : [])]
+              : match.insights.away.form,
+          },
+        }
+      : match.insights,
+  });
+});
+
 const oddsApiJson = async () => {
-  if (!ODDS_API_KEY || !ODDS_API_SPORT_KEY) {
-    throw new Error("VITE_ODDS_API_KEY and VITE_ODDS_API_SPORT_KEY are not configured");
+  if (!ODDS_API_CONFIGURED()) {
+    throw new Error("The Odds API is not configured; set VITE_ODDS_API_SPORT_KEY plus a data proxy with server-side ODDS_API_KEY, or VITE_ODDS_API_KEY for direct diagnostics");
   }
   const params = new URLSearchParams({
     regions: "us,uk,eu",
     markets: "h2h",
     oddsFormat: "decimal",
-    apiKey: ODDS_API_KEY,
   });
-  const res = await timeoutFetch(`${ODDS_API_HOST}/sports/${ODDS_API_SPORT_KEY}/odds?${params.toString()}`, 7500);
+  if (ODDS_API_KEY() && !DATA_PROXY_URL()) params.set("apiKey", ODDS_API_KEY());
+  const targetUrl = `${ODDS_API_HOST}/sports/${ODDS_API_SPORT_KEY()}/odds?${params.toString()}`;
+  const res = await timeoutFetch(
+    ODDS_API_KEY() && !DATA_PROXY_URL() ? targetUrl : buildDataProxyUrl(targetUrl, "odds-api"),
+    7500,
+  );
   if (!res.ok) throw new Error(`The Odds API returned ${res.status}`);
   return res.json();
 };
@@ -1267,6 +1855,69 @@ export const mergeOddsIntoMatch = (match: Match, oddsRows: any[]): Match | undef
       dataFreshness: new Date().toISOString(),
     },
   });
+};
+
+const enrichMatchesFromOddsApi = async (
+  matches: Match[],
+  source: DataSource,
+  baseAudit?: ProviderEnrichmentAudit,
+) => {
+  if (!ODDS_API_CONFIGURED() || matches.length === 0) {
+    return { matches, enrichmentAudit: baseAudit };
+  }
+  const attemptedIds = matches.map((match) => match.id);
+  try {
+    const oddsRows = await oddsApiJson();
+    if (!Array.isArray(oddsRows)) {
+      return {
+        matches,
+        enrichmentAudit: mergeEnrichmentAudits(
+          baseAudit,
+          buildOddsApiEnrichmentAudit({
+            source,
+            totalFixtures: matches.length,
+            attemptedMatchIds: attemptedIds,
+            enrichedMatches: [],
+            errors: matches.length,
+            detail: "The Odds API batch response was not an array.",
+          }),
+        ),
+      };
+    }
+    const enrichedById = new Map<string, Match>();
+    for (const match of matches) {
+      const enriched = mergeOddsIntoMatch(match, oddsRows);
+      if (enriched) enrichedById.set(match.id, enriched);
+    }
+    const nextMatches = matches.map((match) => enrichedById.get(match.id) ?? match);
+    return {
+      matches: nextMatches,
+      enrichmentAudit: mergeEnrichmentAudits(
+        baseAudit,
+        buildOddsApiEnrichmentAudit({
+          source,
+          totalFixtures: matches.length,
+          attemptedMatchIds: attemptedIds,
+          enrichedMatches: [...enrichedById.values()],
+        }),
+      ),
+    };
+  } catch (error) {
+    return {
+      matches,
+      enrichmentAudit: mergeEnrichmentAudits(
+        baseAudit,
+        buildOddsApiEnrichmentAudit({
+          source,
+          totalFixtures: matches.length,
+          attemptedMatchIds: attemptedIds,
+          enrichedMatches: [],
+          errors: matches.length,
+          detail: `The Odds API batch read-back failed: ${(error as Error).message}`,
+        }),
+      ),
+    };
+  }
 };
 
 const enrichMatchFromOddsApi = async (match: Match): Promise<Match | undefined> => {
@@ -1429,9 +2080,11 @@ export const mergeTheSportsDbEventDetails = (match: Match, lineupRows: any[], st
 export const enrichMatchFromTheSportsDb = async (match: Match): Promise<Match> => {
   const eventId = match.id.startsWith("thesportsdb-") ? match.id.replace("thesportsdb-", "") : "";
   if (!eventId) throw new Error("Select a TheSportsDB fixture to enrich event lineups and stats.");
+  const lineupUrl = `${THESPORTSDB_HOST()}/lookuplineup.php?id=${encodeURIComponent(eventId)}`;
+  const statsUrl = `${THESPORTSDB_HOST()}/lookupeventstats.php?id=${encodeURIComponent(eventId)}`;
   const [lineups, stats] = await Promise.allSettled([
-    timeoutFetch(`${THESPORTSDB_HOST}/lookuplineup.php?id=${encodeURIComponent(eventId)}`, 7500),
-    timeoutFetch(`${THESPORTSDB_HOST}/lookupeventstats.php?id=${encodeURIComponent(eventId)}`, 7500),
+    timeoutFetch(publicDataUrl(lineupUrl, "thesportsdb"), 7500),
+    timeoutFetch(publicDataUrl(statsUrl, "thesportsdb"), 7500),
   ]);
   const lineupRows =
     lineups.status === "fulfilled" && lineups.value.ok
@@ -1448,11 +2101,18 @@ export const enrichMatchFromTheSportsDb = async (match: Match): Promise<Match> =
   );
 };
 
-const enrichTheSportsDbMatches = async (matches: Match[]) => {
+const enrichTheSportsDbMatches = async (
+  matches: Match[],
+  standings?: {
+    rows: number;
+    ok: boolean;
+    endpoint: string;
+  },
+) => {
   const targets = matches
     .map((match) => ({ match, eventId: eventIdFromTheSportsDbMatch(match) }))
     .filter((item) => item.eventId)
-    .slice(0, THESPORTSDB_ENRICHMENT_LIMIT);
+    .slice(0, THESPORTSDB_ENRICHMENT_LIMIT());
   if (targets.length === 0) {
     return {
       matches,
@@ -1461,6 +2121,9 @@ const enrichTheSportsDbMatches = async (matches: Match[]) => {
         attemptedEventIds: [],
         enrichedMatches: [],
         failures: [],
+        standingsRows: standings?.rows ?? 0,
+        standingsOk: standings?.ok ?? false,
+        standingsEndpoint: standings?.endpoint,
       }),
     };
   }
@@ -1483,6 +2146,9 @@ const enrichTheSportsDbMatches = async (matches: Match[]) => {
     attemptedEventIds: targets.map((target) => target.eventId),
     enrichedMatches: [...enrichedById.values()],
     failures,
+    standingsRows: standings?.rows ?? 0,
+    standingsOk: standings?.ok ?? false,
+    standingsEndpoint: standings?.endpoint,
   });
   return { matches: nextMatches, enrichmentAudit };
 };
@@ -1564,8 +2230,9 @@ export const buildProviderRouteAudit = (
   errors: string[] = [],
   forceFailure = false,
 ): ProviderRouteAuditItem[] => {
-  const activeIndex = providerRouteConfig.findIndex((route) => route.key === activeSource);
-  return providerRouteConfig.map((route, index) => {
+  const routes = providerRouteConfig();
+  const activeIndex = routes.findIndex((route) => route.key === activeSource);
+  return routes.map((route, index) => {
     const routeError = errorForRoute(errors, route.label) ?? (route.key === "worldcup26" ? errorForRoute(errors, "worldcup26") : undefined);
     if (route.key === activeSource) {
       return {
@@ -1602,7 +2269,7 @@ export const buildProviderRouteAudit = (
       status: activeIndex >= 0 && index > activeIndex ? "skipped" : "failed",
       detail:
         activeIndex >= 0 && index > activeIndex
-          ? `Not needed after ${providerRouteConfig[activeIndex].label} returned matches.`
+          ? `Not needed after ${routes[activeIndex].label} returned matches.`
           : route.detail,
     };
   });
@@ -1638,6 +2305,11 @@ export const loadMatchesWithFallback = async (
       errors.push(`TheSportsDB: ${(error as Error).message}`);
     }
     try {
+      return withRouteAudit(withSeedUpcoming(await loadFromOpenFootball()), errors);
+    } catch (error) {
+      errors.push(`openfootball: ${(error as Error).message}`);
+    }
+    try {
       return withRouteAudit(withSeedUpcoming(await loadFromEspn()), errors);
     } catch (error) {
       errors.push(`ESPN: ${(error as Error).message}`);
@@ -1661,9 +2333,11 @@ export const loadMatchesWithFallback = async (
 export const sourceLabel = (source: DataSource) => {
   if (source === "espn") return "ESPN";
   if (source === "worldcup26") return "worldcup26";
+  if (source === "openfootball") return "openfootball";
   if (source === "api-football") return "API-Football";
   if (source === "football-data") return "Football-Data.org";
   if (source === "thesportsdb") return "TheSportsDB";
+  if (source === "odds-api") return "The Odds API";
   if (source === "manual") return "Manual";
   return "Seed";
 };

@@ -18,6 +18,36 @@ export const normalizePublicAppUrl = (value: string | boolean | undefined) => {
   }
 };
 
+export const evaluatePublicAuthRedirect = (
+  redirectValue: string | boolean | undefined,
+  publicAppValue: string | boolean | undefined,
+) => {
+  const redirectUrl = normalizePublicAppUrl(redirectValue);
+  const publicAppUrl = normalizePublicAppUrl(publicAppValue);
+  if (!redirectUrl) {
+    return {
+      passed: false,
+      redirectUrl,
+      publicAppUrl,
+      detail: "Missing valid HTTPS VITE_SUPABASE_REDIRECT_URL",
+    };
+  }
+  if (publicAppUrl && redirectUrl !== publicAppUrl) {
+    return {
+      passed: false,
+      redirectUrl,
+      publicAppUrl,
+      detail: `VITE_SUPABASE_REDIRECT_URL (${redirectUrl}) must match VITE_PUBLIC_APP_URL (${publicAppUrl})`,
+    };
+  }
+  return {
+    passed: true,
+    redirectUrl,
+    publicAppUrl,
+    detail: redirectUrl,
+  };
+};
+
 export const buildPublicUrl = (
   key: "proof" | "profile" | "mode",
   id: string,

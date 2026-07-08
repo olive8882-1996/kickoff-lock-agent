@@ -1,0 +1,38 @@
+{
+  "ready": false,
+  "missing": [
+    "VITE_SUPABASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY"
+  ],
+  "localImage": {
+    "imageMime": "image/png",
+    "imageByteLength": 238857,
+    "imageHash": "4bb567c2f0dd03362a04c1f587d1f41b68ad366179041f1405e2b63713ca85e0"
+  },
+  "generatedAt": "2026-07-06T22:41:25.929Z",
+  "envFiles": [
+    ".env.production.local"
+  ],
+  "artifactVersion": 1,
+  "filePath": "/Users/olive8882/Documents/Codex/kickoff-lock-agent/public/generated/kickoff-production-mode-share.png",
+  "target": {
+    "profileId": "kickoff-production-seed",
+    "kind": "mode",
+    "artifactId": "mode-prod-bracket-f90d6276",
+    "fileName": "kickoff-production-mode-share.png",
+    "imageMime": "image/png"
+  },
+  "readBackCommands": [],
+  "acceptance": {
+    "uploaded": false,
+    "publicReadBack": false,
+    "supabasePublicUrl": false,
+    "imageHashReady": true,
+    "localImageHashReady": true,
+    "localImageSizeReady": true,
+    "outputEnvKeys": [
+      "KICKOFF_SEED_MODE_SHARE_IMAGE_URL",
+      "KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL"
+    ]
+  }
+}

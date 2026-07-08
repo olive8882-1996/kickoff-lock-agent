@@ -133,6 +133,29 @@ describe("share card payload", () => {
     expect(intent.searchParams.get("hashtags")).toBe("KickoffLock,Filecoin,WorldCup");
   });
 
+  it("keeps record X intent text compact enough for one-click publishing", () => {
+    const longRecord: MemoryRecord = {
+      ...record,
+      capsule: {
+        ...record.capsule,
+        matchLabel:
+          "Spain Golden Generation Invitational XI vs Austria Alpine Counterpressing Selection With Extra Long Name",
+        filecoinProof: {
+          ...record.capsule.filecoinProof,
+          cid: `bafy${"x".repeat(120)}`,
+        },
+      },
+    };
+    const proofUrl = "https://example.com/kickoff-lock-agent/?proof=cap-share&share=public-card";
+    const intent = new URL(buildXIntentUrl(longRecord, proofUrl));
+    const text = intent.searchParams.get("text") ?? "";
+
+    expect(text.length).toBeLessThanOrEqual(280);
+    expect(text).toContain(proofUrl);
+    expect(text).toContain("bafy");
+    expect(intent.searchParams.get("url")).toBe(proofUrl);
+  });
+
   it("carries mode proof fields for public mode share cards", () => {
     const payload = buildModeRunShareCardPayload(modeRun, "https://example.com/kickoff-lock-agent/?mode=mode-share");
 
@@ -161,6 +184,25 @@ describe("share card payload", () => {
     expect(intent.origin).toBe("https://twitter.com");
     expect(intent.searchParams.get("url")).toBe(proofUrl);
     expect(intent.searchParams.get("text")).toContain("bafy-mode-share-proof");
+  });
+
+  it("keeps mode X intent text compact enough for one-click publishing", () => {
+    const longModeRun: GameModeRun = {
+      ...modeRun,
+      title: "Five-leg tactical upset ladder with a very long public proof title for knockout chaos",
+      filecoinProof: {
+        ...modeRun.filecoinProof,
+        cid: `bafy${"y".repeat(120)}`,
+      },
+    };
+    const proofUrl = "https://example.com/kickoff-lock-agent/?mode=mode-share&share=public-card";
+    const intent = new URL(buildModeXIntentUrl(longModeRun, proofUrl));
+    const text = intent.searchParams.get("text") ?? "";
+
+    expect(text.length).toBeLessThanOrEqual(280);
+    expect(text).toContain(proofUrl);
+    expect(text).toContain("bafy");
+    expect(intent.searchParams.get("url")).toBe(proofUrl);
   });
 
   it("detects native file sharing support before trying to share an image", () => {
@@ -203,6 +245,19 @@ describe("share card payload", () => {
         imageMime: "image/png",
         imageByteLength: 100,
         imageHash: "not-a-real-hash",
+        fileName: "cap-share-card.png",
+      }),
+    ).toBe(false);
+
+    expect(
+      isPublishableShareArtifact({
+        id: "cap-share",
+        kind: "record",
+        proofUrl: "https://example.com/?proof=cap-share",
+        imageGenerated: true,
+        imageMime: "image/png",
+        imageByteLength: 12_000,
+        imageHash: "a".repeat(64),
         fileName: "cap-share-card.png",
       }),
     ).toBe(false);

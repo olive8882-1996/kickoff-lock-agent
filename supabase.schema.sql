@@ -18,8 +18,8 @@ create policy "users can read public profiles"
 create policy "users can update their own profile"
   on public.kickoff_profiles
   for all
-  using (auth.uid()::text = id or auth.jwt() ->> 'email' = email)
-  with check (auth.uid()::text = id or auth.jwt() ->> 'email' = email);
+  using (auth.uid()::text = id)
+  with check (auth.uid()::text = id);
 
 create table if not exists public.kickoff_records (
   id text primary key,
@@ -46,8 +46,8 @@ create policy "users can read public prediction records"
 create policy "users can upsert their own records"
   on public.kickoff_records
   for all
-  using (auth.uid()::text = user_id or auth.jwt() ->> 'email' = email)
-  with check (auth.uid()::text = user_id or auth.jwt() ->> 'email' = email);
+  using (auth.uid()::text = user_id)
+  with check (auth.uid()::text = user_id);
 
 create index if not exists kickoff_records_user_updated_idx
   on public.kickoff_records (user_id, updated_at desc);
@@ -85,8 +85,8 @@ create policy "users can read public mode proof runs"
 create policy "users can upsert their own mode proof runs"
   on public.kickoff_mode_runs
   for all
-  using (auth.uid()::text = user_id or auth.jwt() ->> 'email' = email)
-  with check (auth.uid()::text = user_id or auth.jwt() ->> 'email' = email);
+  using (auth.uid()::text = user_id)
+  with check (auth.uid()::text = user_id);
 
 create index if not exists kickoff_mode_runs_user_updated_idx
   on public.kickoff_mode_runs (user_id, updated_at desc);
@@ -129,8 +129,8 @@ create policy "users can read public share artifacts"
 create policy "users can upsert their own share artifacts"
   on public.kickoff_share_artifacts
   for all
-  using (auth.uid()::text = user_id or auth.jwt() ->> 'email' = email)
-  with check (auth.uid()::text = user_id or auth.jwt() ->> 'email' = email);
+  using (auth.uid()::text = user_id)
+  with check (auth.uid()::text = user_id);
 
 create index if not exists kickoff_share_artifacts_user_updated_idx
   on public.kickoff_share_artifacts (user_id, updated_at desc);
@@ -159,14 +159,23 @@ create policy "authenticated users can upload kickoff share card images"
   on storage.objects
   for insert
   to authenticated
-  with check (bucket_id = 'kickoff-share-cards');
+  with check (
+    bucket_id = 'kickoff-share-cards'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
 create policy "authenticated users can update kickoff share card images"
   on storage.objects
   for update
   to authenticated
-  using (bucket_id = 'kickoff-share-cards')
-  with check (bucket_id = 'kickoff-share-cards');
+  using (
+    bucket_id = 'kickoff-share-cards'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  )
+  with check (
+    bucket_id = 'kickoff-share-cards'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
 create or replace view public.kickoff_leaderboard as
 with record_rows as (
@@ -284,6 +293,15 @@ select
   aggregate_rows.exact_hits,
   aggregate_rows.verified_proofs,
   aggregate_rows.mode_proofs,
+  dense_rank() over (order by aggregate_rows.xp desc, aggregate_rows.best_score desc, aggregate_rows.updated_at asc)::integer as global_rank,
+  dense_rank() over (
+    partition by aggregate_rows.friend_code
+    order by aggregate_rows.xp desc, aggregate_rows.best_score desc, aggregate_rows.updated_at asc
+  )::integer as friend_rank,
+  dense_rank() over (
+    partition by aggregate_rows.season_key
+    order by aggregate_rows.xp desc, aggregate_rows.best_score desc, aggregate_rows.updated_at asc
+  )::integer as season_rank,
   dense_rank() over (order by aggregate_rows.xp desc, aggregate_rows.best_score desc, aggregate_rows.updated_at asc)::integer as rank,
   aggregate_rows.updated_at
 from aggregate_rows
@@ -314,6 +332,81 @@ required_views as (
 required_rls as (
   select name from required_tables
 ),
+required_columns as (
+  select *
+  from (values
+    ('kickoff_profiles', 'id'),
+    ('kickoff_profiles', 'email'),
+    ('kickoff_profiles', 'display_name'),
+    ('kickoff_profiles', 'location'),
+    ('kickoff_profiles', 'friend_code'),
+    ('kickoff_records', 'id'),
+    ('kickoff_records', 'user_id'),
+    ('kickoff_records', 'email'),
+    ('kickoff_records', 'friend_code'),
+    ('kickoff_records', 'season_key'),
+    ('kickoff_records', 'capsule'),
+    ('kickoff_records', 'result'),
+    ('kickoff_records', 'seal_job'),
+    ('kickoff_records', 'total_score'),
+    ('kickoff_mode_runs', 'id'),
+    ('kickoff_mode_runs', 'user_id'),
+    ('kickoff_mode_runs', 'friend_code'),
+    ('kickoff_mode_runs', 'season_key'),
+    ('kickoff_mode_runs', 'mode_id'),
+    ('kickoff_mode_runs', 'status'),
+    ('kickoff_mode_runs', 'score'),
+    ('kickoff_mode_runs', 'mode_run'),
+    ('kickoff_share_artifacts', 'id'),
+    ('kickoff_share_artifacts', 'kind'),
+    ('kickoff_share_artifacts', 'user_id'),
+    ('kickoff_share_artifacts', 'friend_code'),
+    ('kickoff_share_artifacts', 'season_key'),
+    ('kickoff_share_artifacts', 'proof_url'),
+    ('kickoff_share_artifacts', 'image_generated'),
+    ('kickoff_share_artifacts', 'generated_at'),
+    ('kickoff_share_artifacts', 'file_name'),
+    ('kickoff_share_artifacts', 'image_url'),
+    ('kickoff_share_artifacts', 'image_mime'),
+    ('kickoff_share_artifacts', 'image_byte_length'),
+    ('kickoff_share_artifacts', 'image_hash'),
+    ('kickoff_share_artifacts', 'x_intent_url'),
+    ('kickoff_share_artifacts', 'x_intent_opened_at'),
+    ('kickoff_share_artifacts', 'native_share_opened_at'),
+    ('kickoff_share_artifacts', 'artifact')
+  ) as required_columns(table_name, column_name)
+),
+required_view_columns as (
+  select *
+  from (values
+    ('kickoff_leaderboard', 'id'),
+    ('kickoff_leaderboard', 'season_key'),
+    ('kickoff_leaderboard', 'friend_code'),
+    ('kickoff_leaderboard', 'display_name'),
+    ('kickoff_leaderboard', 'location'),
+    ('kickoff_leaderboard', 'locks'),
+    ('kickoff_leaderboard', 'average_score'),
+    ('kickoff_leaderboard', 'best_score'),
+    ('kickoff_leaderboard', 'xp'),
+    ('kickoff_leaderboard', 'streak'),
+    ('kickoff_leaderboard', 'revealed'),
+    ('kickoff_leaderboard', 'exact_hits'),
+    ('kickoff_leaderboard', 'verified_proofs'),
+    ('kickoff_leaderboard', 'mode_proofs'),
+    ('kickoff_leaderboard', 'global_rank'),
+    ('kickoff_leaderboard', 'friend_rank'),
+    ('kickoff_leaderboard', 'season_rank'),
+    ('kickoff_leaderboard', 'rank'),
+    ('kickoff_leaderboard', 'updated_at'),
+    ('kickoff_backend_health', 'schema_version'),
+    ('kickoff_backend_health', 'ready'),
+    ('kickoff_backend_health', 'missing_columns'),
+    ('kickoff_backend_health', 'missing_view_columns'),
+    ('kickoff_backend_health', 'storage_bucket_public'),
+    ('kickoff_backend_health', 'storage_policy_count'),
+    ('kickoff_backend_health', 'storage_unsafe_write_policies')
+  ) as required_view_columns(table_name, column_name)
+),
 existing_tables as (
   select table_name as name
   from information_schema.tables
@@ -323,6 +416,11 @@ existing_tables as (
 existing_views as (
   select table_name as name
   from information_schema.views
+  where table_schema = 'public'
+),
+existing_columns as (
+  select table_name, column_name
+  from information_schema.columns
   where table_schema = 'public'
 ),
 rls_enabled as (
@@ -341,6 +439,73 @@ policy_rows as (
       'kickoff_records',
       'kickoff_mode_runs',
       'kickoff_share_artifacts'
+    )
+),
+unsafe_write_policy_rows as (
+  select array_agg(tablename || ':' || policyname order by tablename, policyname) as unsafe_policies
+  from pg_policies
+  where schemaname = 'public'
+    and tablename in (
+      'kickoff_profiles',
+      'kickoff_records',
+      'kickoff_mode_runs',
+      'kickoff_share_artifacts'
+    )
+    and cmd in ('ALL', 'INSERT', 'UPDATE')
+    and policyname in (
+      'users can update their own profile',
+      'users can upsert their own records',
+      'users can upsert their own mode proof runs',
+      'users can upsert their own share artifacts'
+    )
+    and (
+      coalesce(qual, '') ilike '%auth.jwt%'
+      or coalesce(with_check, '') ilike '%auth.jwt%'
+      or coalesce(qual, '') ilike '%email%'
+      or coalesce(with_check, '') ilike '%email%'
+    )
+),
+storage_bucket as (
+  select exists(
+    select 1
+    from storage.buckets
+    where id = 'kickoff-share-cards'
+      and name = 'kickoff-share-cards'
+      and public = true
+  ) as public
+),
+storage_policy_rows as (
+  select count(*)::integer as policy_count
+  from pg_policies
+  where schemaname = 'storage'
+    and tablename = 'objects'
+    and policyname in (
+      'public can read kickoff share card images',
+      'authenticated users can upload kickoff share card images',
+      'authenticated users can update kickoff share card images'
+    )
+),
+storage_unsafe_write_policy_rows as (
+  select array_agg(policyname order by policyname) as unsafe_policies
+  from pg_policies
+  where schemaname = 'storage'
+    and tablename = 'objects'
+    and policyname in (
+      'authenticated users can upload kickoff share card images',
+      'authenticated users can update kickoff share card images'
+    )
+    and (
+      (
+        cmd = 'INSERT'
+        and coalesce(with_check, '') not ilike '%storage.foldername(name)%auth.uid()::text%'
+      )
+      or (
+        cmd = 'UPDATE'
+        and (
+          coalesce(qual, '') not ilike '%storage.foldername(name)%auth.uid()::text%'
+          or coalesce(with_check, '') not ilike '%storage.foldername(name)%auth.uid()::text%'
+        )
+      )
     )
 ),
 summary as (
@@ -369,12 +534,39 @@ summary as (
       where rls_enabled.name is null
       order by required_rls.name
     ) as missing_rls_tables,
+    array(
+      select required_columns.table_name || '.' || required_columns.column_name
+      from required_columns
+      left join existing_columns
+        on existing_columns.table_name = required_columns.table_name
+       and existing_columns.column_name = required_columns.column_name
+      where existing_columns.column_name is null
+      order by required_columns.table_name, required_columns.column_name
+    ) as missing_columns,
+    array(
+      select required_view_columns.table_name || '.' || required_view_columns.column_name
+      from required_view_columns
+      left join existing_columns
+        on existing_columns.table_name = required_view_columns.table_name
+       and existing_columns.column_name = required_view_columns.column_name
+      where existing_columns.column_name is null
+      order by required_view_columns.table_name, required_view_columns.column_name
+    ) as missing_view_columns,
     policy_rows.policy_count,
-    8::integer as required_policy_count
+    8::integer as required_policy_count,
+    coalesce(unsafe_write_policy_rows.unsafe_policies, array[]::text[]) as unsafe_write_policies,
+    storage_bucket.public as storage_bucket_public,
+    storage_policy_rows.policy_count as storage_policy_count,
+    coalesce(storage_unsafe_write_policy_rows.unsafe_policies, array[]::text[]) as storage_unsafe_write_policies,
+    3::integer as required_storage_policy_count
   from policy_rows
+  cross join unsafe_write_policy_rows
+  cross join storage_bucket
+  cross join storage_policy_rows
+  cross join storage_unsafe_write_policy_rows
 )
 select
-  '2026-07-03-cloud-v2'::text as schema_version,
+  '2026-07-06-cloud-v4'::text as schema_version,
   now() as checked_at,
   required_tables,
   missing_tables,
@@ -388,20 +580,40 @@ select
     cardinality(missing_tables) = 0
     and cardinality(missing_views) = 0
     and cardinality(missing_rls_tables) = 0
+    and cardinality(missing_columns) = 0
+    and cardinality(missing_view_columns) = 0
     and policy_count >= required_policy_count
+    and cardinality(unsafe_write_policies) = 0
+    and storage_bucket_public = true
+    and storage_policy_count >= required_storage_policy_count
+    and cardinality(storage_unsafe_write_policies) = 0
   ) as ready,
   format(
-    'tables missing %s, views missing %s, RLS missing %s, policies %s/%s',
+    'tables missing %s, views missing %s, RLS missing %s, columns missing %s, view columns missing %s, policies %s/%s, unsafe write policies %s, storage public %s, storage policies %s/%s, unsafe storage write policies %s',
     cardinality(missing_tables),
     cardinality(missing_views),
     cardinality(missing_rls_tables),
+    cardinality(missing_columns),
+    cardinality(missing_view_columns),
     policy_count,
-    required_policy_count
-  ) as detail
+    required_policy_count,
+    cardinality(unsafe_write_policies),
+    storage_bucket_public,
+    storage_policy_count,
+    required_storage_policy_count,
+    cardinality(storage_unsafe_write_policies)
+  ) as detail,
+  missing_columns,
+  missing_view_columns,
+  unsafe_write_policies,
+  storage_bucket_public,
+  storage_policy_count,
+  storage_unsafe_write_policies,
+  required_storage_policy_count
 from summary;
 
 comment on view public.kickoff_backend_health is
-  'Public backend health row for Kickoff Lock Agent. Verifies required tables, views, RLS and policy count for production account sync.';
+  'Public backend health row for Kickoff Lock Agent. Verifies required tables, views, columns, leaderboard ranks, RLS, public policies and share-card Storage readiness.';
 
 grant usage on schema public to anon, authenticated;
 grant select on public.kickoff_profiles to anon, authenticated;

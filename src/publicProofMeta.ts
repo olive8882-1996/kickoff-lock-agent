@@ -20,6 +20,25 @@ export type PublicProofMeta = {
 
 const absoluteUrl = (url: string, baseUrl: string) => new URL(url, baseUrl).toString();
 
+const urlsMatch = (left?: string, right?: string) => {
+  if (!left || !right) return false;
+  try {
+    return new URL(left, right).toString() === new URL(right).toString();
+  } catch {
+    return false;
+  }
+};
+
+const artifactForProofUrl = (
+  kind: ShareArtifactEvidence["kind"],
+  id: string,
+  canonicalUrl: string,
+  artifact?: ShareArtifactEvidence,
+) =>
+  artifact?.kind === kind && artifact.id === id && urlsMatch(artifact.proofUrl, canonicalUrl)
+    ? artifact
+    : undefined;
+
 const manifestFor = (artifact?: ShareArtifactEvidence) =>
   artifact
     ? {
@@ -34,6 +53,23 @@ const manifestFor = (artifact?: ShareArtifactEvidence) =>
 const socialImageUrl = (fallbackImageUrl: string, canonicalUrl: string, artifact?: ShareArtifactEvidence) =>
   absoluteUrl(artifact?.imageUrl ?? fallbackImageUrl, canonicalUrl);
 
+const compactObject = (value: Record<string, unknown>) =>
+  Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined && item !== ""));
+
+const imageObjectFor = (imageUrl: string, artifact?: ShareArtifactEvidence) =>
+  artifact
+    ? compactObject({
+        "@type": "ImageObject",
+        name: artifact.fileName,
+        url: imageUrl,
+        contentUrl: imageUrl,
+        encodingFormat: artifact.imageMime,
+        contentSize: artifact.imageByteLength,
+        sha256: artifact.imageHash,
+        dateCreated: artifact.generatedAt,
+      })
+    : undefined;
+
 export const buildRecordProofMeta = (
   record: MemoryRecord,
   canonicalUrl: string,
@@ -46,7 +82,9 @@ export const buildRecordProofMeta = (
     : "Reveal pending";
   const title = `${capsule.matchLabel} locked prediction proof`;
   const description = `Prediction ${capsule.prediction.homeScore}-${capsule.prediction.awayScore}. ${resultText}. CID ${capsule.filecoinProof.cid}.`;
-  const imageUrl = socialImageUrl(fallbackImageUrl, canonicalUrl, artifact);
+  const matchingArtifact = artifactForProofUrl("record", capsule.id, canonicalUrl, artifact);
+  const imageUrl = socialImageUrl(fallbackImageUrl, canonicalUrl, matchingArtifact);
+  const associatedMedia = imageObjectFor(imageUrl, matchingArtifact);
   return {
     kind: "record",
     title,
@@ -55,7 +93,7 @@ export const buildRecordProofMeta = (
     imageUrl,
     imageAlt: `${capsule.matchLabel} Kickoff Lock proof card`,
     twitterCard: "summary_large_image",
-    imageManifest: manifestFor(artifact),
+    imageManifest: manifestFor(matchingArtifact),
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "CreativeWork",
@@ -70,6 +108,7 @@ export const buildRecordProofMeta = (
       sha256: capsule.payloadHash,
       about: capsule.matchLabel,
       isBasedOn: capsule.filecoinProof.cid,
+      ...(associatedMedia ? { associatedMedia } : {}),
     },
   };
 };
@@ -82,7 +121,9 @@ export const buildModeProofMeta = (
 ): PublicProofMeta => {
   const title = `${run.title} mode proof`;
   const description = `${run.summary}. ${run.capsuleIds.length} linked lock${run.capsuleIds.length === 1 ? "" : "s"}. CID ${run.filecoinProof.cid}.`;
-  const imageUrl = socialImageUrl(fallbackImageUrl, canonicalUrl, artifact);
+  const matchingArtifact = artifactForProofUrl("mode", run.id, canonicalUrl, artifact);
+  const imageUrl = socialImageUrl(fallbackImageUrl, canonicalUrl, matchingArtifact);
+  const associatedMedia = imageObjectFor(imageUrl, matchingArtifact);
   return {
     kind: "mode",
     title,
@@ -91,7 +132,7 @@ export const buildModeProofMeta = (
     imageUrl,
     imageAlt: `${run.title} Kickoff Lock mode proof card`,
     twitterCard: "summary_large_image",
-    imageManifest: manifestFor(artifact),
+    imageManifest: manifestFor(matchingArtifact),
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "CreativeWork",
@@ -105,6 +146,7 @@ export const buildModeProofMeta = (
       sha256: run.payloadHash,
       about: run.modeId,
       isBasedOn: run.filecoinProof.cid,
+      ...(associatedMedia ? { associatedMedia } : {}),
     },
   };
 };

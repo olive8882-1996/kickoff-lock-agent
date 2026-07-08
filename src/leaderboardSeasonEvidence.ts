@@ -31,10 +31,16 @@ export type LeaderboardSeasonEvidencePacket = {
 };
 
 const scopes: LeaderboardScope[] = ["global", "friend", "season"];
+const hasScopedRank = (rank: unknown) => Number.isInteger(rank) && Number(rank) > 0;
 
 const filterValue = (filter: string, key: "friend_code" | "season_key") => {
   const marker = `${key}=eq.`;
-  return filter.includes(marker) ? filter.slice(filter.indexOf(marker) + marker.length) : "";
+  const raw = filter.includes(marker) ? filter.slice(filter.indexOf(marker) + marker.length) : "";
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
 };
 
 const scopeLabel: Record<LeaderboardScope, string> = {
@@ -64,7 +70,15 @@ export const buildLeaderboardSeasonEvidencePacket = ({
   );
   const currentUserScopes = scopes.filter((scope) => {
     const scopeEvidence = byEvidenceScope.get(scope);
-    return scopeEvidence?.status === "loaded" && scopeEvidence.rows > 0 && scopeEvidence.currentUserPresent && currentUserByScope.has(scope);
+    const row = currentUserByScope.get(scope);
+    return (
+      scopeEvidence?.status === "loaded" &&
+      scopeEvidence.rows > 0 &&
+      scopeEvidence.currentUserPresent &&
+      Boolean(row) &&
+      hasScopedRank(scopeEvidence.currentUserRank) &&
+      hasScopedRank(row?.rank)
+    );
   });
   const missingScopes = scopes.filter((scope) => !currentUserScopes.includes(scope));
   const seasonRow = currentUserByScope.get("season");
@@ -72,10 +86,10 @@ export const buildLeaderboardSeasonEvidencePacket = ({
   const bestRank = Math.min(
     ...currentUserRows
       .map((entry) => entry.rank)
-      .filter((rank): rank is number => typeof rank === "number" && Number.isFinite(rank)),
+      .filter((rank): rank is number => hasScopedRank(rank)),
     ...evidence
       .map((item) => item.currentUserRank)
-      .filter((rank): rank is number => typeof rank === "number" && Number.isFinite(rank)),
+      .filter((rank): rank is number => hasScopedRank(rank)),
   );
   const bestRankValue = Number.isFinite(bestRank) ? bestRank : undefined;
   const scoringRow = seasonRow ?? currentUserRows.sort((a, b) => b.xp - a.xp)[0];
@@ -83,18 +97,43 @@ export const buildLeaderboardSeasonEvidencePacket = ({
   const seasonFilter = byEvidenceScope.get("season")?.filter ?? "";
   const friendCode = friendRow?.friendCode ?? filterValue(friendFilter, "friend_code") ?? "not checked";
   const seasonKey = seasonRow?.seasonKey ?? filterValue(seasonFilter, "season_key") ?? "not checked";
+  const expectedFriendCode = filterValue(friendFilter, "friend_code");
+  const expectedSeasonKey = filterValue(seasonFilter, "season_key");
+
+  const scopeValueReady = (scope: LeaderboardScope, row: LeaderboardEntry | undefined) => {
+    if (!row) return false;
+    if (scope === "friend") return Boolean(expectedFriendCode && row.friendCode === expectedFriendCode);
+    if (scope === "season") return Boolean(expectedSeasonKey && row.seasonKey === expectedSeasonKey);
+    return true;
+  };
 
   const scopeChecks: SeasonEvidenceCheck[] = scopes.map((scope) => {
     const scopeEvidence = byEvidenceScope.get(scope);
     const row = currentUserByScope.get(scope);
-    const passed = currentUserScopes.includes(scope);
+    const passed = currentUserScopes.includes(scope) && scopeValueReady(scope, row);
+    const scopeMismatch =
+      row && scope === "friend" && !scopeValueReady(scope, row)
+        ? `friend code mismatch ${row.friendCode || "missing"} != ${expectedFriendCode || "expected filter missing"}`
+        : row && scope === "season" && !scopeValueReady(scope, row)
+          ? `season key mismatch ${row.seasonKey || "missing"} != ${expectedSeasonKey || "expected filter missing"}`
+          : "";
     return {
       key: scope,
       label: scopeLabel[scope],
       passed,
       detail: passed
         ? `current user rank ${row?.rank ?? scopeEvidence?.currentUserRank ?? "listed"} · ${row?.xp ?? 0} XP`
-        : `${scopeEvidence?.status ?? "unchecked"} · ${scopeEvidence?.rows ?? 0} rows · current user ${scopeEvidence?.currentUserPresent ? "not in packet rows" : "missing"}`,
+        : scopeMismatch
+          ? `${scopeEvidence?.status ?? "unchecked"} · ${scopeMismatch}`
+        : `${scopeEvidence?.status ?? "unchecked"} · ${scopeEvidence?.rows ?? 0} rows · current user ${
+            scopeEvidence?.currentUserPresent
+              ? !row
+                ? "not in packet rows"
+                : hasScopedRank(scopeEvidence.currentUserRank)
+                  ? "missing scoped rank in packet rows"
+                  : "missing scoped rank"
+              : "missing"
+          }`,
     };
   });
   const checks: SeasonEvidenceCheck[] = [
@@ -112,17 +151,23 @@ export const buildLeaderboardSeasonEvidencePacket = ({
       detail: localFallbackRows === 0 ? "no local fallback rows used" : `${localFallbackRows} local fallback row${localFallbackRows === 1 ? "" : "s"} present`,
     },
   ];
-  const ready = missingScopes.length === 0 && remoteEntries.length > 0 && localFallbackRows === 0;
+  const valueMissingScopes = scopes.filter((scope) => {
+    const row = currentUserByScope.get(scope);
+    return currentUserScopes.includes(scope) && !scopeValueReady(scope, row);
+  });
+  const finalMissingScopes = [...new Set([...missingScopes, ...valueMissingScopes])];
+  const finalPassedScopes = scopes.filter((scope) => currentUserScopes.includes(scope) && !valueMissingScopes.includes(scope));
+  const ready = finalMissingScopes.length === 0 && remoteEntries.length > 0 && localFallbackRows === 0;
   const nextAction = ready
     ? "Season leaderboard claim is backed by Supabase global, friend and season read-back."
-    : `Read back current user from ${missingScopes.join(", ") || "all remote"} scope${missingScopes.length === 1 ? "" : "s"} and remove local fallback rows.`;
-  const summary = `${profile.displayName} · ${currentUserScopes.length}/3 season claim scopes · ${remoteEntries.length} remote rows`;
+    : `Read back current user with scoped rank from ${finalMissingScopes.join(", ") || "all remote"} scope${finalMissingScopes.length === 1 ? "" : "s"} and remove local fallback rows.`;
+  const summary = `${profile.displayName} · ${finalPassedScopes.length}/3 season claim scopes · ${remoteEntries.length} remote rows`;
   const copyText = [
     "Kickoff Lock Agent season leaderboard claim",
     `Profile: ${profile.displayName} (${profile.id})`,
     `Ready: ${ready ? "yes" : "no"}`,
-    `Scopes passed: ${currentUserScopes.join(", ") || "none"} (${currentUserScopes.length}/3)`,
-    `Missing scopes: ${missingScopes.join(", ") || "none"}`,
+    `Scopes passed: ${finalPassedScopes.join(", ") || "none"} (${finalPassedScopes.length}/3)`,
+    `Missing scopes: ${finalMissingScopes.join(", ") || "none"}`,
     `Best rank: ${bestRankValue ? `#${bestRankValue}` : "not available"}`,
     `Season XP: ${scoringRow?.xp ?? 0}`,
     `Verified proofs: ${scoringRow?.verifiedProofs ?? 0}`,
@@ -139,12 +184,12 @@ export const buildLeaderboardSeasonEvidencePacket = ({
     profileId: profile.id,
     displayName: profile.displayName,
     ready,
-    passedScopes: currentUserScopes.length,
+    passedScopes: finalPassedScopes.length,
     totalScopes: scopes.length,
     remoteRows: remoteEntries.length,
     localFallbackRows,
-    currentUserScopes,
-    missingScopes,
+    currentUserScopes: finalPassedScopes,
+    missingScopes: finalMissingScopes,
     bestRank: bestRankValue,
     seasonXp: scoringRow?.xp ?? 0,
     verifiedProofs: scoringRow?.verifiedProofs ?? 0,

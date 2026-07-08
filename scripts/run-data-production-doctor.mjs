@@ -3,7 +3,14 @@ import { resolve } from "node:path";
 import { parseEnvText } from "../src/productionEvidence.ts";
 import { buildDataProductionDoctorReport } from "../src/dataProductionDoctor.ts";
 
-const envFiles = [".env.example", ".env", ".env.local", ".env.production", ".env.production.local"];
+const includeExample = process.argv.includes("--include-example");
+const envFiles = [
+  ...(includeExample ? [".env.example"] : []),
+  ".env",
+  ".env.local",
+  ".env.production",
+  ".env.production.local",
+];
 
 const loadEnv = async () => {
   const merged = {};
@@ -27,6 +34,7 @@ if (process.argv.includes("--json")) {
 } else {
   console.log("Realtime data production doctor");
   console.log(`Env files: ${loaded.join(", ") || "none"}`);
+  if (!includeExample) console.log("Example env: ignored by default; pass --include-example to audit placeholders.");
   console.log(`Required checks: ${report.requiredPassed}/${report.requiredTotal}`);
   console.log("");
   for (const check of report.checks) {
@@ -39,4 +47,3 @@ if (process.argv.includes("--json")) {
 }
 
 if (!report.ready) process.exitCode = 1;
-

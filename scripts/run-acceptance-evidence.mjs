@@ -1,7 +1,7 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { ACCEPTANCE_TEST_SUITES, acceptanceManifestHash } from "../src/acceptance.ts";
+import { writeEvidenceOutput } from "../src/evidenceOutput.ts";
 
 const outputPath = resolve(process.env.ACCEPTANCE_EVIDENCE_PATH ?? "public/acceptance-evidence.json");
 const uniqueCommands = [...new Set(ACCEPTANCE_TEST_SUITES.map((suite) => suite.command))];
@@ -58,9 +58,8 @@ const packet = {
   suites,
 };
 
-await mkdir(dirname(outputPath), { recursive: true });
-await writeFile(outputPath, `${JSON.stringify(packet, null, 2)}\n`);
-console.log(`Acceptance evidence written to ${outputPath}`);
+const writtenPaths = await writeEvidenceOutput(outputPath, `${JSON.stringify(packet, null, 2)}\n`);
+console.log(`Acceptance evidence written to ${writtenPaths.join(", ")}`);
 
 if (suites.some((suite) => suite.status !== "passed")) {
   process.exitCode = 1;

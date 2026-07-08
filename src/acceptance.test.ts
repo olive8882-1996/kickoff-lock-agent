@@ -32,7 +32,28 @@ describe("acceptance test manifest", () => {
     expect(summary.covered).toBe(REQUIRED_ACCEPTANCE_COVERAGE.length);
     expect(ACCEPTANCE_TEST_SUITES.length).toBeGreaterThanOrEqual(8);
     expect(ACCEPTANCE_TEST_SUITES.every((suite) => suite.command.startsWith("bun run "))).toBe(true);
-    expect(ACCEPTANCE_TEST_SUITES.every((suite) => suite.file.includes(".test.") || suite.file.includes("tests/e2e/"))).toBe(true);
+    expect(
+      ACCEPTANCE_TEST_SUITES.every(
+        (suite) => suite.file.includes(".test.") || suite.file.includes("tests/e2e/") || suite.file.includes("functions/"),
+      ),
+    ).toBe(true);
+    expect(ACCEPTANCE_TEST_SUITES.find((suite) => suite.id === "pages-functions")).toMatchObject({
+      command: "bun run pages:functions:build",
+      coverage: ["pages-functions"],
+      file: expect.stringContaining("functions/data-proxy/[[path]].js"),
+    });
+    expect(ACCEPTANCE_TEST_SUITES.find((suite) => suite.id === "share-cards")).toMatchObject({
+      file: expect.stringContaining("src/publicProofShareKit.test.ts"),
+      proves: expect.stringContaining("public proof publication packages"),
+    });
+    expect(ACCEPTANCE_TEST_SUITES.find((suite) => suite.id === "cloud-account")).toMatchObject({
+      file: expect.stringContaining("src/productionAccessPreflight.test.ts"),
+      proves: expect.stringContaining("production account access preflight"),
+    });
+    expect(ACCEPTANCE_TEST_SUITES.find((suite) => suite.id === "browser-flow")).toMatchObject({
+      file: expect.stringContaining("tests/e2e/app.spec.ts"),
+      proves: expect.stringContaining("production account access preflight UI"),
+    });
   });
 
   it("reports missing coverage explicitly", () => {

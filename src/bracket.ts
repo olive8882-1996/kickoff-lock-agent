@@ -87,6 +87,55 @@ export const createBracketModeRun = async (path: BracketPath): Promise<GameModeR
     artifact: {
       kind: "bracket-path",
       bracketPath: sealedPath,
+      settlements: [],
+      resolvedPicks: 0,
+      hitPicks: 0,
+    },
+  };
+};
+
+const actualWinnerFor = (match: Match) => {
+  if (match.status !== "finished") return undefined;
+  if (match.homeScore === undefined || match.awayScore === undefined) return undefined;
+  if (match.homeScore > match.awayScore) return match.homeTeam;
+  if (match.awayScore > match.homeScore) return match.awayTeam;
+  return undefined;
+};
+
+export const settleBracketModeRun = (run: GameModeRun, matches: Match[]): GameModeRun => {
+  if (run.artifact?.kind !== "bracket-path") {
+    throw new Error("Only bracket path mode runs can be settled by knockout path results.");
+  }
+  const matchesById = new Map(matches.map((match) => [match.id, match]));
+  const settlements = run.artifact.bracketPath.picks.map((pick) => {
+    const match = matchesById.get(pick.matchId);
+    const actualWinner = match ? actualWinnerFor(match) : undefined;
+    return {
+      capsuleId: pick.matchId,
+      matchLabel: pick.matchLabel,
+      stage: pick.stage,
+      predictedWinner: pick.winner,
+      confidence: pick.confidence,
+      resultScore: actualWinner ? (actualWinner === pick.winner ? 100 : 0) : undefined,
+      winnerHit: actualWinner ? actualWinner === pick.winner : undefined,
+    };
+  });
+  const resolvedPicks = settlements.filter((settlement) => settlement.resultScore !== undefined).length;
+  const hitPicks = settlements.filter((settlement) => settlement.winnerHit).length;
+  const score = resolvedPicks > 0 ? Math.round((hitPicks / resolvedPicks) * 100) : run.score;
+  return {
+    ...run,
+    status: score === undefined ? "sealed" : "scored",
+    score,
+    summary:
+      resolvedPicks > 0
+        ? `Bracket path settled with ${hitPicks}/${resolvedPicks} resolved knockout hits.`
+        : "Bracket path sealed; no finished knockout matches available for settlement yet.",
+    artifact: {
+      ...run.artifact,
+      settlements,
+      resolvedPicks,
+      hitPicks,
     },
   };
 };

@@ -1,12 +1,15 @@
 import {
   ACCEPTANCE_TEST_SUITES,
+  REQUIRED_ACCEPTANCE_COVERAGE,
   summarizeAcceptanceCoverage,
   summarizeAcceptanceRunEvidence,
   type AcceptanceEvidencePacket,
 } from "./acceptance";
-import { isCloudReadbackComplete } from "./cloud";
+import { isCloudReadbackComplete, shareArtifactCloudId } from "./cloud";
 import { sealBackendProductionReady } from "./filecoinSeal";
-import { summarizeProductionEvidence, type ProductionEvidencePacket } from "./productionEvidence";
+import { hasLeaderboardScopeEvidence } from "./leaderboardEvidence";
+import { productionCheckPassed, summarizeProductionEvidence, type ProductionEvidencePacket } from "./productionEvidence";
+import { requiredProductionModeIds } from "./productionVerifyTargets";
 import { isProductionShareArtifact } from "./shareCard";
 import type {
   CloudSyncState,
@@ -33,6 +36,15 @@ export type ProductionReadinessItem = {
   total: number;
   evidence: string;
   nextAction: string;
+  checks: ProductionReadinessCheck[];
+};
+
+export type ProductionReadinessCheck = {
+  id: string;
+  label: string;
+  passed: boolean;
+  evidence: string;
+  command?: string;
 };
 
 type ProductionReadinessInput = {
@@ -60,7 +72,15 @@ const levelFrom = (passed: number, total: number, canBeVerified = true): Product
   return "partial";
 };
 
-const count = (checks: boolean[]) => checks.filter(Boolean).length;
+const check = (
+  id: string,
+  label: string,
+  passed: boolean,
+  evidence: string,
+  command?: string,
+): ProductionReadinessCheck => ({ id, label, passed, evidence, command });
+
+const count = (checks: ProductionReadinessCheck[]) => checks.filter((item) => item.passed).length;
 
 const realProofReady = (proof?: MemoryRecord["capsule"]["filecoinProof"]) =>
   proof?.mode === "real" && ["retrievable", "verified"].includes(proof.proofStatus);
@@ -97,7 +117,7 @@ const productionEnrichmentKeys = new Set<ProviderReadinessItem["key"]>(["lineups
 const hasProductionEnrichmentReadback = (providerHealth: ProviderHealthSnapshot | undefined, key: ProviderReadinessItem["key"]) => {
   if (!productionEnrichmentKeys.has(key)) return true;
   const endpoint = providerHealth?.enrichmentAudit?.endpointAudits.find((item) => item.key === key);
-  return Boolean(endpoint && endpoint.attempted > 0 && endpoint.fulfilled > 0 && endpoint.live > 0);
+  return Boolean(endpoint && endpoint.attempted > 0 && endpoint.fulfilled >= endpoint.attempted && endpoint.live >= endpoint.attempted && endpoint.errors === 0);
 };
 
 const productionDataReady = (item: ProviderReadinessItem | undefined, providerHealth: ProviderHealthSnapshot | undefined) => {
@@ -106,7 +126,7 @@ const productionDataReady = (item: ProviderReadinessItem | undefined, providerHe
   return item.status === "live" && hasProductionEnrichmentReadback(providerHealth, item.key);
 };
 
-const requiredModeIds: GameMode["id"][] = ["bracket", "parlay", "agent-vs-human", "upset"];
+const requiredModeIds: GameMode["id"][] = requiredProductionModeIds;
 
 const sealedModeRun = (run?: GameModeRun) =>
   Boolean(
@@ -140,14 +160,18 @@ export const buildProductionReadiness = ({
   const verification = cloudState.verification;
   const backendReady = Boolean(verification?.backendHealth?.ready);
   const shareImagesVerified = Boolean(verification && (verification.publicShareImages ?? 0) >= shareEvidence.length);
-  const readbackVerified = isCloudReadbackComplete(verification, records.length, modeRuns.length, shareEvidence.length);
+  const readbackVerified = isCloudReadbackComplete(verification, records.length, modeRuns.length, shareEvidence.length, {
+    recordIds: records.map((record) => record.capsule.id),
+    modeRunIds: modeRuns.map((run) => run.id),
+    shareArtifactIds: shareEvidence.map(shareArtifactCloudId),
+  });
   const accountChecks = [
-    cloudState.configured,
-    cloudState.authenticated,
-    backendReady,
-    cloudProfile,
-    cloudItems > 0,
-    readbackVerified,
+    check("supabase-env", "Supabase env configured", cloudState.configured, cloudState.configured ? "VITE_SUPABASE_URL and anon key are available." : "Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY.", "bun run verify:production"),
+    check("supabase-session", "Authenticated cloud session", cloudState.authenticated, cloudState.authenticated ? cloudState.message : "Sign in with Google or magic link before syncing."),
+    check("backend-health", "Backend schema health", backendReady, verification?.backendHealth?.detail ?? "kickoff_backend_health has not passed.", "bun run doctor:supabase"),
+    check("cloud-profile", "Non-local cloud profile", cloudProfile, cloudProfile ? `${profile.id} · ${profile.email}` : "Profile is still local-only."),
+    check("cloud-history", "Cloud history candidate exists", cloudItems > 0, `${records.length} record(s), ${modeRuns.length} mode run(s).`),
+    check("cloud-readback", "Profile/history/share read-back", readbackVerified, verification?.message ?? "Cloud read-back evidence missing.", "bun run doctor:supabase"),
   ];
   const accountPassed = count(accountChecks);
 
@@ -159,15 +183,15 @@ export const buildProductionReadiness = ({
   const injuries = providerReadiness.find((item) => item.key === "injuries");
   const odds = providerReadiness.find((item) => item.key === "odds");
   const dataChecks = [
-    Boolean(activeRoute && !["seed", "manual"].includes(activeRoute.key) && providerHealth?.fresh !== false),
-    Boolean(providerHealth?.fresh),
-    Boolean(providerHealth?.responseVerified),
-    liveOrConfigured(schedule),
-    liveOrConfigured(score),
-    liveOrConfigured(rankings),
-    productionDataReady(lineups, providerHealth),
-    productionDataReady(injuries, providerHealth),
-    productionDataReady(odds, providerHealth),
+    check("non-seed-route", "Non-seed active route", Boolean(activeRoute && !["seed", "manual"].includes(activeRoute.key) && providerHealth?.fresh !== false), activeRoute ? `${activeRoute.label} · ${activeRoute.status}` : "No active route.", "bun run doctor:data"),
+    check("fresh-response", "Fresh provider response", Boolean(providerHealth?.fresh), providerHealth?.detail ?? "Provider freshness not verified.", "bun run doctor:data"),
+    check("response-audit", "Response audit verified", Boolean(providerHealth?.responseVerified), providerHealth?.responseAudit?.detail ?? "No live response audit.", "bun run doctor:data"),
+    check("schedule-feed", "Schedule feed", liveOrConfigured(schedule), `${schedule?.source ?? "missing"} · ${schedule?.status ?? "missing"}`),
+    check("score-feed", "Score feed", liveOrConfigured(score), `${score?.source ?? "missing"} · ${score?.status ?? "missing"}`),
+    check("rankings-feed", "Rankings feed", liveOrConfigured(rankings), `${rankings?.source ?? "missing"} · ${rankings?.status ?? "missing"}`),
+    check("lineups-readback", "Lineups endpoint read-back", productionDataReady(lineups, providerHealth), `${lineups?.source ?? "missing"} · ${lineups?.status ?? "missing"}`, "bun run doctor:data"),
+    check("injuries-readback", "Injuries endpoint read-back", productionDataReady(injuries, providerHealth), `${injuries?.source ?? "missing"} · ${injuries?.status ?? "missing"}`, "bun run doctor:data"),
+    check("odds-readback", "Odds endpoint read-back", productionDataReady(odds, providerHealth), `${odds?.source ?? "missing"} · ${odds?.status ?? "missing"}`, "bun run doctor:data"),
   ];
   const dataPassed = count(dataChecks);
 
@@ -177,17 +201,25 @@ export const buildProductionReadiness = ({
   const anyBackendReady = sealedArtifacts.some((artifact) => artifact.sealJob?.backendHealth?.ok);
   const anyProductionBackend = sealedArtifacts.some((artifact) => sealBackendProductionReady(artifact.sealJob?.backendHealth));
   const filecoinChecks = [
-    sealEndpointConfigured,
-    anyBackendReady,
-    anyProductionBackend,
-    records.some(hasRealVerifiedRecordProof),
-    modeRuns.some(hasRealVerifiedModeProof),
-    records.some(hasVerifiedSealJob),
-    modeRuns.some(hasVerifiedSealJob),
-    records.some(hasPayloadHashMatch),
-    modeRuns.some(hasPayloadHashMatch),
-    records.some(hasProofRegistryReadback),
-    modeRuns.some(hasProofRegistryReadback),
+    check(
+      "seal-endpoint",
+      "Browser seal endpoint configured",
+      sealEndpointConfigured,
+      sealEndpointConfigured
+        ? "Filecoin seal endpoint is configured for browser use."
+        : "Missing VITE_FILECOIN_SEAL_API or VITE_FILECOIN_SEAL_SAME_ORIGIN=1.",
+      "bun run doctor:filecoin",
+    ),
+    check("seal-health", "Seal backend health reachable", anyBackendReady, anyBackendReady ? "At least one seal job has backend health." : "No seal job has successful backend health.", "bun run test:e2e:seal"),
+    check("production-synapse", "Production Synapse backend", anyProductionBackend, anyProductionBackend ? "Mock mode is off, auth is required and persistence is durable." : "Backend is missing production Synapse readiness.", "bun run doctor:filecoin"),
+    check("real-record-cid", "Real record CID verified", records.some(hasRealVerifiedRecordProof), `${realRecordProofs} real record proof(s).`, "bun run seal:production-targets"),
+    check("real-mode-cid", "Real mode CID verified", modeRuns.some(hasRealVerifiedModeProof), `${realModeProofs} real mode proof(s).`, "bun run seal:production-targets"),
+    check("record-seal-job", "Record seal job verified", records.some(hasVerifiedSealJob), "Prediction seal job status, proof URL and verify URL are required."),
+    check("mode-seal-job", "Mode seal job verified", modeRuns.some(hasVerifiedSealJob), "Mode proof seal job status, proof URL and verify URL are required."),
+    check("record-hash-match", "Record payload hash match", records.some(hasPayloadHashMatch), "Upload payload hash must equal returned proof payload hash."),
+    check("mode-hash-match", "Mode payload hash match", modeRuns.some(hasPayloadHashMatch), "Mode upload payload hash must equal returned proof payload hash."),
+    check("record-registry-readback", "Record registry read-back", records.some(hasProofRegistryReadback), "Persistent proof registry must read back the record payload hash.", "bun run doctor:filecoin"),
+    check("mode-registry-readback", "Mode registry read-back", modeRuns.some(hasProofRegistryReadback), "Persistent proof registry must read back the mode payload hash.", "bun run doctor:filecoin"),
   ];
   const filecoinPassed = count(filecoinChecks);
 
@@ -195,7 +227,17 @@ export const buildProductionReadiness = ({
   const productionShareEvidence = shareEvidence.filter(isProductionShareArtifact);
   const recordShareIds = new Set(productionShareEvidence.filter((item) => item.kind === "record").map((item) => item.id));
   const modeShareIds = new Set(productionShareEvidence.filter((item) => item.kind === "mode").map((item) => item.id));
-  const shareChannelReady = productionShareEvidence.some((item) => item.xIntentOpenedAt || item.nativeShareOpenedAt);
+  const shareChannelEvidence = productionShareEvidence.filter(
+    (item) => item.xIntentUrl && (item.xIntentOpenedAt || item.nativeShareOpenedAt),
+  );
+  const recordShareChannelIds = new Set(shareChannelEvidence.filter((item) => item.kind === "record").map((item) => item.id));
+  const modeShareChannelIds = new Set(shareChannelEvidence.filter((item) => item.kind === "mode").map((item) => item.id));
+  const shareChannelReady = Boolean(
+    records.length > 0 &&
+      modeRuns.length > 0 &&
+      records.every((record) => recordShareChannelIds.has(record.capsule.id)) &&
+      modeRuns.every((run) => modeShareChannelIds.has(run.id)),
+  );
   const publicLinksVerified = Boolean(
     verification &&
       publicProofItems > 0 &&
@@ -213,14 +255,22 @@ export const buildProductionReadiness = ({
       (verification.publicShareImages ?? 0) >= productionShareEvidence.length,
   );
   const shareChecks = [
-    publicProofItems > 0,
-    records.length > 0 && records.every((record) => recordShareIds.has(record.capsule.id)),
-    modeRuns.length > 0 && modeRuns.every((run) => modeShareIds.has(run.id)),
-    shareImageReady || recordShareIds.size + modeShareIds.size > 0,
-    publicLinksVerified,
-    shareArtifactsVerified,
-    publicShareImagesVerified,
-    shareChannelReady,
+    check("proof-artifacts", "Record or mode proof exists", publicProofItems > 0, `${records.length} record(s), ${modeRuns.length} mode run(s).`),
+    check("record-share-cards", "Every record has production share card", records.length > 0 && records.every((record) => recordShareIds.has(record.capsule.id)), `${recordShareIds.size}/${records.length} record card(s).`, "bun run doctor:sharing"),
+    check("mode-share-cards", "Every mode has production share card", modeRuns.length > 0 && modeRuns.every((run) => modeShareIds.has(run.id)), `${modeShareIds.size}/${modeRuns.length} mode card(s).`, "bun run doctor:sharing"),
+    check("share-image-generated", "Share image generated", shareImageReady || recordShareIds.size + modeShareIds.size > 0, `${productionShareEvidence.length} production manifest(s).`, "bun run share:production-image"),
+    check("public-proof-links", "Public proof/profile links read back", publicLinksVerified, verification ? `${verification.publicProofs} public proof(s), profile ${verification.publicProfile ? "yes" : "no"}.` : "Cloud public link read-back missing.", "bun run doctor:sharing"),
+    check("share-manifests", "Share manifests read back", shareArtifactsVerified, verification ? `${verification.shareArtifacts ?? 0}/${productionShareEvidence.length} share manifest(s).` : "Cloud share manifest read-back missing.", "bun run doctor:sharing"),
+    check("public-image-urls", "Public image URLs read back", publicShareImagesVerified, verification ? `${verification.publicShareImages ?? 0}/${productionShareEvidence.length} public image(s).` : "Supabase Storage image read-back missing.", "bun run doctor:sharing"),
+    check(
+      "share-channel",
+      "X or native share exercised for every card",
+      shareChannelReady,
+      shareChannelReady
+        ? `${shareChannelEvidence.length}/${publicProofItems} production card share channel timestamp(s).`
+        : `record ${recordShareChannelIds.size}/${records.length}, mode ${modeShareChannelIds.size}/${modeRuns.length} share channel timestamp(s).`,
+      "Open X intent or native share for every production record and mode card before final submission.",
+    ),
   ];
   const sharingPassed = count(shareChecks);
 
@@ -228,24 +278,21 @@ export const buildProductionReadiness = ({
   const leaderboardScopes = new Set(leaderboardEntries.filter((entry) => entry.source !== "local").map((entry) => entry.source));
   const requiredLeaderboardScopes: LeaderboardScope[] = ["global", "friend", "season"];
   const leaderboardEvidenceByScope = new Map(leaderboardScopeEvidence.map((item) => [item.scope, item]));
+  const leaderboardScopePassed = (scope: LeaderboardScope) => {
+    return hasLeaderboardScopeEvidence(leaderboardEvidenceByScope.get(scope));
+  };
   const leaderboardScopeQueriesPassed = requiredLeaderboardScopes.every((scope) => {
-    const evidence = leaderboardEvidenceByScope.get(scope);
-    return evidence
-      ? evidence.status === "loaded" && evidence.rows > 0 && evidence.currentUserPresent
-      : leaderboardEntries.some((entry) => entry.source === scope && entry.id === profile.id);
+    return leaderboardScopePassed(scope);
   });
+  const globalLeaderboardPassed = leaderboardScopePassed("global");
+  const friendLeaderboardPassed = leaderboardScopePassed("friend");
+  const seasonLeaderboardPassed = leaderboardScopePassed("season");
   const leaderboardChecks = [
-    cloudState.configured,
-    remoteLeaderboardRows > 0,
-    leaderboardEvidenceByScope.get("global")
-      ? leaderboardEvidenceByScope.get("global")?.status === "loaded" && (leaderboardEvidenceByScope.get("global")?.rows ?? 0) > 0 && Boolean(leaderboardEvidenceByScope.get("global")?.currentUserPresent)
-      : leaderboardEntries.some((entry) => entry.source === "global" && entry.id === profile.id),
-    leaderboardEvidenceByScope.get("friend")
-      ? leaderboardEvidenceByScope.get("friend")?.status === "loaded" && (leaderboardEvidenceByScope.get("friend")?.rows ?? 0) > 0 && Boolean(leaderboardEvidenceByScope.get("friend")?.currentUserPresent)
-      : leaderboardEntries.some((entry) => entry.source === "friend" && entry.id === profile.id),
-    leaderboardEvidenceByScope.get("season")
-      ? leaderboardEvidenceByScope.get("season")?.status === "loaded" && (leaderboardEvidenceByScope.get("season")?.rows ?? 0) > 0 && Boolean(leaderboardEvidenceByScope.get("season")?.currentUserPresent)
-      : leaderboardEntries.some((entry) => entry.source === "season" && entry.id === profile.id),
+    check("supabase-leaderboard-env", "Supabase leaderboard backend configured", cloudState.configured, cloudState.configured ? "Supabase REST is configured." : "Supabase env missing.", "bun run doctor:supabase"),
+    check("remote-rows", "Remote leaderboard rows loaded", remoteLeaderboardRows > 0, `${remoteLeaderboardRows} remote row(s).`),
+    check("global-current-user", "Global scope contains ranked current user", Boolean(globalLeaderboardPassed), leaderboardEvidenceByScope.get("global")?.filter ?? "global xp desc", "bun run doctor:supabase"),
+    check("friend-current-user", "Friend scope contains ranked current user", Boolean(friendLeaderboardPassed), leaderboardEvidenceByScope.get("friend")?.filter ?? "friend_code filter", "bun run doctor:supabase"),
+    check("season-current-user", "Season scope contains ranked current user", Boolean(seasonLeaderboardPassed), leaderboardEvidenceByScope.get("season")?.filter ?? "season_key filter", "bun run doctor:supabase"),
   ];
   const leaderboardPassed = count(leaderboardChecks);
 
@@ -269,12 +316,12 @@ export const buildProductionReadiness = ({
     requiredModeRuns.length === requiredModeIds.length &&
     requiredModeRuns.every((run) => modeShareIds.has(run.id));
   const modeChecks = [
-    gameModes.length >= 4,
-    requiredModeIds.every((modeId) => gameModes.some((mode) => mode.id === modeId && mode.status === "playable")),
-    requiredModeIds.every((modeId) => sealedModeIds.has(modeId)),
-    allModesHaveCloudContent,
-    allModesHavePublicProofs,
-    allModesHaveShareCards,
+    check("mode-catalog", "Four tournament modes registered", gameModes.length >= 4, `${gameModes.length} mode(s) registered.`),
+    check("mode-lanes-playable", "Required mode lanes playable", requiredModeIds.every((modeId) => gameModes.some((mode) => mode.id === modeId && mode.status === "playable")), requiredModeIds.join(", ")),
+    check("mode-runs-sealed", "Every required mode has sealed run", requiredModeIds.every((modeId) => sealedModeIds.has(modeId)), `${sealedModeIds.size}/${requiredModeIds.length} sealed real Filecoin mode type(s).`),
+    check("mode-cloud-readback", "Mode content read back from cloud", allModesHaveCloudContent, verification ? `${verification.modeRunContentIds?.length ?? 0}/${requiredModeIds.length} mode content id(s).` : "Cloud verification missing.", "bun run doctor:supabase"),
+    check("mode-public-proofs", "Mode public proof links read back", allModesHavePublicProofs, verification ? `${verification.publicProofIds?.filter((id) => id.startsWith("mode:")).length ?? 0}/${requiredModeIds.length} public mode proof id(s).` : "Public proof verification missing.", "bun run doctor:sharing"),
+    check("mode-share-cards", "Mode production share cards", allModesHaveShareCards, `${modeShareIds.size}/${requiredModeIds.length} mode share card(s).`, "bun run doctor:sharing"),
   ];
   const modePassed = count(modeChecks);
 
@@ -282,10 +329,51 @@ export const buildProductionReadiness = ({
   const testRuns = summarizeAcceptanceRunEvidence(acceptanceEvidence, ACCEPTANCE_TEST_SUITES);
   const testPassed = testCoverage.covered + testRuns.passed;
   const testTotal = testCoverage.total + testRuns.total;
+  const testChecks = [
+    ...testCoverage.missing.map((key) =>
+      check(`coverage-${key}`, `${key} coverage`, false, "No suite declares this required acceptance coverage.", "bun run test"),
+    ),
+    ...REQUIRED_ACCEPTANCE_COVERAGE.map((key) =>
+      check(`coverage-${key}`, `${key} coverage`, !testCoverage.missing.includes(key), "Acceptance manifest coverage."),
+    ).filter((item) => item.passed),
+    ...ACCEPTANCE_TEST_SUITES.map((suite) => {
+      const failed = testRuns.failedSuiteIds.includes(suite.id);
+      const missing = testRuns.missingSuiteIds.includes(suite.id);
+      const mismatch = testRuns.commandMismatches.includes(suite.id);
+      const passed = testRuns.passedSuiteIds.includes(suite.id) && !testRuns.manifestHashMismatch && !testRuns.evidenceStale;
+      return check(
+        `suite-${suite.id}`,
+        suite.label,
+        passed,
+        failed
+          ? "Suite failed in the latest acceptance evidence."
+          : missing
+            ? "Suite run evidence missing."
+            : mismatch
+              ? "Recorded command does not match the manifest."
+              : testRuns.manifestHashMismatch
+                ? "Acceptance manifest hash changed."
+                : testRuns.evidenceStale
+                  ? "Acceptance run evidence is older than 7 days."
+                  : suite.proves,
+        suite.command,
+      );
+    }),
+  ];
   const externalEvidence = summarizeProductionEvidence(productionEvidence);
   const externalTotal = externalEvidence.loaded ? Math.max(1, externalEvidence.requiredTotal) : 1;
   const externalPassed = externalEvidence.loaded ? externalEvidence.requiredPassed : 0;
   const externalOpen = externalEvidence.openRequired.slice(0, 3).map((check) => check.id).join(", ");
+  const externalChecks = externalEvidence.loaded
+    ? [
+        ...externalEvidence.openRequired.map((item) =>
+          check(`external-${item.id}`, item.label, false, item.detail, item.action ?? "bun run verify:production"),
+        ),
+        ...productionEvidence!.checks
+          .filter((item) => item.required && productionCheckPassed(item))
+          .map((item) => check(`external-${item.id}`, item.label, true, item.detail, item.action ?? "bun run verify:production")),
+      ]
+    : [check("external-evidence-file", "Production evidence file loaded", false, "production-evidence.json not loaded.", "bun run verify:production")];
 
   return [
     {
@@ -300,6 +388,7 @@ export const buildProductionReadiness = ({
           ? "Supabase configured, but sign-in/sync evidence is still missing"
           : "Supabase env missing; app is using local profile",
       nextAction: accountPassed === accountChecks.length ? "Cloud account acceptance is satisfied." : "Sign in, sync history, then verify Supabase read-back from another device.",
+      checks: accountChecks,
     },
     {
       key: "data",
@@ -314,6 +403,7 @@ export const buildProductionReadiness = ({
         dataPassed === dataChecks.length
           ? "Live schedule, score and enrichment feeds are all configured."
           : providerHealth?.nextAction ?? "Configure API-Football or equivalent enrichment for lineups, injuries and odds.",
+      checks: dataChecks,
     },
     {
       key: "filecoin",
@@ -326,6 +416,7 @@ export const buildProductionReadiness = ({
         filecoinPassed === filecoinChecks.length
           ? "One-click seal has production backend, verified CIDs, matching payload hashes and registry read-back for records and mode proofs."
           : "Deploy seal API with funded Synapse key, token, persistent proof store, then verify one real record capsule and one real mode proof.",
+      checks: filecoinChecks,
     },
     {
       key: "sharing",
@@ -333,11 +424,12 @@ export const buildProductionReadiness = ({
       level: levelFrom(sharingPassed, shareChecks.length),
       passed: sharingPassed,
       total: shareChecks.length,
-      evidence: `${recordShareIds.size}/${records.length} production HTTPS record card${records.length === 1 ? "" : "s"} · ${modeShareIds.size}/${modeRuns.length} production HTTPS mode card${modeRuns.length === 1 ? "" : "s"} · manifests ${shareArtifactsVerified ? "read back" : "local only"} · images ${publicShareImagesVerified ? "read back" : "unverified"} · public links ${publicLinksVerified ? "read back" : "unverified"} · share channel ${shareChannelReady ? "opened" : "not exercised"}`,
+      evidence: `${recordShareIds.size}/${records.length} production HTTPS record card${records.length === 1 ? "" : "s"} · ${modeShareIds.size}/${modeRuns.length} production HTTPS mode card${modeRuns.length === 1 ? "" : "s"} · manifests ${shareArtifactsVerified ? "read back" : "local only"} · images ${publicShareImagesVerified ? "read back" : "unverified"} · public links ${publicLinksVerified ? "read back" : "unverified"} · share channel record ${recordShareChannelIds.size}/${records.length}, mode ${modeShareChannelIds.size}/${modeRuns.length}`,
       nextAction:
         sharingPassed === shareChecks.length
           ? "Proof links, mode links and share images are ready for public posting."
           : "Generate publishable proof and mode cards with deployed HTTPS proof/image URLs, sync card manifests, verify public links and public image URLs by cloud read-back, then open X intent/native share.",
+      checks: shareChecks,
     },
     {
       key: "leaderboard",
@@ -350,14 +442,20 @@ export const buildProductionReadiness = ({
           ? requiredLeaderboardScopes
               .map((scope) => {
                 const evidence = leaderboardEvidenceByScope.get(scope);
-                return `${scope}:${evidence ? `${evidence.status}/${evidence.rows}/${evidence.currentUserPresent ? "user" : "missing-user"}` : "unchecked"}`;
+                const userState = evidence?.currentUserPresent
+                  ? hasLeaderboardScopeEvidence(evidence)
+                    ? `rank-${evidence.currentUserRank}/xp-${evidence.currentUserXp}`
+                    : "missing-rank-or-stats"
+                  : "missing-user";
+                return `${scope}:${evidence ? `${evidence.status}/${evidence.rows}/${userState}` : "unchecked"}`;
               })
               .join(" · ")
           : `${remoteLeaderboardRows} remote row${remoteLeaderboardRows === 1 ? "" : "s"} · scopes ${[...leaderboardScopes].join(", ") || "none"}`,
       nextAction:
         leaderboardPassed === leaderboardChecks.length && leaderboardScopeQueriesPassed
-          ? "Global, friend and season scopes list the current user from Supabase."
-          : "Load Supabase leaderboard rows for global, friend and season scopes and confirm the current user appears in each scope.",
+          ? "Global, friend and season scopes list the current user from Supabase with positive ranks."
+          : "Load Supabase leaderboard rows for global, friend and season scopes and confirm the current user has a positive rank in each scope.",
+      checks: leaderboardChecks,
     },
     {
       key: "modes",
@@ -370,6 +468,7 @@ export const buildProductionReadiness = ({
         modePassed === modeChecks.length
           ? "Bracket, parlay, Agent vs Human and upset proofs have synced public mode cards."
           : "Create one sealed run for every mode, auto seal each mode proof to real Filecoin, sync mode runs, verify anonymous mode proof links, then generate production HTTPS mode cards.",
+      checks: modeChecks,
     },
     {
       key: "tests",
@@ -388,6 +487,7 @@ export const buildProductionReadiness = ({
           : testCoverage.complete
             ? "Run bun run verify:acceptance before final submission so the app can load acceptance-evidence.json."
             : `Add coverage for ${testCoverage.missing.join(", ")}.`,
+      checks: testChecks,
     },
     {
       key: "external",
@@ -403,6 +503,7 @@ export const buildProductionReadiness = ({
         : externalEvidence.loaded
           ? `Resolve production evidence gaps${externalOpen ? `: ${externalOpen}` : ""}.`
           : "Run bun run verify:production after deploying and syncing production artifacts.",
+      checks: externalChecks,
     },
   ];
 };

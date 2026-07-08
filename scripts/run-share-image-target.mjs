@@ -6,12 +6,21 @@ import { parseEnvText } from "../src/productionEvidence.ts";
 import {
   buildProductionShareImageTargetSvg,
   buildShareImageMetadata,
+  DEFAULT_PRODUCTION_MODE_SHARE_IMAGE_TARGET,
   DEFAULT_PRODUCTION_SHARE_IMAGE_TARGET,
   productionShareImagePublicUrl,
 } from "../src/shareImageTarget.ts";
 
-const envFiles = [".env.example", ".env", ".env.local", ".env.production", ".env.production.local"];
-const defaultOutputPath = "public/generated/kickoff-production-share.png";
+const includeExample = process.argv.includes("--include-example");
+const envFiles = [
+  ...(includeExample ? [".env.example"] : []),
+  ".env",
+  ".env.local",
+  ".env.production",
+  ".env.production.local",
+];
+const defaultRecordOutputPath = "public/generated/kickoff-production-share.png";
+const defaultModeOutputPath = "public/generated/kickoff-production-mode-share.png";
 const logoPath = "public/assets/kickoff-lock-icon.png";
 
 const argValue = (name) => {
@@ -51,15 +60,17 @@ const launchBrowser = async () => {
   }
 };
 
+const json = process.argv.includes("--json");
+const kind = argValue("kind") === "mode" ? "mode" : "record";
+const defaultOutputPath = kind === "mode" ? defaultModeOutputPath : defaultRecordOutputPath;
 const outputPath = resolve(argValue("out") || defaultOutputPath);
 const svgOutputPath = process.argv.includes("--svg")
   ? resolve(argValue("svg-out") || outputPath.replace(/\.png$/i, ".svg"))
   : undefined;
-const json = process.argv.includes("--json");
 const { env, loaded } = await loadEnv();
 const logoHref = await dataUrlForFile(argValue("logo") || logoPath);
 const target = {
-  ...DEFAULT_PRODUCTION_SHARE_IMAGE_TARGET,
+  ...(kind === "mode" ? DEFAULT_PRODUCTION_MODE_SHARE_IMAGE_TARGET : DEFAULT_PRODUCTION_SHARE_IMAGE_TARGET),
   generatedAt: new Date().toISOString(),
   logoHref,
 };
@@ -93,6 +104,7 @@ try {
     outputUrl: pathToFileURL(outputPath).toString(),
     svgOutputPath,
     publicUrl,
+    kind,
     logoPath: resolve(argValue("logo") || logoPath),
     ...metadata,
   };
@@ -100,8 +112,9 @@ try {
   if (json) {
     console.log(JSON.stringify(result, null, 2));
   } else {
-    console.log("Production share image");
+    console.log(kind === "mode" ? "Production mode share image" : "Production share image");
     console.log(`Env files: ${loaded.join(", ") || "none"}`);
+    if (!includeExample) console.log("Example env: ignored by default; pass --include-example to audit placeholders.");
     console.log(`PNG: ${outputPath}`);
     if (svgOutputPath) console.log(`SVG: ${svgOutputPath}`);
     console.log(`Logo: ${result.logoPath}`);
@@ -111,8 +124,13 @@ try {
     if (publicUrl) {
       console.log("");
       console.log("After deploying public/, use:");
-      console.log(`KICKOFF_SEED_SHARE_IMAGE_URL=${publicUrl}`);
-      console.log(`KICKOFF_VERIFY_SHARE_IMAGE_URL=${publicUrl}`);
+      if (kind === "mode") {
+        console.log(`KICKOFF_SEED_MODE_SHARE_IMAGE_URL=${publicUrl}`);
+        console.log(`KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL=${publicUrl}`);
+      } else {
+        console.log(`KICKOFF_SEED_SHARE_IMAGE_URL=${publicUrl}`);
+        console.log(`KICKOFF_VERIFY_SHARE_IMAGE_URL=${publicUrl}`);
+      }
     } else {
       console.log("");
       console.log("Set VITE_PUBLIC_APP_URL to print deployable KICKOFF_* share image URLs.");

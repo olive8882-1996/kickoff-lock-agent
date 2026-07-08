@@ -55,6 +55,7 @@ const routes: ProviderRouteAuditItem[] = [
   { key: "api-football", label: "API-Football", configured: false, status: "needs-config", detail: "missing key" },
   { key: "football-data", label: "Football-Data.org", configured: false, status: "needs-config", detail: "missing token" },
   { key: "thesportsdb", label: "TheSportsDB", configured: true, status: "active", detail: "eventsseason route active" },
+  { key: "openfootball", label: "openfootball", configured: true, status: "skipped", detail: "Not needed after TheSportsDB returned matches." },
   { key: "espn", label: "ESPN", configured: true, status: "skipped", detail: "Not needed after TheSportsDB returned matches." },
   { key: "worldcup26", label: "worldcup26", configured: true, status: "skipped", detail: "Not needed after TheSportsDB returned matches." },
   { key: "seed", label: "Seed continuity", configured: true, status: "skipped", detail: "Seed upcoming rows merged." },
@@ -83,6 +84,7 @@ describe("data continuity evidence", () => {
       matches: [seedMatch],
       routeAudit: [
         { key: "thesportsdb", label: "TheSportsDB", configured: true, status: "failed", detail: "network error" },
+        { key: "openfootball", label: "openfootball", configured: true, status: "failed", detail: "network error" },
         { key: "espn", label: "ESPN", configured: true, status: "failed", detail: "network error" },
         { key: "seed", label: "Seed continuity", configured: true, status: "fallback", detail: "Offline seed data is serving the board." },
       ],
@@ -94,6 +96,6 @@ describe("data continuity evidence", () => {
     expect(packet.continuityReady).toBe(false);
     expect(packet.externalMatches).toBe(0);
     expect(packet.checks.find((check) => check.key === "primary-free-feed")?.status).toBe("failed");
-    expect(packet.nextAction).toContain("TheSportsDB or ESPN");
+    expect(packet.nextAction).toContain("TheSportsDB, openfootball or ESPN");
   });
 });

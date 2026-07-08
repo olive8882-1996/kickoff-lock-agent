@@ -53,13 +53,16 @@ export const buildShareCardPayload = (record: MemoryRecord, proofUrl: string): S
   };
 };
 
-const modeLabel = (run: GameModeRun) =>
-  ({
-    bracket: "BRACKET",
-    parlay: "PARLAY",
-    "agent-vs-human": "AGENT VS HUMAN",
-    upset: "UPSET",
-  })[run.modeId];
+const modeLabels: Record<GameModeRun["modeId"], string> = {
+  bracket: "BRACKET",
+  parlay: "PARLAY",
+  "agent-vs-human": "AGENT VS HUMAN",
+  upset: "UPSET",
+  "group-path": "GROUP PATH",
+  "penalty-pressure": "PENALTY PRESSURE",
+};
+
+const modeLabel = (run: GameModeRun) => modeLabels[run.modeId];
 
 export const buildModeRunShareCardPayload = (run: GameModeRun, proofUrl: string): ShareCardPayload => ({
   title: "KICKOFF LOCK MODES",
@@ -106,9 +109,47 @@ export const buildModeProofShareText = (run: GameModeRun, proofUrl = "") => {
     .join("\n");
 };
 
+const ellipsize = (value: string, maxLength: number) => {
+  if (value.length <= maxLength) return value;
+  if (maxLength <= 3) return value.slice(0, maxLength);
+  return `${value.slice(0, maxLength - 3)}...`;
+};
+
+const compactTweetText = (parts: string[], proofUrl: string, maxLength = 280) => {
+  const required = proofUrl ? `Verify: ${proofUrl}` : "";
+  const requiredLength = required ? required.length + 1 : 0;
+  const budget = Math.max(24, maxLength - requiredLength);
+  const intro = ellipsize(parts.filter(Boolean).join(" · "), budget);
+  return [intro, required].filter(Boolean).join("\n");
+};
+
+const buildProofTweetText = (record: MemoryRecord, proofUrl: string) => {
+  const { capsule, result } = record;
+  const scoreText = result ? `actual ${result.homeScore}-${result.awayScore}, ${result.totalScore}/100` : "reveal pending";
+  return compactTweetText(
+    [
+      `Locked ${capsule.matchLabel}: ${capsule.prediction.homeScore}-${capsule.prediction.awayScore}`,
+      scoreText,
+      `${capsule.filecoinProof.mode === "real" ? "Filecoin" : "demo"} ${ellipsize(capsule.filecoinProof.cid, 34)}`,
+    ],
+    proofUrl,
+  );
+};
+
+const buildModeTweetText = (run: GameModeRun, proofUrl: string) =>
+  compactTweetText(
+    [
+      `Sealed ${run.title} mode proof`,
+      run.score !== undefined ? `${run.score}/100` : run.status,
+      `${run.capsuleIds.length} locks`,
+      `${run.filecoinProof.mode === "real" ? "Filecoin" : "demo"} ${ellipsize(run.filecoinProof.cid, 34)}`,
+    ],
+    proofUrl,
+  );
+
 export const buildXIntentUrl = (record: MemoryRecord, proofUrl: string) => {
   const url = new URL("https://twitter.com/intent/tweet");
-  url.searchParams.set("text", buildProofShareText(record));
+  url.searchParams.set("text", buildProofTweetText(record, proofUrl));
   url.searchParams.set("url", proofUrl);
   url.searchParams.set("hashtags", "KickoffLock,Filecoin,WorldCup");
   return url.toString();
@@ -116,7 +157,7 @@ export const buildXIntentUrl = (record: MemoryRecord, proofUrl: string) => {
 
 export const buildModeXIntentUrl = (run: GameModeRun, proofUrl: string) => {
   const url = new URL("https://twitter.com/intent/tweet");
-  url.searchParams.set("text", buildModeProofShareText(run));
+  url.searchParams.set("text", buildModeTweetText(run, proofUrl));
   url.searchParams.set("url", proofUrl);
   url.searchParams.set("hashtags", "KickoffLock,Filecoin,WorldCup");
   return url.toString();
@@ -167,6 +208,8 @@ export const buildShareArtifactEvidence = async ({
 export const isPublishableShareArtifact = (evidence?: ShareArtifactEvidence) =>
   Boolean(
     evidence?.imageGenerated &&
+      evidence.generatedAt &&
+      Number.isFinite(Date.parse(evidence.generatedAt)) &&
       evidence.proofUrl &&
       evidence.fileName?.endsWith(".png") &&
       evidence.imageMime === "image/png" &&

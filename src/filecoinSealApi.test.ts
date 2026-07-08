@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { createServer } from "node:net";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
@@ -187,6 +187,73 @@ describe("Filecoin seal API", () => {
     expect(authorized.ok).toBe(true);
     const proof = (await authorized.json()) as { cid: string };
     expect(proof.cid).toContain("bafy-mock-");
+
+    const unauthorizedLookup = await fetch(`${baseUrl}/proof/${encodeURIComponent(proof.cid)}`);
+    expect(unauthorizedLookup.status).toBe(401);
+    await expect(unauthorizedLookup.json()).resolves.toMatchObject({ error: "Missing or invalid seal API token" });
+
+    const authorizedLookup = await fetch(`${baseUrl}/proof/${encodeURIComponent(proof.cid)}`, {
+      headers: { Authorization: "Bearer seal-secret" },
+    });
+    expect(authorizedLookup.ok).toBe(true);
+
+    const unauthorizedVerify = await fetch(`${baseUrl}/verify?cid=${encodeURIComponent(proof.cid)}`);
+    expect(unauthorizedVerify.status).toBe(401);
+
+    const authorizedVerify = await fetch(`${baseUrl}/verify?cid=${encodeURIComponent(proof.cid)}`, {
+      headers: { Authorization: "Bearer seal-secret" },
+    });
+    expect(authorizedVerify.ok).toBe(true);
+  }, 15_000);
+
+  it("supports async seal jobs that can be polled before proof lookup", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "kickoff-filecoin-async-"));
+    const storePath = join(tempDir, "proof-store.json");
+    const port = await getPort();
+    const baseUrl = `http://127.0.0.1:${port}`;
+    const payload = sealPayload("cap-api-async-test", { payloadHash: "d".repeat(64) });
+    const payloadHash = createHash("sha256").update(payload).digest("hex");
+
+    const health = await startServer(port, storePath);
+    expect(health.endpoints).toEqual(expect.arrayContaining(["POST /seal?async=1", "GET /jobs/:id"]));
+
+    const sealRes = await fetch(`${baseUrl}/seal?async=1`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+    });
+    expect(sealRes.status).toBe(202);
+    const started = (await sealRes.json()) as { jobId: string; status: string; statusUrl: string; payloadHash: string };
+    expect(started.jobId).toMatch(/^seal-job-/);
+    expect(started.statusUrl).toBe(`/jobs/${encodeURIComponent(started.jobId)}`);
+    expect(started.payloadHash).toBe(payloadHash);
+
+    let job: { status: string; proof?: { cid: string; payloadHash: string } } | undefined;
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      job = await fetch(`${baseUrl}/jobs/${encodeURIComponent(started.jobId)}`).then((res) => res.json() as Promise<typeof job>);
+      if (job?.proof?.cid) break;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    expect(job?.status).toBe("verified");
+    expect(job?.proof?.cid).toContain("bafy-mock-");
+    expect(job?.proof?.payloadHash).toBe(payloadHash);
+
+    const lookup = await fetch(`${baseUrl}/proof/${encodeURIComponent(job?.proof?.cid ?? "")}`).then((res) => res.json() as Promise<{ cid: string; payloadHash: string }>);
+    expect(lookup.cid).toBe(job?.proof?.cid);
+    expect(lookup.payloadHash).toBe(payloadHash);
+    expect(await readFile(storePath, "utf8")).toContain(started.jobId);
+
+    await stopServer();
+    const restartedHealth = await startServer(port, storePath);
+    expect(restartedHealth.jobCount).toBe(1);
+
+    const persistedJob = await fetch(`${baseUrl}/jobs/${encodeURIComponent(started.jobId)}`).then((res) =>
+      res.json() as Promise<{ status: string; proof?: { cid: string; payloadHash: string } }>,
+    );
+    expect(persistedJob.status).toBe("verified");
+    expect(persistedJob.proof?.cid).toBe(job?.proof?.cid);
+    expect(persistedJob.proof?.payloadHash).toBe(payloadHash);
   }, 15_000);
 
   it("rejects invalid or oversized seal payloads before spending backend work", async () => {
@@ -244,6 +311,43 @@ describe("Filecoin seal API", () => {
 
     const health = await fetch(`${baseUrl}/health`).then((res) => res.json() as Promise<{ proofCount: number }>);
     expect(health.proofCount).toBe(0);
+  }, 15_000);
+
+  it("marks interrupted async jobs as failed after loading the persistent job store", async () => {
+    tempDir = await mkdtemp(join(tmpdir(), "kickoff-filecoin-interrupted-"));
+    const storePath = join(tempDir, "proof-store.json");
+    const port = await getPort();
+    const baseUrl = `http://127.0.0.1:${port}`;
+    await writeFile(
+      storePath,
+      JSON.stringify({
+        version: 1,
+        proofs: [],
+        jobs: [
+          {
+            jobId: "seal-job-interrupted",
+            status: "running",
+            createdAt: "2099-01-01T00:00:00.000Z",
+            updatedAt: "2099-01-01T00:00:01.000Z",
+            payloadHash: "f".repeat(64),
+            byteLength: 128,
+          },
+        ],
+      }),
+      "utf8",
+    );
+
+    const health = await startServer(port, storePath);
+    expect(health.jobCount).toBe(1);
+
+    const jobRes = await fetch(`${baseUrl}/jobs/seal-job-interrupted`);
+    expect(jobRes.status).toBe(500);
+    await expect(jobRes.json()).resolves.toMatchObject({
+      ok: false,
+      jobId: "seal-job-interrupted",
+      status: "failed",
+      error: "Seal job was interrupted before completion; resubmit the payload.",
+    });
   }, 15_000);
 
   it("accepts sealed mode proof runs and rejects draft mode payloads", async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ACCEPTANCE_TEST_SUITES, acceptanceManifestHash, type AcceptanceEvidencePacket } from "./acceptance";
+import { ACCEPTANCE_TEST_SUITES, acceptanceManifestHash, type AcceptanceEvidencePacket, REQUIRED_ACCEPTANCE_COVERAGE } from "./acceptance";
 import type { ProductionEvidencePacket } from "./productionEvidence";
 import { buildProductionReadiness, summarizeProductionReadiness } from "./readiness";
 import type {
@@ -39,6 +39,8 @@ const gameModes: GameMode[] = [
   { id: "parlay", title: "Parlay", status: "playable", description: "Parlay", progress: 1, reward: "XP" },
   { id: "agent-vs-human", title: "Agent", status: "playable", description: "Agent", progress: 1, reward: "XP" },
   { id: "upset", title: "Upset", status: "playable", description: "Upset", progress: 1, reward: "XP" },
+  { id: "group-path", title: "Group path", status: "playable", description: "Group path", progress: 1, reward: "XP" },
+  { id: "penalty-pressure", title: "Penalty pressure", status: "playable", description: "Pressure", progress: 1, reward: "XP" },
 ];
 
 const providerReadiness: ProviderReadinessItem[] = [
@@ -149,6 +151,16 @@ const leaderboardEvidence = (
   filter: scope === "friend" ? "friend_code=eq.chengdu" : scope === "season" ? "season_key=eq.world-cup-run" : "global xp desc",
   currentUserPresent,
   currentUserRank: currentUserPresent ? 1 : undefined,
+  currentUserXp: currentUserPresent ? 1200 : undefined,
+  currentUserLocks: currentUserPresent ? 4 : undefined,
+  currentUserRevealed: currentUserPresent ? 3 : undefined,
+  currentUserVerifiedProofs: currentUserPresent ? 2 : undefined,
+  currentUserModeProofs: currentUserPresent ? 1 : undefined,
+  currentUserExactHits: currentUserPresent ? 1 : undefined,
+  currentUserFriendCode: currentUserPresent && scope === "friend" ? "chengdu" : undefined,
+  currentUserSeasonKey: currentUserPresent && scope === "season" ? "world-cup-run" : undefined,
+  expectedFriendCode: "chengdu",
+  expectedSeasonKey: "world-cup-run",
   checkedAt: "2026-06-01T00:05:00.000Z",
   sampleIds: rows > 0 ? [`${scope}-row`] : [],
 });
@@ -196,6 +208,8 @@ const productionEvidence = (): ProductionEvidencePacket => ({
     "supabase-record-target",
     "supabase-mode-target",
     "supabase-share-artifact-target",
+    "supabase-share-channel-target",
+    "supabase-mode-share-channel-target",
     "leaderboard-global-current-user",
     "leaderboard-friend-current-user",
     "leaderboard-season-current-user",
@@ -204,6 +218,7 @@ const productionEvidence = (): ProductionEvidencePacket => ({
     "public-profile-link",
     "public-proof-link",
     "public-mode-link",
+    "public-clean-session-restore",
     "public-share-image",
   ].map((id) => ({
     id,
@@ -336,7 +351,12 @@ describe("production readiness", () => {
     expect(items.find((item) => item.key === "account")?.level).toBe("blocked");
     expect(items.find((item) => item.key === "filecoin")?.level).toBe("blocked");
     expect(items.find((item) => item.key === "data")?.evidence).toContain("Seed");
-    expect(items.find((item) => item.key === "tests")?.evidence).toContain("coverage 9/9");
+    expect(items.find((item) => item.key === "tests")?.evidence).toContain(
+      `coverage ${REQUIRED_ACCEPTANCE_COVERAGE.length}/${REQUIRED_ACCEPTANCE_COVERAGE.length}`,
+    );
+    expect(items.find((item) => item.key === "account")?.checks.find((check) => check.id === "supabase-env")?.passed).toBe(false);
+    expect(items.find((item) => item.key === "data")?.checks.find((check) => check.id === "lineups-readback")?.command).toBe("bun run doctor:data");
+    expect(items.find((item) => item.key === "filecoin")?.checks.find((check) => check.id === "seal-endpoint")?.evidence).toContain("Missing");
     expect(summarizeProductionReadiness(items).blocked).toBeGreaterThan(0);
   });
 
@@ -396,23 +416,53 @@ describe("production readiness", () => {
           checkedAt: "2026-06-01T00:05:00.000Z",
           backendHealth: backendHealth(),
           profile: true,
+          profileIdentity: {
+            id: "user-1",
+            email: profile.email,
+            displayName: profile.displayName,
+            location: profile.location,
+            friendCode: "chengdu",
+          },
+          profileIdentityProblems: [],
           records: 1,
-          modeRuns: 4,
-          publicProofs: 5,
-          shareArtifacts: 5,
-          publicShareImages: 5,
+          modeRuns: 6,
+          publicProofs: 7,
+          shareArtifacts: 7,
+          publicShareImages: 7,
           publicProfile: true,
           expectedRecords: 1,
-          expectedModeRuns: 4,
-          expectedShareArtifacts: 5,
+          expectedModeRuns: 6,
+          expectedShareArtifacts: 7,
+          recordIds: ["cap-real"],
+          modeRunIds: ["mode-bracket", "mode-parlay", "mode-agent-vs-human", "mode-upset", "mode-group-path", "mode-penalty-pressure"],
+          shareArtifactIds: [
+            "record:cap-real",
+            "mode:mode-bracket",
+            "mode:mode-parlay",
+            "mode:mode-agent-vs-human",
+            "mode:mode-upset",
+            "mode:mode-group-path",
+            "mode:mode-penalty-pressure",
+          ],
+          publicShareImageIds: [
+            "record:cap-real",
+            "mode:mode-bracket",
+            "mode:mode-parlay",
+            "mode:mode-agent-vs-human",
+            "mode:mode-upset",
+            "mode:mode-group-path",
+            "mode:mode-penalty-pressure",
+          ],
           recordContentIds: ["cap-real"],
-          modeRunContentIds: ["mode-bracket", "mode-parlay", "mode-agent-vs-human", "mode-upset"],
+          modeRunContentIds: ["mode-bracket", "mode-parlay", "mode-agent-vs-human", "mode-upset", "mode-group-path", "mode-penalty-pressure"],
           shareArtifactContentIds: [
             "record:cap-real",
             "mode:mode-bracket",
             "mode:mode-parlay",
             "mode:mode-agent-vs-human",
             "mode:mode-upset",
+            "mode:mode-group-path",
+            "mode:mode-penalty-pressure",
           ],
           publicProofIds: [
             "record:cap-real",
@@ -420,6 +470,28 @@ describe("production readiness", () => {
             "mode:mode-parlay",
             "mode:mode-agent-vs-human",
             "mode:mode-upset",
+            "mode:mode-group-path",
+            "mode:mode-penalty-pressure",
+          ],
+          publicProofContentIds: [
+            "record:cap-real",
+            "mode:mode-bracket",
+            "mode:mode-parlay",
+            "mode:mode-agent-vs-human",
+            "mode:mode-upset",
+            "mode:mode-group-path",
+            "mode:mode-penalty-pressure",
+          ],
+          publicProfileRecordIds: ["cap-real"],
+          publicProfileModeRunIds: ["mode-bracket", "mode-parlay", "mode-agent-vs-human", "mode-upset", "mode-group-path", "mode-penalty-pressure"],
+          publicProfileShareArtifactIds: [
+            "record:cap-real",
+            "mode:mode-bracket",
+            "mode:mode-parlay",
+            "mode:mode-agent-vs-human",
+            "mode:mode-upset",
+            "mode:mode-group-path",
+            "mode:mode-penalty-pressure",
           ],
           message: "Cloud read-back verified.",
         },
@@ -431,6 +503,8 @@ describe("production readiness", () => {
         modeRun("parlay"),
         modeRun("agent-vs-human"),
         modeRun("upset"),
+        modeRun("group-path"),
+        modeRun("penalty-pressure"),
       ],
       gameModes,
       providerReadiness: providerReadiness.map((item) => ({ ...item, status: "live" })),
@@ -453,10 +527,30 @@ describe("production readiness", () => {
           xIntentOpenedAt: "2026-06-01T00:03:00.000Z",
           xIntentUrl: "https://twitter.com/intent/tweet",
         }),
-        shareArtifact("mode-bracket", "mode", "https://example.com/kickoff-lock-agent/?mode=mode-bracket"),
-        shareArtifact("mode-parlay", "mode", "https://example.com/kickoff-lock-agent/?mode=mode-parlay"),
-        shareArtifact("mode-agent-vs-human", "mode", "https://example.com/kickoff-lock-agent/?mode=mode-agent-vs-human"),
-        shareArtifact("mode-upset", "mode", "https://example.com/kickoff-lock-agent/?mode=mode-upset"),
+        shareArtifact("mode-bracket", "mode", "https://example.com/kickoff-lock-agent/?mode=mode-bracket", {
+          xIntentOpenedAt: "2026-06-01T00:04:00.000Z",
+          xIntentUrl: "https://twitter.com/intent/tweet",
+        }),
+        shareArtifact("mode-parlay", "mode", "https://example.com/kickoff-lock-agent/?mode=mode-parlay", {
+          xIntentOpenedAt: "2026-06-01T00:05:00.000Z",
+          xIntentUrl: "https://twitter.com/intent/tweet",
+        }),
+        shareArtifact("mode-agent-vs-human", "mode", "https://example.com/kickoff-lock-agent/?mode=mode-agent-vs-human", {
+          xIntentOpenedAt: "2026-06-01T00:06:00.000Z",
+          xIntentUrl: "https://twitter.com/intent/tweet",
+        }),
+        shareArtifact("mode-upset", "mode", "https://example.com/kickoff-lock-agent/?mode=mode-upset", {
+          xIntentOpenedAt: "2026-06-01T00:07:00.000Z",
+          xIntentUrl: "https://twitter.com/intent/tweet",
+        }),
+        shareArtifact("mode-group-path", "mode", "https://example.com/kickoff-lock-agent/?mode=mode-group-path", {
+          xIntentOpenedAt: "2026-06-01T00:08:00.000Z",
+          xIntentUrl: "https://twitter.com/intent/tweet",
+        }),
+        shareArtifact("mode-penalty-pressure", "mode", "https://example.com/kickoff-lock-agent/?mode=mode-penalty-pressure", {
+          xIntentOpenedAt: "2026-06-01T00:09:00.000Z",
+          xIntentUrl: "https://twitter.com/intent/tweet",
+        }),
       ] satisfies ShareArtifactEvidence[],
     });
 
@@ -467,7 +561,111 @@ describe("production readiness", () => {
     expect(items.find((item) => item.key === "tests")?.level).toBe("verified");
     expect(items.find((item) => item.key === "external")?.level).toBe("verified");
     expect(items.find((item) => item.key === "modes")?.passed).toBe(6);
+    expect(items.every((item) => item.checks.length === item.total)).toBe(true);
+    expect(items.every((item) => item.checks.filter((check) => check.passed).length === item.passed)).toBe(true);
     expect(summarizeProductionReadiness(items).score).toBeGreaterThan(90);
+  });
+
+  it("does not verify public sharing until record and mode cards all exercise a share channel", () => {
+    const items = buildProductionReadiness({
+      cloudState: {
+        configured: true,
+        authenticated: true,
+        mode: "supabase",
+        status: "synced",
+        message: "synced",
+        verification: {
+          checkedAt: "2026-06-01T00:05:00.000Z",
+          backendHealth: backendHealth(),
+          profile: true,
+          records: 1,
+          modeRuns: 1,
+          publicProofs: 2,
+          shareArtifacts: 2,
+          publicShareImages: 2,
+          publicProfile: true,
+          expectedRecords: 1,
+          expectedModeRuns: 1,
+          expectedShareArtifacts: 2,
+          recordContentIds: ["cap-share-channel"],
+          modeRunContentIds: ["mode-bracket"],
+          shareArtifactContentIds: ["record:cap-share-channel", "mode:mode-bracket"],
+          message: "Cloud read-back verified.",
+        },
+      },
+      profile: { ...profile, id: "user-1", cloudMode: "supabase" },
+      records: [record("cap-share-channel")],
+      modeRuns: [modeRun("bracket")],
+      gameModes,
+      providerReadiness,
+      providerRouteAudit: routeAudit,
+      leaderboardEntries: [],
+      sealEndpointConfigured: false,
+      shareImageReady: true,
+      shareEvidence: [
+        shareArtifact("cap-share-channel", "record", "https://example.com/kickoff-lock-agent/?proof=cap-share-channel", {
+          xIntentOpenedAt: "2026-06-01T00:03:00.000Z",
+          xIntentUrl: "https://twitter.com/intent/tweet",
+        }),
+        shareArtifact("mode-bracket", "mode", "https://example.com/kickoff-lock-agent/?mode=mode-bracket"),
+      ],
+    });
+
+    const sharing = items.find((item) => item.key === "sharing");
+    expect(sharing?.level).not.toBe("verified");
+    expect(sharing?.evidence).toContain("share channel record 1/1, mode 0/1");
+    expect(sharing?.checks.find((check) => check.id === "share-channel")?.evidence).toContain("mode 0/1");
+  });
+
+  it("does not verify public sharing from a share timestamp without a saved X intent URL", () => {
+    const items = buildProductionReadiness({
+      cloudState: {
+        configured: true,
+        authenticated: true,
+        mode: "supabase",
+        status: "synced",
+        message: "synced",
+        verification: {
+          checkedAt: "2026-06-01T00:05:00.000Z",
+          backendHealth: backendHealth(),
+          profile: true,
+          records: 1,
+          modeRuns: 1,
+          publicProofs: 2,
+          shareArtifacts: 2,
+          publicShareImages: 2,
+          publicProfile: true,
+          expectedRecords: 1,
+          expectedModeRuns: 1,
+          expectedShareArtifacts: 2,
+          recordContentIds: ["cap-share-channel"],
+          modeRunContentIds: ["mode-bracket"],
+          shareArtifactContentIds: ["record:cap-share-channel", "mode:mode-bracket"],
+          message: "Cloud read-back verified.",
+        },
+      },
+      profile: { ...profile, id: "user-1", cloudMode: "supabase" },
+      records: [record("cap-share-channel")],
+      modeRuns: [modeRun("bracket")],
+      gameModes,
+      providerReadiness,
+      providerRouteAudit: routeAudit,
+      leaderboardEntries: [],
+      sealEndpointConfigured: false,
+      shareImageReady: true,
+      shareEvidence: [
+        shareArtifact("cap-share-channel", "record", "https://example.com/kickoff-lock-agent/?proof=cap-share-channel", {
+          xIntentOpenedAt: "2026-06-01T00:03:00.000Z",
+        }),
+        shareArtifact("mode-bracket", "mode", "https://example.com/kickoff-lock-agent/?mode=mode-bracket", {
+          nativeShareOpenedAt: "2026-06-01T00:04:00.000Z",
+        }),
+      ],
+    });
+
+    const sharing = items.find((item) => item.key === "sharing");
+    expect(sharing?.level).not.toBe("verified");
+    expect(sharing?.checks.find((check) => check.id === "share-channel")?.evidence).toContain("record 0/1, mode 0/1");
   });
 
   it("does not verify complete game modes from local-only mode runs", () => {
@@ -505,6 +703,8 @@ describe("production readiness", () => {
         modeRun("parlay"),
         modeRun("agent-vs-human"),
         modeRun("upset"),
+        modeRun("group-path"),
+        modeRun("penalty-pressure"),
       ],
       gameModes,
       providerReadiness,
@@ -897,6 +1097,57 @@ describe("production readiness", () => {
     expect(data?.evidence).toContain("missing lineups, injuries, odds");
   });
 
+  it("does not verify realtime enrichment when endpoint rows cover only part of the target set", () => {
+    const liveReadiness: ProviderReadinessItem[] = [
+      { key: "schedule", label: "Schedule", status: "live", source: "API-Football", detail: "Fixture endpoint" },
+      { key: "score", label: "Score", status: "live", source: "API-Football", detail: "Score endpoint" },
+      { key: "rankings", label: "Rankings", status: "configured", source: "FIFA snapshot", detail: "Ranking snapshot" },
+      { key: "lineups", label: "Lineups", status: "live", source: "API-Football", detail: "2/2 fixtures" },
+      { key: "injuries", label: "Injuries", status: "live", source: "API-Football", detail: "1/2 fixtures" },
+      { key: "odds", label: "Odds", status: "live", source: "API-Football", detail: "2/2 fixtures" },
+    ];
+    const items = buildProductionReadiness({
+      cloudState,
+      profile,
+      records: [],
+      modeRuns: [],
+      gameModes,
+      providerReadiness: liveReadiness,
+      providerRouteAudit: [
+        { key: "api-football", label: "API-Football", status: "active", configured: true, detail: "Live" },
+      ],
+      providerHealth: {
+        ...liveProviderHealth,
+        enrichmentAudit: {
+          ...liveProviderHealth.enrichmentAudit!,
+          totalFixtures: 2,
+          attemptedFixtures: 2,
+          detail: "partial target read-back",
+          endpointAudits: [
+            { key: "lineups", endpoint: "fixtures/lineups?fixture=<fixture-id>", attempted: 2, fulfilled: 2, live: 2, errors: 0, sampleIds: ["1", "2"] },
+            { key: "injuries", endpoint: "injuries?fixture=<fixture-id>", attempted: 2, fulfilled: 2, live: 1, errors: 0, sampleIds: ["1"] },
+            { key: "odds", endpoint: "odds?fixture=<fixture-id>", attempted: 2, fulfilled: 2, live: 2, errors: 0, sampleIds: ["1", "2"] },
+          ],
+        },
+        missingSignals: ["injuries"],
+        detail: "API-Football · 6/6 live/configured · fresh · response verified · 5/6 production read-back",
+      },
+      leaderboardEntries: [],
+      sealEndpointConfigured: false,
+      shareImageReady: false,
+    });
+
+    const data = items.find((item) => item.key === "data");
+    expect(data?.level).not.toBe("verified");
+    expect(data?.checks.find((check) => check.id === "injuries-readback")).toMatchObject({
+      passed: false,
+      evidence: "API-Football · live",
+    });
+    expect(data?.checks.find((check) => check.id === "lineups-readback")?.passed).toBe(true);
+    expect(data?.checks.find((check) => check.id === "odds-readback")?.passed).toBe(true);
+    expect(data?.evidence).toContain("missing injuries");
+  });
+
   it("does not verify sharing from image flags that are missing manifest hashes", () => {
     const items = buildProductionReadiness({
       cloudState: {
@@ -1061,6 +1312,55 @@ describe("production readiness", () => {
     expect(leaderboard?.evidence).toContain("scopes global");
   });
 
+  it("does not infer leaderboard scope verification from remote rows without query evidence", () => {
+    const baseEntry: Omit<LeaderboardEntry, "source"> = {
+      id: "user-1",
+      displayName: "Remote",
+      location: "Chengdu",
+      locks: 2,
+      revealed: 1,
+      averageScore: 80,
+      bestScore: 80,
+      xp: 320,
+      streak: 1,
+      exactHits: 0,
+      verifiedProofs: 1,
+      modeProofs: 2,
+    };
+    const items = buildProductionReadiness({
+      cloudState: {
+        configured: true,
+        authenticated: true,
+        mode: "supabase",
+        status: "synced",
+        message: "synced",
+      },
+      profile: { ...profile, id: "user-1", cloudMode: "supabase" },
+      records: [record("cap-1")],
+      modeRuns: [modeRun("bracket")],
+      gameModes,
+      providerReadiness,
+      providerRouteAudit: routeAudit,
+      leaderboardEntries: [
+        { ...baseEntry, source: "global" },
+        { ...baseEntry, source: "friend" },
+        { ...baseEntry, source: "season" },
+      ],
+      sealEndpointConfigured: false,
+      shareImageReady: false,
+    });
+
+    const leaderboard = items.find((item) => item.key === "leaderboard");
+    expect(leaderboard?.level).not.toBe("verified");
+    expect(leaderboard?.passed).toBe(2);
+    expect(leaderboard?.checks.find((check) => check.id === "global-current-user")).toMatchObject({
+      passed: false,
+      evidence: "global xp desc",
+    });
+    expect(leaderboard?.checks.find((check) => check.id === "friend-current-user")?.passed).toBe(false);
+    expect(leaderboard?.checks.find((check) => check.id === "season-current-user")?.passed).toBe(false);
+  });
+
   it("does not mark leaderboard production-ready when scope query evidence fails", () => {
     const baseEntry: Omit<LeaderboardEntry, "id" | "source"> = {
       displayName: "Remote",
@@ -1106,6 +1406,61 @@ describe("production readiness", () => {
     const leaderboard = items.find((item) => item.key === "leaderboard");
     expect(leaderboard?.level).not.toBe("verified");
     expect(leaderboard?.evidence).toContain("friend:error/0/missing-user");
+  });
+
+  it("does not mark leaderboard production-ready when the current user has no scoped rank", () => {
+    const baseEntry: Omit<LeaderboardEntry, "source"> = {
+      id: "user-1",
+      displayName: "Remote",
+      location: "Chengdu",
+      locks: 2,
+      revealed: 1,
+      averageScore: 80,
+      bestScore: 80,
+      xp: 320,
+      streak: 1,
+      exactHits: 0,
+      verifiedProofs: 1,
+      modeProofs: 2,
+      rank: 1,
+    };
+    const items = buildProductionReadiness({
+      cloudState: {
+        configured: true,
+        authenticated: true,
+        mode: "supabase",
+        status: "synced",
+        message: "synced",
+      },
+      profile: { ...profile, id: "user-1", cloudMode: "supabase" },
+      records: [record("cap-1")],
+      modeRuns: [modeRun("bracket")],
+      gameModes,
+      providerReadiness,
+      providerRouteAudit: routeAudit,
+      leaderboardEntries: [
+        { ...baseEntry, source: "global" },
+        { ...baseEntry, source: "friend" },
+        { ...baseEntry, source: "season" },
+      ],
+      leaderboardScopeEvidence: [
+        leaderboardEvidence("global", "loaded", 1),
+        { ...leaderboardEvidence("friend", "loaded", 1), currentUserRank: undefined },
+        leaderboardEvidence("season", "loaded", 1),
+      ],
+      sealEndpointConfigured: false,
+      shareImageReady: false,
+    });
+
+    const leaderboard = items.find((item) => item.key === "leaderboard");
+    expect(leaderboard?.level).not.toBe("verified");
+    expect(leaderboard?.passed).toBe(4);
+    expect(leaderboard?.evidence).toContain("friend:loaded/1/missing-rank-or-stats");
+    expect(leaderboard?.checks.find((check) => check.id === "friend-current-user")).toMatchObject({
+      passed: false,
+      label: "Friend scope contains ranked current user",
+    });
+    expect(leaderboard?.nextAction).toContain("positive rank");
   });
 
   it("does not mark Filecoin production-ready without proof registry read-back", () => {

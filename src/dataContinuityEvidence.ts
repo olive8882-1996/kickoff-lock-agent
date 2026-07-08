@@ -31,8 +31,8 @@ export type DataContinuityEvidencePacket = {
   copyText: string;
 };
 
-const freeExternalSources = new Set<DataSource>(["thesportsdb", "espn", "worldcup26"]);
-const preferredFreeSources = new Set<DataSource>(["thesportsdb", "espn"]);
+const freeExternalSources = new Set<DataSource>(["thesportsdb", "openfootball", "espn", "worldcup26"]);
+const preferredFreeSources = new Set<DataSource>(["thesportsdb", "openfootball", "espn"]);
 
 const statusFor = (passed: boolean, failed = false): DataContinuityCheck["status"] =>
   passed ? "passed" : failed ? "failed" : "pending";
@@ -74,9 +74,10 @@ export const buildDataContinuityEvidencePacket = ({
       verifiedResponse(responseAudit),
   );
   const espnRoute = routeFor(routeAudit, "espn");
+  const openFootballRoute = routeFor(routeAudit, "openfootball");
   const theSportsDbRoute = routeFor(routeAudit, "thesportsdb");
   const seedRoute = routeFor(routeAudit, "seed");
-  const backupReady = routeUsable(espnRoute) || routeUsable(theSportsDbRoute);
+  const backupReady = routeUsable(espnRoute) || routeUsable(openFootballRoute) || routeUsable(theSportsDbRoute);
   const seedEvidence = evidence.some((item) => /seed .*merged|seed matches loaded|offline seed/i.test(item));
   const seedReady = routeUsable(seedRoute) && seedEvidence;
   const externalMatches = matches.filter((match) => match.dataSource !== "seed" && match.dataSource !== "manual").length;
@@ -101,14 +102,14 @@ export const buildDataContinuityEvidencePacket = ({
         : activeRoute
           ? `${activeRoute.label} is ${activeRoute.status}`
           : "no provider route selected",
-      action: "Keep TheSportsDB or ESPN returning World Cup rows before relying on seed continuity.",
+      action: "Keep TheSportsDB, openfootball or ESPN returning World Cup rows before relying on seed continuity.",
     },
     {
       key: "scoreboard-backup",
       label: "Scoreboard backup",
       status: statusFor(backupReady),
-      detail: `TheSportsDB ${theSportsDbRoute?.status ?? "unknown"} · ESPN ${espnRoute?.status ?? "unknown"}`,
-      action: "Keep ESPN available as the free scoreboard fallback when TheSportsDB is empty or unavailable.",
+      detail: `TheSportsDB ${theSportsDbRoute?.status ?? "unknown"} · openfootball ${openFootballRoute?.status ?? "unknown"} · ESPN ${espnRoute?.status ?? "unknown"}`,
+      action: "Keep openfootball and ESPN available as free fallback routes when TheSportsDB is empty or unavailable.",
     },
     {
       key: "seed-continuity",

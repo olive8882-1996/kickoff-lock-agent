@@ -13,6 +13,8 @@ export type ProductionShareImageTarget = {
   proofUrl: string;
   generatedAt: string;
   logoHref?: string;
+  predictionCaption?: string;
+  scoreLabel?: string;
 };
 
 export type ShareImageMetadata = {
@@ -47,11 +49,29 @@ export const DEFAULT_PRODUCTION_SHARE_IMAGE_TARGET: ProductionShareImageTarget =
   generatedAt: "production-target",
 };
 
+export const DEFAULT_PRODUCTION_MODE_SHARE_IMAGE_TARGET: ProductionShareImageTarget = {
+  title: "LOCKED MODE PROOF",
+  eyebrow: "WORLD CUP MODE CARD",
+  matchLabel: "Bracket · Parlay · Agent · Upset",
+  prediction: "4/4",
+  score: "READY",
+  confidence: "REQUIRED MODES LOCKED",
+  proofStatus: "PUBLIC MODE PROOF PACKAGE",
+  cid: "bafy-kickoff-mode-production-target",
+  payloadHash: "1bc8b843a559b2b3f58246dd68db4a531b7b9b8f6d9c2a6e1e08bb1a81d2b663",
+  proofUrl: "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=world-cup-mode-production-target",
+  generatedAt: "production-mode-target",
+  predictionCaption: "MODE PROOF SET",
+  scoreLabel: "MODE STATUS",
+};
+
 export const buildProductionShareImageTargetSvg = (target: ProductionShareImageTarget): string => {
   const logo = target.logoHref
     ? `<image href="${escapeXml(target.logoHref)}" x="72" y="72" width="134" height="134" preserveAspectRatio="xMidYMid slice" clip-path="url(#logoClip)" />`
     : `<text x="139" y="154" text-anchor="middle" font-size="58" font-weight="900" fill="#f7c75a">KL</text>`;
   const proofUrl = short(target.proofUrl, 48, 20);
+  const predictionCaption = target.predictionCaption ?? "PREDICTED SCORE";
+  const scoreLabel = target.scoreLabel ?? "AGENT SCORE";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-label="${escapeXml(target.title)} share image">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
@@ -99,11 +119,11 @@ export const buildProductionShareImageTargetSvg = (target: ProductionShareImageT
   <g transform="translate(92 258)">
     <text x="0" y="0" font-size="28" font-weight="800" fill="#f7c75a">${escapeXml(target.matchLabel.toUpperCase())}</text>
     <text x="0" y="96" font-size="118" font-weight="950" fill="#fff7de">${escapeXml(target.prediction)}</text>
-    <text x="5" y="140" font-size="25" font-weight="750" fill="#eaf8ef">PREDICTED SCORE</text>
+    <text x="5" y="140" font-size="25" font-weight="750" fill="#eaf8ef">${escapeXml(predictionCaption)}</text>
   </g>
   <g transform="translate(598 260)">
     <rect x="0" y="0" width="458" height="210" rx="16" fill="#0b1718" stroke="#46655c" />
-    <text x="32" y="52" font-size="22" font-weight="800" fill="#86e8ff">AGENT SCORE</text>
+    <text x="32" y="52" font-size="22" font-weight="800" fill="#86e8ff">${escapeXml(scoreLabel)}</text>
     <text x="32" y="126" font-size="72" font-weight="950" fill="url(#gold)">${escapeXml(target.score)}</text>
     <text x="32" y="172" font-size="26" font-weight="750" fill="#fff7de">${escapeXml(target.confidence)}</text>
   </g>

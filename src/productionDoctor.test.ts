@@ -16,7 +16,7 @@ const check = (id: string, status: ProductionEvidenceCheck["status"] = "passed")
         ? "filecoin"
         : id.includes("leaderboard") || id.startsWith("supabase-")
           ? "supabase"
-          : id.includes("api-football")
+          : id.includes("api-football") || id.includes("football-data") || id.startsWith("data-proxy")
             ? "data"
             : "sharing",
   label: id,
@@ -31,6 +31,8 @@ const allRequiredCheckIds = [
   "runtime-supabase-core",
   "runtime-supabase-redirect",
   "runtime-thesportsdb-free",
+  "runtime-data-proxy",
+  "data-proxy-health",
   "runtime-api-football-enrichment",
   "runtime-odds-enrichment",
   "runtime-filecoin-seal-api",
@@ -38,25 +40,39 @@ const allRequiredCheckIds = [
   "runtime-public-app-url",
   "runtime-share-storage-bucket",
   "public-app-root",
+  "public-runtime-config",
+  "public-deployment-evidence",
   "public-acceptance-evidence",
   "public-logo-asset",
+  "supabase-auth-user-target",
+  "supabase-auth-profile-identity",
   "supabase-backend-health",
   "leaderboard-global-current-user",
   "leaderboard-friend-current-user",
   "leaderboard-season-current-user",
+  "leaderboard-global-board",
+  "leaderboard-friend-board",
+  "leaderboard-season-board",
   "supabase-profile-target",
   "supabase-record-target",
   "supabase-mode-target",
   "supabase-share-artifact-target",
+  "supabase-mode-share-artifact-target",
+  "supabase-share-channel-target",
+  "supabase-mode-share-channel-target",
   "public-football-feed-continuity",
+  "football-data-readback",
   "api-football-enrichment-live",
   "filecoin-seal-health",
+  "filecoin-seal-contract",
   "filecoin-record-proof-readback",
   "filecoin-mode-proof-readback",
   "public-profile-link",
   "public-proof-link",
   "public-mode-link",
+  "public-clean-session-restore",
   "public-share-image",
+  "public-mode-share-image",
 ];
 
 const packet = (checks: ProductionEvidenceCheck[]): ProductionEvidencePacket => ({
@@ -73,13 +89,25 @@ describe("production doctor", () => {
 
     expect(report.ready).toBe(false);
     expect(report.runtime.missingEnvKeys).toEqual(
-      expect.arrayContaining(["VITE_SUPABASE_URL", "VITE_APIFOOTBALL_KEY", "VITE_FILECOIN_SEAL_API"]),
+      expect.arrayContaining(["VITE_SUPABASE_URL", "APIFOOTBALL_KEY", "VITE_DATA_PROXY_URL", "VITE_FILECOIN_SEAL_API"]),
     );
     expect(report.nextActions.map((item) => item.id)).toEqual(
       expect.arrayContaining(["account-cloud", "realtime-data", "filecoin-auto-seal", "public-sharing"]),
     );
     expect(report.items.find((item) => item.id === "filecoin-auto-seal")?.envKeys).toEqual(
-      expect.arrayContaining(["KICKOFF_VERIFY_FILECOIN_RECORD_CID", "KICKOFF_VERIFY_FILECOIN_MODE_CID"]),
+      expect.arrayContaining(["KICKOFF_VERIFY_FILECOIN_RECORD_CID", "KICKOFF_VERIFY_FILECOIN_MODE_CIDS"]),
+    );
+    expect(report.items.find((item) => item.id === "realtime-data")?.envKeys).not.toContain("KICKOFF_VERIFY_FIXTURE_ID");
+    expect(report.items.find((item) => item.id === "realtime-data")?.envKeys).toEqual(
+      expect.arrayContaining(["FOOTBALL_DATA_TOKEN", "FOOTBALL_DATA_ORG_TOKEN"]),
+    );
+    expect(report.items.find((item) => item.id === "account-cloud")?.envKeys).not.toContain("KICKOFF_VERIFY_MODE_ID");
+    expect(report.items.find((item) => item.id === "account-cloud")?.envKeys).toEqual(
+      expect.arrayContaining(["KICKOFF_VERIFY_USER_ID", "SUPABASE_SERVICE_ROLE_KEY"]),
+    );
+    expect(report.items.find((item) => item.id === "public-sharing")?.envKeys).not.toContain("KICKOFF_VERIFY_MODE_ID");
+    expect(report.items.find((item) => item.id === "public-sharing")?.envKeys).toContain(
+      "KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL",
     );
   });
 
@@ -89,6 +117,7 @@ describe("production doctor", () => {
       VITE_SUPABASE_ANON_KEY: "anon",
       VITE_SUPABASE_REDIRECT_URL: "https://example.com/kickoff-lock-agent/",
       VITE_APIFOOTBALL_KEY: "football",
+      VITE_DATA_PROXY_URL: "https://data.example.workers.dev/proxy",
       VITE_FILECOIN_SEAL_API: "https://seal.example/seal",
       VITE_FILECOIN_SEAL_TOKEN: "token",
       VITE_PUBLIC_APP_URL: "https://example.com/kickoff-lock-agent/",
@@ -121,9 +150,9 @@ describe("production doctor", () => {
 
     const report = buildProductionDoctorReport({}, evidence);
 
-    expect(report.runtime.total).toBe(9);
-    expect(report.runtime.passed).toBe(8);
-    expect(report.headline).toContain("8/9 runtime gates");
-    expect(report.runtime.missingEnvKeys).toEqual(["VITE_FILECOIN_SEAL_API"]);
+    expect(report.runtime.total).toBe(10);
+    expect(report.runtime.passed).toBe(9);
+    expect(report.headline).toContain("9/10 runtime gates");
+    expect(report.runtime.missingEnvKeys).toEqual(["VITE_FILECOIN_SEAL_API", "VITE_FILECOIN_SEAL_SAME_ORIGIN"]);
   });
 });

@@ -41,6 +41,12 @@ jobs:
       - name: Generate acceptance evidence
         run: bun run verify:acceptance
 
+      - name: Generate runtime config
+        run: bun run runtime:config
+
+      - name: Check runtime config completeness
+        run: bun run runtime:config:check
+
       - name: Build acceptance evidence release
         run: bun run build
 

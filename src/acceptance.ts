@@ -5,6 +5,7 @@ export type AcceptanceCoverageKey =
   | "providers"
   | "share-cards"
   | "filecoin-api"
+  | "pages-functions"
   | "modes"
   | "browser-e2e"
   | "seal-e2e";
@@ -51,33 +52,41 @@ export const ACCEPTANCE_TEST_SUITES: AcceptanceTestSuite[] = [
     id: "cloud-account",
     label: "Cloud account and read-back",
     command: "bun run test",
-    file: "src/cloud.test.ts, src/accountHandoff.test.ts, src/accountRecoveryEvidence.test.ts, src/profileArchiveEvidence.test.ts, src/leaderboardEvidence.test.ts, src/leaderboardSeasonEvidence.test.ts, src/productionAccountBootstrap.test.ts, src/productionLaunchPacket.test.ts, src/readiness.test.ts, src/productionDoctor.test.ts, src/supabaseProductionDoctor.test.ts, src/productionTargetSeed.test.ts",
+    file: "src/cloud.test.ts, src/accountCloudSyncEvidence.test.ts, src/accountCloudSyncProductionEvidence.test.ts, src/accountHandoff.test.ts, src/accountRecoveryEvidence.test.ts, src/profileArchiveEvidence.test.ts, src/leaderboardEvidence.test.ts, src/leaderboardSeasonEvidence.test.ts, src/productionAccountBootstrap.test.ts, src/productionAccessPreflight.test.ts, src/productionBootstrapRunbook.test.ts, src/productionLaunchPacket.test.ts, src/productionSecretsHandoff.test.ts, src/readiness.test.ts, src/productionDoctor.test.ts, src/supabaseProductionDoctor.test.ts, src/productionTargetSeed.test.ts",
     coverage: ["cloud-readback"],
-    proves: "Supabase session handling, history merge, current-user leaderboard scope checks, leaderboard evidence packets, production account bootstrap packets with Supabase read-back queries and public links, season leaderboard claim packets, account handoff packet readiness, cross-device recovery rehearsal packets, public profile archive evidence packets, production launch packets, public mode proof gates, public share image URL read-back, strict cloud read-back readiness, acceptance evidence freshness rejection, external production evidence summaries, production verification target env generation, explicit Supabase target-row checks, Supabase production target seed row generation, Supabase production doctor REST/Storage/leaderboard checks, production operator doctor grouping and production radar external-evidence gating",
+    proves: "Supabase session handling, history merge, current-user leaderboard scope checks, leaderboard evidence packets, leaderboard backend per-scope REST read-back commands, account cloud sync evidence packets with outbox/audit/leaderboard gates, production account cloud sync evidence generated from seed/restore/share/leaderboard artifacts, production account bootstrap packets with Supabase read-back queries and public links, production account access preflight for Cloudflare/Supabase CLI auth and manual env readiness, production bootstrap runbook summaries, season leaderboard claim packets, account handoff packet readiness, cross-device recovery rehearsal packets, public profile archive evidence packets, production launch packets, production secrets handoff grouping, public mode proof gates, public share image URL read-back, strict cloud read-back readiness, acceptance evidence freshness rejection, external production evidence summaries, production verification target env generation, explicit Supabase target-row checks, Supabase production target seed row generation, Supabase production doctor REST/Storage/leaderboard checks, production operator doctor grouping and production radar external-evidence gating",
   },
   {
     id: "live-data",
     label: "Live data providers",
     command: "bun run test",
-    file: "src/providers.test.ts, src/matchDataEvidence.test.ts, src/matchIntelligenceProvenance.test.ts, src/realtimeDataEvidence.test.ts, src/dataContinuityEvidence.test.ts, src/intelligenceEnrichmentEvidence.test.ts, src/dataProductionDoctor.test.ts, src/dataTargetScout.test.ts",
+    file: "src/providers.test.ts, src/matchDataEvidence.test.ts, src/matchIntelligenceProvenance.test.ts, src/realtimeDataEvidence.test.ts, src/dataContinuityEvidence.test.ts, src/intelligenceEnrichmentEvidence.test.ts, src/dataProxyWorker.test.ts, src/dataProductionDoctor.test.ts, src/dataTargetScout.test.ts",
     coverage: ["providers"],
-    proves: "provider routing, fallback behavior, structured realtime evidence packets, free TheSportsDB/ESPN/seed continuity packets, match-level and account-level production signal packets, fixture endpoint provenance for schedule/score/rankings/lineups/injuries/odds, intelligence enrichment endpoint packets for lineups/injuries/odds, API-Football enrichment read-back, API-Football fixture target scouting, live-data readiness, odds enrichment merging and production data doctor free/API-Football/odds endpoint checks",
+    proves: "provider routing, fallback behavior, structured realtime evidence packets, free TheSportsDB/ESPN/openfootball/Football-Data.org free-tier continuity packets with standings and public-feed HTTP read-back, match-level and account-level production signal packets, fixture endpoint provenance for schedule/score/rankings/lineups/injuries/odds/standings, intelligence enrichment endpoint packets for lineups/injuries/odds/standings, same-origin data proxy allowlists/CORS/cache/stale fallback, API-Football enrichment read-back, API-Football fixture target scouting, live-data readiness, odds enrichment merging, production data bootstrap per-provider/per-fixture read-back commands and production data doctor free/API-Football/standings/odds endpoint checks",
   },
   {
     id: "share-cards",
     label: "Public share cards",
     command: "bun run test",
-    file: "src/shareCard.test.ts, src/sharePublishing.test.ts, src/publicProofScorecard.test.ts, src/publicProofJudgeSummary.test.ts, src/shareImageTarget.test.ts, src/shareImageUpload.test.ts, src/sharingProductionDoctor.test.ts, src/brandAssets.test.ts",
+    file: "src/shareCard.test.ts, src/sharePublishing.test.ts, src/publicProofShareKit.test.ts, src/publicProofScorecard.test.ts, src/publicProofJudgeSummary.test.ts, src/shareImageTarget.test.ts, src/shareImageUpload.test.ts, src/sharingProductionDoctor.test.ts, src/brandAssets.test.ts",
     coverage: ["share-cards"],
-    proves: "proof text, X intent URLs, generated social card payloads, public proof scorecards, public proof judge summaries, committed logo variants, branded production share-image generation, batch share-card publish queues, Supabase Storage image upload/read-back, publishable PNG manifests, public image URL read-back, image hashes, native-share capability detection, deployed public profile/proof/mode render gates, canonical URLs, Open Graph/Twitter metadata, JSON-LD and public share image read-back checks",
+    proves: "proof text, X intent URLs, generated social card payloads, public proof publication packages, public proof scorecards, public proof judge summaries, share-channel evidence packets, committed logo variants, branded production share-image generation, batch share-card publish queues, Supabase Storage image upload/read-back, publishable PNG manifests, public image URL read-back, image hashes, X/native share-channel timestamps, native-share capability detection, deployed public profile/proof/mode render gates, clean-session public page and Supabase row read-back commands, canonical URLs, Open Graph/Twitter metadata, JSON-LD and public share image read-back checks",
   },
   {
     id: "filecoin-api",
     label: "Filecoin API contract",
     command: "bun run test",
-    file: "src/filecoinSeal.test.ts, src/filecoinSealEvidence.test.ts, src/filecoinAutomationEvidence.test.ts, src/filecoinSealApi.test.ts, src/filecoinProductionDoctor.test.ts, src/filecoinTargetSeal.test.ts",
+    file: "src/filecoinSeal.test.ts, src/filecoinSealEvidence.test.ts, src/filecoinAutomationEvidence.test.ts, src/filecoinSealApi.test.ts, src/filecoinSealApiReadiness.test.ts, src/filecoinSealProxyWorker.test.ts, src/filecoinProductionDoctor.test.ts, src/filecoinTargetSeal.test.ts",
     coverage: ["filecoin-api"],
-    proves: "seal API health, prediction and mode proof upload payload hash matching, seal evidence packets, Filecoin automation evidence across record and mode lanes, CID lookup, proof registry behavior, production Filecoin doctor health/CID/hash/read-back checks, optional POST /seal smoke testing and production record/mode target sealing env export",
+    proves: "seal API health, prediction and mode proof upload payload hash matching, seal evidence packets, Filecoin automation evidence across record and mode lanes, CID lookup, proof registry behavior, same-origin seal proxy routing/token injection, production Filecoin doctor health/CID/hash/read-back checks, per-target /jobs, /verify and /proof read-back commands, optional POST /seal smoke testing and production record/mode target sealing env export",
+  },
+  {
+    id: "pages-functions",
+    label: "Cloudflare Pages Functions build",
+    command: "bun run pages:functions:build",
+    file: "functions/data-proxy/[[path]].js, functions/seal/[[path]].js, functions/health.js, functions/verify.js, functions/proof/[[path]].js, functions/jobs/[[path]].js, src/cloudflarePagesDeployPreflight.test.ts",
+    coverage: ["pages-functions"],
+    proves: "Wrangler compile-checks the bundled same-origin Pages Functions for /data-proxy/*, /seal, /health, /verify, /proof/:cid and /jobs/:id; deployment preflight blocks missing data-provider secrets, Filecoin upstreams, upload tokens and unsafe seal CORS origins before production acceptance evidence is trusted",
   },
   {
     id: "game-modes",
@@ -85,7 +94,7 @@ export const ACCEPTANCE_TEST_SUITES: AcceptanceTestSuite[] = [
     command: "bun run test",
     file: "src/modes.test.ts, src/bracket.test.ts, src/modePlaybook.test.ts, src/modeEvidence.test.ts, src/modeSettlement.test.ts, src/agentCalibrationEvidence.test.ts",
     coverage: ["modes"],
-    proves: "bracket, parlay, Agent vs Human and upset proof readiness rules plus mode playbook lanes, four-mode production evidence packets, settlement packets, Agent vs Human calibration evidence, scoring/calibration/bonus XP summaries, Filecoin, cloud read-back, public proof links and share cards",
+    proves: "bracket, parlay, Agent vs Human, group path, upset and penalty pressure proof readiness rules plus mode playbook lanes, six-mode production evidence packets, settlement packets, Agent vs Human calibration evidence, scoring/calibration/group table/bonus XP/pressure summaries, Filecoin, cloud read-back, public proof links and share cards",
   },
   {
     id: "browser-flow",
@@ -93,7 +102,7 @@ export const ACCEPTANCE_TEST_SUITES: AcceptanceTestSuite[] = [
     command: "bun run test:e2e",
     file: "tests/e2e/app.spec.ts",
     coverage: ["browser-e2e"],
-    proves: "match selection, prediction lock, memory, account, profile, public proof, share image and verifier flow",
+    proves: "match selection, prediction lock, memory, account, profile, public proof, share image, verifier flow, production account access preflight UI, X intent open commands and Supabase share-artifact read-back commands",
   },
   {
     id: "seal-flow",
@@ -112,6 +121,7 @@ export const REQUIRED_ACCEPTANCE_COVERAGE: AcceptanceCoverageKey[] = [
   "providers",
   "share-cards",
   "filecoin-api",
+  "pages-functions",
   "modes",
   "browser-e2e",
   "seal-e2e",

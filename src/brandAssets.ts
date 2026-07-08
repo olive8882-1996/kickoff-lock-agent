@@ -89,7 +89,12 @@ export const BRAND_LOGO_USAGES: BrandLogoUsage[] = [
   {
     id: "pwa-manifest",
     surface: "PWA install metadata",
-    evidence: "Manifest icons and apple-touch icon",
+    evidence: "Manifest icons, maskable icon, app shortcuts and apple-touch icon",
+  },
+  {
+    id: "pwa-shortcuts",
+    surface: "Installed app shortcuts",
+    evidence: "Lock, verify and leaderboard shortcuts reuse the 192px logo",
   },
   {
     id: "social-meta",

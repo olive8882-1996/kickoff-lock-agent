@@ -1,4 +1,13 @@
-export type DataSource = "espn" | "worldcup26" | "api-football" | "football-data" | "thesportsdb" | "seed" | "manual";
+export type DataSource =
+  | "espn"
+  | "worldcup26"
+  | "openfootball"
+  | "api-football"
+  | "football-data"
+  | "thesportsdb"
+  | "odds-api"
+  | "seed"
+  | "manual";
 
 export type MatchStatus = "upcoming" | "live" | "finished";
 
@@ -6,6 +15,9 @@ export type AppView = "matches" | "predict" | "memory" | "verify" | "account" | 
 
 export type TeamInsight = {
   fifaRank: number;
+  tablePosition?: number;
+  tablePoints?: number;
+  tableRecord?: string;
   form: string[];
   lastFiveGoalsFor: number;
   lastFiveGoalsAgainst: number;
@@ -39,6 +51,19 @@ export type ProviderRouteAuditItem = {
   detail: string;
 };
 
+export type ProviderEnrichmentMatrixItem = {
+  key: "lineups" | "injuries" | "odds" | "standings";
+  label: string;
+  endpoint: string;
+  attempted: number;
+  fulfilled: number;
+  live: number;
+  errors: number;
+  ready: boolean;
+  sampleIds: string[];
+  detail: string;
+};
+
 export type ProviderHealthSnapshot = {
   source: string;
   status: "verified" | "ready" | "partial" | "blocked";
@@ -48,6 +73,7 @@ export type ProviderHealthSnapshot = {
   responseVerified: boolean;
   responseAudit?: ProviderResponseAudit;
   enrichmentAudit?: ProviderEnrichmentAudit;
+  enrichmentMatrix?: ProviderEnrichmentMatrixItem[];
   liveOrConfigured: number;
   totalSignals: number;
   activeRoute?: string;
@@ -134,6 +160,7 @@ export type Match = {
     marketLine: string;
     oddsSnapshot?: string;
     rankingSource?: string;
+    standingsSource?: string;
     lineupSource?: string;
     injurySource?: string;
     dataCoverage?: DataCoverageItem[];
@@ -192,6 +219,21 @@ export type SealPollAttempt = {
   httpStatus?: number;
   detail: string;
   retrievalUrl?: string;
+  cid?: string;
+  payloadHash?: string;
+  byteLength?: number;
+};
+
+export type SealUploadStatusAttempt = {
+  attempt: number;
+  checkedAt: string;
+  status: "queued" | "running" | "verified" | "failed" | "error";
+  httpStatus?: number;
+  detail: string;
+  jobId?: string;
+  cid?: string;
+  payloadHash?: string;
+  byteLength?: number;
 };
 
 export type SealBackendHealth = {
@@ -205,6 +247,8 @@ export type SealBackendHealth = {
   proofCount?: number;
   persistence?: "file" | "memory" | string;
   maxUploadBytes?: number;
+  allowOrigin?: string;
+  corsRestricted?: boolean;
   endpoints?: string[];
 };
 
@@ -219,6 +263,10 @@ export type SealJob = {
   backendHealth?: SealBackendHealth;
   proofUrl?: string;
   verifyUrl?: string;
+  backendJobId?: string;
+  uploadStatusUrl?: string;
+  uploadStatusPolls?: number;
+  uploadStatusLog?: SealUploadStatusAttempt[];
   uploadPayloadHash?: string;
   uploadByteLength?: number;
   pollAttempts?: number;
@@ -227,6 +275,7 @@ export type SealJob = {
   proofRegistryStatus?: "unchecked" | "verified" | "failed";
   proofRegistryCheckedAt?: string;
   proofRegistryHash?: string;
+  proofRegistryByteLength?: number;
   steps: SealStep[];
   proof?: FilecoinProof;
   error?: string;
@@ -281,6 +330,7 @@ export type UserProfile = {
   email: string;
   displayName: string;
   location: string;
+  friendCode?: string;
   avatarUrl?: string;
   createdAt: string;
   cloudMode: "local" | "supabase";
@@ -303,6 +353,21 @@ export type CloudSyncVerification = {
   checkedAt: string;
   backendHealth?: CloudBackendHealth;
   profile: boolean;
+  profileIdentity?: {
+    id: string;
+    email: string;
+    displayName: string;
+    location: string;
+    friendCode: string;
+  };
+  authUserIdentity?: {
+    id: string;
+    email: string;
+    provider?: string;
+    displayName?: string;
+  };
+  profileIdentityProblems?: string[];
+  authUserProblems?: string[];
   records: number;
   modeRuns: number;
   publicProofs: number;
@@ -315,26 +380,53 @@ export type CloudSyncVerification = {
   recordIds?: string[];
   modeRunIds?: string[];
   publicProofIds?: string[];
+  publicProofContentIds?: string[];
   shareArtifactIds?: string[];
+  recordOwnerIds?: Record<string, string>;
+  modeRunOwnerIds?: Record<string, string>;
+  shareArtifactOwnerIds?: Record<string, string>;
   publicShareImageIds?: string[];
   publicProfileRecordIds?: string[];
   publicProfileModeRunIds?: string[];
   publicProfileShareArtifactIds?: string[];
+  publicProfileRecordContentIds?: string[];
+  publicProfileModeRunContentIds?: string[];
+  publicProfileShareArtifactContentIds?: string[];
   recordContentIds?: string[];
   modeRunContentIds?: string[];
   shareArtifactContentIds?: string[];
   missingRecordIds?: string[];
   missingModeRunIds?: string[];
   missingPublicProofIds?: string[];
+  missingPublicProofContentIds?: string[];
   missingShareArtifactIds?: string[];
   missingPublicShareImageIds?: string[];
   missingPublicProfileRecordIds?: string[];
   missingPublicProfileModeRunIds?: string[];
   missingPublicProfileShareArtifactIds?: string[];
+  missingPublicProfileRecordContentIds?: string[];
+  missingPublicProfileModeRunContentIds?: string[];
+  missingPublicProfileShareArtifactContentIds?: string[];
   missingRecordContentIds?: string[];
   missingModeRunContentIds?: string[];
   missingShareArtifactContentIds?: string[];
+  cleanSessionPublicRenders?: CloudCleanSessionPublicRender[];
   message: string;
+};
+
+export type CloudCleanSessionPublicRender = {
+  kind: "profile" | "proof" | "mode";
+  targetId?: string;
+  url?: string;
+  passed: boolean;
+  cloudLoaded: boolean;
+  canonicalOk?: boolean;
+  publicTargetOk?: boolean;
+  socialOk?: boolean;
+  shareImageMatched?: boolean;
+  structuredImageMatched?: boolean;
+  detail: string;
+  checkedAt?: string;
 };
 
 export type CloudBackendHealth = {
@@ -347,8 +439,14 @@ export type CloudBackendHealth = {
   missingViews: string[];
   rlsTables: string[];
   missingRlsTables: string[];
+  missingColumns?: string[];
+  missingViewColumns?: string[];
   policyCount: number;
   requiredPolicyCount: number;
+  unsafeWritePolicies?: string[];
+  storageBucketPublic?: boolean;
+  storagePolicyCount?: number;
+  requiredStoragePolicyCount?: number;
   detail: string;
 };
 
@@ -359,6 +457,9 @@ export type LeaderboardEntry = {
   displayName: string;
   location: string;
   rank?: number;
+  globalRank?: number;
+  friendRank?: number;
+  seasonRank?: number;
   locks: number;
   revealed: number;
   averageScore: number;
@@ -386,8 +487,19 @@ export type LeaderboardScopeEvidence = {
   status: "unchecked" | "loading" | "loaded" | "empty" | "error";
   rows: number;
   filter: string;
+  targetQuery?: string;
   currentUserPresent: boolean;
   currentUserRank?: number;
+  currentUserXp?: number;
+  currentUserLocks?: number;
+  currentUserRevealed?: number;
+  currentUserVerifiedProofs?: number;
+  currentUserModeProofs?: number;
+  currentUserExactHits?: number;
+  currentUserFriendCode?: string;
+  currentUserSeasonKey?: string;
+  expectedFriendCode?: string;
+  expectedSeasonKey?: string;
   checkedAt?: string;
   sampleIds?: string[];
   error?: string;
@@ -398,6 +510,17 @@ export type CloudSyncAuditItem = {
   label: string;
   status: "passed" | "pending" | "blocked";
   synced: number;
+  total: number;
+  detail: string;
+  action: string;
+};
+
+export type CloudSyncOutboxItem = {
+  key: "profile" | "records" | "modeRuns" | "shareArtifacts" | "publicProofs";
+  label: string;
+  status: "verified" | "syncing" | "queued" | "blocked";
+  queued: number;
+  verified: number;
   total: number;
   detail: string;
   action: string;
@@ -458,7 +581,7 @@ export type PublicProfile = {
 };
 
 export type GameMode = {
-  id: "bracket" | "parlay" | "agent-vs-human" | "upset";
+  id: "bracket" | "parlay" | "agent-vs-human" | "upset" | "group-path" | "penalty-pressure";
   title: string;
   status: "playable" | "planned" | "locked";
   description: string;
@@ -486,20 +609,39 @@ export type ModeArtifact =
   | {
       kind: "bracket-path";
       bracketPath: BracketPath;
+      settlements?: Array<{
+        capsuleId: string;
+        matchLabel: string;
+        stage: string;
+        predictedWinner: string;
+        confidence: number;
+        resultScore?: number;
+        winnerHit?: boolean;
+      }>;
+      resolvedPicks?: number;
+      hitPicks?: number;
     }
   | {
       kind: "parlay-ticket";
       legs: Array<{
         capsuleId: string;
         matchLabel: string;
+        sequenceIndex?: number;
+        chainStep?: string;
         pick: string;
         confidence: number;
         markets: MarketPick[];
         resultScore?: number;
         winnerHit?: boolean;
+        survivesChain?: boolean;
+        chainStatus?: "hit" | "miss" | "pending" | "inactive";
       }>;
       settledLegs: number;
       hitLegs: number;
+      chainResolvedLegs?: number;
+      chainHitLegs?: number;
+      chainBustedAt?: number;
+      chainStatus?: "live" | "complete" | "busted";
     }
   | {
       kind: "agent-calibration";
@@ -528,6 +670,45 @@ export type ModeArtifact =
       resolvedPicks: number;
       hitPicks: number;
       bonusXp: number;
+    }
+  | {
+      kind: "group-table-path";
+      table: Array<{
+        team: string;
+        projectedRank: number;
+        predictedPoints: number;
+        predictedGoalDifference: number;
+        actualPoints?: number;
+        actualGoalDifference?: number;
+        locks: number;
+      }>;
+      picks: Array<{
+        capsuleId: string;
+        matchLabel: string;
+        predictedWinner: string;
+        predictedScore: string;
+        actualScore?: string;
+        winnerHit?: boolean;
+      }>;
+      resolvedMatches: number;
+      winnerHits: number;
+      topTwo: string[];
+    }
+  | {
+      kind: "penalty-pressure-ticket";
+      takers: Array<{
+        capsuleId: string;
+        matchLabel: string;
+        pressurePick: string;
+        pickType: "key-player" | "market" | "winner";
+        confidence: number;
+        pressureRating: number;
+        resultScore?: number;
+        pressureHit?: boolean;
+      }>;
+      resolvedPicks: number;
+      hitPicks: number;
+      averagePressure: number;
     };
 
 export type ProviderResult = {
@@ -541,7 +722,7 @@ export type ProviderResult = {
 };
 
 export type ProviderEnrichmentEndpointAudit = {
-  key: "lineups" | "injuries" | "odds";
+  key: "lineups" | "injuries" | "odds" | "standings";
   endpoint: string;
   attempted: number;
   fulfilled: number;

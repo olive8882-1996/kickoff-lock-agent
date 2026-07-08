@@ -1,0 +1,205 @@
+{
+  "ready": false,
+  "dryRun": true,
+  "endpoint": "",
+  "productionReady": false,
+  "targets": [
+    {
+      "kind": "record",
+      "id": "cap-prod-73dc2618d1f9",
+      "payload": "{\n  \"capsule\": {\n    \"createdAt\": \"2026-07-06T13:55:59.910Z\",\n    \"filecoinProof\": {\n      \"byteLength\": 4096,\n      \"cid\": \"bafy-kickoff-seed-1d89c24d1f337bd98637689b9cf00f1e\",\n      \"dataSetId\": \"seed-1d89c24d1f\",\n      \"mode\": \"demo\",\n      \"payloadHash\": \"1d89c24d1f337bd98637689b9cf00f1eb7f5fbb0831699ec2bf9bcbdeaa39ca3\",\n      \"pieceCid\": \"baga6seed1d89c24d1f337bd98637689b9cf00f1e\",\n      \"proofStatus\": \"retrievable\",\n      \"provider\": \"demo-provider.fil\"\n    },\n    \"id\": \"cap-prod-73dc2618d1f9\",\n    \"kickoffAt\": \"2026-06-20T19:00:00.000Z\",\n    \"lateLock\": false,\n    \"locked\": true,\n    \"matchId\": \"production-seed-brazil-japan\",\n    \"matchLabel\": \"Brazil vs Japan\",\n    \"payloadHash\": \"1d89c24d1f337bd98637689b9cf00f1eb7f5fbb0831699ec2bf9bcbdeaa39ca3\",\n    \"prediction\": {\n      \"agentSummary\": \"Seed artifact for production acceptance. Replace with a real synced lock before final judging if desired.\",\n      \"awayScore\": 1,\n      \"confidence\": 72,\n      \"homeScore\": 2,\n      \"keyPlayers\": [\n        \"No. 10\"\n      ],\n      \"markets\": [\n        {\n          \"confidence\": 72,\n          \"id\": \"winner\",\n          \"label\": \"1X2\",\n          \"pick\": \"Brazil\",\n          \"rationale\": \"Seed market pick for share-card and leaderboard verification.\"\n        }\n      ],\n      \"reasoning\": \"Production seed lock used to verify cloud read-back, public proof pages and leaderboard scope rows.\",\n      \"style\": \"analysis\",\n      \"winner\": \"Brazil\"\n    },\n    \"sealedAt\": \"2026-07-06T13:55:59.910Z\"\n  },\n  \"result\": {\n    \"agentReview\": [\n      \"Seed result keeps leaderboard rows non-empty for acceptance checks.\"\n    ],\n    \"awayScore\": 1,\n    \"breakdown\": {\n      \"confidence\": 4,\n      \"exactScore\": 30,\n      \"goalDifference\": 12,\n      \"keyPlayer\": 4,\n      \"markets\": 8,\n      \"reasoning\": 4,\n      \"winner\": 30\n    },\n    \"capsuleId\": \"cap-prod-73dc2618d1f9\",\n    \"explanation\": [\n      \"Production seed verifies cloud read-back and public proof rendering.\"\n    ],\n    \"homeScore\": 2,\n    \"id\": \"result-cap-prod-73dc2618d1f9\",\n    \"keyPlayers\": [\n      \"No. 10\"\n    ],\n    \"revealedAt\": \"2026-07-06T13:55:59.910Z\",\n    \"source\": \"manual\",\n    \"totalScore\": 92\n  }\n}",
+      "payloadHash": "fa511a1f7b3df93ee8587be22154a65bb15928aa2d3d00791defb2c0d9ce0813",
+      "byteLength": 2173
+    },
+    {
+      "kind": "mode",
+      "id": "mode-prod-bracket-f90d6276",
+      "payload": "{\n  \"modeRun\": {\n    \"artifact\": {\n      \"bracketPath\": {\n        \"createdAt\": \"2026-07-06T13:55:59.910Z\",\n        \"filecoinProof\": {\n          \"byteLength\": 4096,\n          \"cid\": \"bafy-kickoff-seed-bf78f2bf61d29e79ccb81b23a9d619ca\",\n          \"dataSetId\": \"seed-bf78f2bf61\",\n          \"mode\": \"demo\",\n          \"payloadHash\": \"bf78f2bf61d29e79ccb81b23a9d619ca9dd41a91b022d20c88897789defe5ee8\",\n          \"pieceCid\": \"baga6seedbf78f2bf61d29e79ccb81b23a9d619ca\",\n          \"proofStatus\": \"retrievable\",\n          \"provider\": \"demo-provider.fil\"\n        },\n        \"id\": \"bracket-mode-prod-bracket-f90d6276\",\n        \"payloadHash\": \"bf78f2bf61d29e79ccb81b23a9d619ca9dd41a91b022d20c88897789defe5ee8\",\n        \"picks\": [\n          {\n            \"confidence\": 72,\n            \"id\": \"pick-cap-prod-73dc2618d1f9\",\n            \"matchId\": \"production-seed-brazil-japan\",\n            \"matchLabel\": \"Brazil vs Japan\",\n            \"note\": \"Seeded acceptance pick.\",\n            \"stage\": \"Round of 16\",\n            \"winner\": \"Brazil\"\n          }\n        ],\n        \"title\": \"Production bracket path\",\n        \"updatedAt\": \"2026-07-06T13:55:59.910Z\"\n      },\n      \"kind\": \"bracket-path\"\n    },\n    \"capsuleIds\": [\n      \"cap-prod-73dc2618d1f9\"\n    ],\n    \"createdAt\": \"2026-07-06T13:55:59.910Z\",\n    \"filecoinProof\": {\n      \"byteLength\": 4096,\n      \"cid\": \"bafy-kickoff-seed-bf78f2bf61d29e79ccb81b23a9d619ca\",\n      \"dataSetId\": \"seed-bf78f2bf61\",\n      \"mode\": \"demo\",\n      \"payloadHash\": \"bf78f2bf61d29e79ccb81b23a9d619ca9dd41a91b022d20c88897789defe5ee8\",\n      \"pieceCid\": \"baga6seedbf78f2bf61d29e79ccb81b23a9d619ca\",\n      \"proofStatus\": \"retrievable\",\n      \"provider\": \"demo-provider.fil\"\n    },\n    \"id\": \"mode-prod-bracket-f90d6276\",\n    \"modeId\": \"bracket\",\n    \"payloadHash\": \"bf78f2bf61d29e79ccb81b23a9d619ca9dd41a91b022d20c88897789defe5ee8\",\n    \"requirements\": [\n      \"Public mode proof target\",\n      \"Share-card manifest\",\n      \"Leaderboard scope row\"\n    ],\n    \"score\": 88,\n    \"status\": \"scored\",\n    \"summary\": \"Production bracket path sealed for public mode proof and leaderboard acceptance.\",\n    \"title\": \"Production bracket path\"\n  }\n}",
+      "payloadHash": "25c8e017e0edeff4844e2499f0b103cdf7c7c1d273a8e39cef400d1fc6dee9e6",
+      "byteLength": 2151
+    },
+    {
+      "kind": "mode",
+      "id": "mode-prod-parlay-77bf4ef2",
+      "payload": "{\n  \"modeRun\": {\n    \"artifact\": {\n      \"hitLegs\": 1,\n      \"kind\": \"parlay-ticket\",\n      \"legs\": [\n        {\n          \"capsuleId\": \"cap-prod-73dc2618d1f9\",\n          \"confidence\": 72,\n          \"markets\": [\n            {\n              \"confidence\": 72,\n              \"id\": \"winner\",\n              \"label\": \"1X2\",\n              \"pick\": \"Brazil\",\n              \"rationale\": \"Seed market pick for share-card and leaderboard verification.\"\n            }\n          ],\n          \"matchLabel\": \"Brazil vs Japan\",\n          \"pick\": \"Brazil\",\n          \"resultScore\": 92,\n          \"winnerHit\": true\n        }\n      ],\n      \"settledLegs\": 1\n    },\n    \"capsuleIds\": [\n      \"cap-prod-73dc2618d1f9\"\n    ],\n    \"createdAt\": \"2026-07-06T13:55:59.910Z\",\n    \"filecoinProof\": {\n      \"byteLength\": 4096,\n      \"cid\": \"bafy-kickoff-seed-3b075d7a9684db5d8e8ce5beaad2760d\",\n      \"dataSetId\": \"seed-3b075d7a96\",\n      \"mode\": \"demo\",\n      \"payloadHash\": \"3b075d7a9684db5d8e8ce5beaad2760d5a6476f3e6116f1ed75bc3c298e01d0b\",\n      \"pieceCid\": \"baga6seed3b075d7a9684db5d8e8ce5beaad2760d\",\n      \"proofStatus\": \"retrievable\",\n      \"provider\": \"demo-provider.fil\"\n    },\n    \"id\": \"mode-prod-parlay-77bf4ef2\",\n    \"modeId\": \"parlay\",\n    \"payloadHash\": \"3b075d7a9684db5d8e8ce5beaad2760d5a6476f3e6116f1ed75bc3c298e01d0b\",\n    \"requirements\": [\n      \"Public mode proof target\",\n      \"Share-card manifest\",\n      \"Leaderboard scope row\"\n    ],\n    \"score\": 100,\n    \"status\": \"scored\",\n    \"summary\": \"Production parlay ticket sealed for all-leg public proof acceptance.\",\n    \"title\": \"Production parlay ticket\"\n  }\n}",
+      "payloadHash": "194f7c221129518eb0f7f9a2f3784173234dd70d563ccd9caf8f3de36043fcad",
+      "byteLength": 1601
+    },
+    {
+      "kind": "mode",
+      "id": "mode-prod-agent-vs-human-f8b27b3a",
+      "payload": "{\n  \"modeRun\": {\n    \"artifact\": {\n      \"averageCalibrationError\": 20,\n      \"kind\": \"agent-calibration\",\n      \"samples\": [\n        {\n          \"calibrationError\": 20,\n          \"capsuleId\": \"cap-prod-73dc2618d1f9\",\n          \"confidence\": 72,\n          \"matchLabel\": \"Brazil vs Japan\",\n          \"review\": [\n            \"Seed result keeps leaderboard rows non-empty for acceptance checks.\"\n          ],\n          \"totalScore\": 92,\n          \"winnerHit\": true\n        }\n      ]\n    },\n    \"capsuleIds\": [\n      \"cap-prod-73dc2618d1f9\"\n    ],\n    \"createdAt\": \"2026-07-06T13:55:59.910Z\",\n    \"filecoinProof\": {\n      \"byteLength\": 4096,\n      \"cid\": \"bafy-kickoff-seed-7e59376063819d25c286616f24cd87de\",\n      \"dataSetId\": \"seed-7e59376063\",\n      \"mode\": \"demo\",\n      \"payloadHash\": \"7e59376063819d25c286616f24cd87de07162ee42c469dacc5eaac310b3ee93e\",\n      \"pieceCid\": \"baga6seed7e59376063819d25c286616f24cd87de\",\n      \"proofStatus\": \"retrievable\",\n      \"provider\": \"demo-provider.fil\"\n    },\n    \"id\": \"mode-prod-agent-vs-human-f8b27b3a\",\n    \"modeId\": \"agent-vs-human\",\n    \"payloadHash\": \"7e59376063819d25c286616f24cd87de07162ee42c469dacc5eaac310b3ee93e\",\n    \"requirements\": [\n      \"Public mode proof target\",\n      \"Share-card manifest\",\n      \"Leaderboard scope row\"\n    ],\n    \"score\": 86,\n    \"status\": \"scored\",\n    \"summary\": \"Production Agent vs Human calibration sealed for judge-facing mode proof acceptance.\",\n    \"title\": \"Production agent calibration\"\n  }\n}",
+      "payloadHash": "a525977282041e432d119e86082776748b645242c6dcac3bcc9596fb2d2971f6",
+      "byteLength": 1479
+    },
+    {
+      "kind": "mode",
+      "id": "mode-prod-upset-9f6dd619",
+      "payload": "{\n  \"modeRun\": {\n    \"artifact\": {\n      \"bonusXp\": 100,\n      \"hitPicks\": 1,\n      \"kind\": \"upset-ticket\",\n      \"picks\": [\n        {\n          \"capsuleId\": \"cap-prod-73dc2618d1f9\",\n          \"confidence\": 72,\n          \"matchLabel\": \"Brazil vs Japan\",\n          \"multiplier\": 2,\n          \"predictedWinner\": \"Brazil\",\n          \"resultScore\": 92,\n          \"winnerHit\": true\n        }\n      ],\n      \"resolvedPicks\": 1\n    },\n    \"capsuleIds\": [\n      \"cap-prod-73dc2618d1f9\"\n    ],\n    \"createdAt\": \"2026-07-06T13:55:59.910Z\",\n    \"filecoinProof\": {\n      \"byteLength\": 4096,\n      \"cid\": \"bafy-kickoff-seed-b9da357419e6f4ae8e43a9802999a702\",\n      \"dataSetId\": \"seed-b9da357419\",\n      \"mode\": \"demo\",\n      \"payloadHash\": \"b9da357419e6f4ae8e43a9802999a702a7dfe84c472a55fe6f88c00f895702b7\",\n      \"pieceCid\": \"baga6seedb9da357419e6f4ae8e43a9802999a702\",\n      \"proofStatus\": \"retrievable\",\n      \"provider\": \"demo-provider.fil\"\n    },\n    \"id\": \"mode-prod-upset-9f6dd619\",\n    \"modeId\": \"upset\",\n    \"payloadHash\": \"b9da357419e6f4ae8e43a9802999a702a7dfe84c472a55fe6f88c00f895702b7\",\n    \"requirements\": [\n      \"Public mode proof target\",\n      \"Share-card manifest\",\n      \"Leaderboard scope row\"\n    ],\n    \"score\": 94,\n    \"status\": \"scored\",\n    \"summary\": \"Production upset challenge sealed for multiplier and public proof acceptance.\",\n    \"title\": \"Production upset challenge\"\n  }\n}",
+      "payloadHash": "6cd3b0f87363b96a7ada654b16485b90f12088e1a720151d6a963255b1504afa",
+      "byteLength": 1393
+    },
+    {
+      "kind": "mode",
+      "id": "mode-prod-group-path-b533c118",
+      "payload": "{\n  \"modeRun\": {\n    \"artifact\": {\n      \"kind\": \"group-table-path\",\n      \"picks\": [\n        {\n          \"actualScore\": \"2-1\",\n          \"capsuleId\": \"cap-prod-73dc2618d1f9\",\n          \"matchLabel\": \"Brazil vs Japan\",\n          \"predictedScore\": \"2-1\",\n          \"predictedWinner\": \"Brazil\",\n          \"winnerHit\": true\n        }\n      ],\n      \"resolvedMatches\": 1,\n      \"table\": [\n        {\n          \"actualGoalDifference\": 1,\n          \"actualPoints\": 3,\n          \"locks\": 1,\n          \"predictedGoalDifference\": 1,\n          \"predictedPoints\": 3,\n          \"projectedRank\": 1,\n          \"team\": \"Brazil\"\n        },\n        {\n          \"actualGoalDifference\": -1,\n          \"actualPoints\": 0,\n          \"locks\": 1,\n          \"predictedGoalDifference\": -1,\n          \"predictedPoints\": 0,\n          \"projectedRank\": 2,\n          \"team\": \"Spain\"\n        }\n      ],\n      \"topTwo\": [\n        \"Brazil\",\n        \"Spain\"\n      ],\n      \"winnerHits\": 1\n    },\n    \"capsuleIds\": [\n      \"cap-prod-73dc2618d1f9\"\n    ],\n    \"createdAt\": \"2026-07-06T13:55:59.910Z\",\n    \"filecoinProof\": {\n      \"byteLength\": 4096,\n      \"cid\": \"bafy-kickoff-seed-0dd6f4358882527a86de27cc118e33e0\",\n      \"dataSetId\": \"seed-0dd6f43588\",\n      \"mode\": \"demo\",\n      \"payloadHash\": \"0dd6f4358882527a86de27cc118e33e0732e949a7e67680310f9af4f1437ec3d\",\n      \"pieceCid\": \"baga6seed0dd6f4358882527a86de27cc118e33e0\",\n      \"proofStatus\": \"retrievable\",\n      \"provider\": \"demo-provider.fil\"\n    },\n    \"id\": \"mode-prod-group-path-b533c118\",\n    \"modeId\": \"group-path\",\n    \"payloadHash\": \"0dd6f4358882527a86de27cc118e33e0732e949a7e67680310f9af4f1437ec3d\",\n    \"requirements\": [\n      \"Public mode proof target\",\n      \"Share-card manifest\",\n      \"Leaderboard scope row\"\n    ],\n    \"score\": 82,\n    \"status\": \"scored\",\n    \"summary\": \"Production group path sealed for table projection and public proof acceptance.\",\n    \"title\": \"Production upset challenge\"\n  }\n}",
+      "payloadHash": "0dd305b53205d688d404597a20646bc97334e1130f2a6ce62168d7df699fa827",
+      "byteLength": 1936
+    }
+  ],
+  "blockers": [
+    "VITE_FILECOIN_SEAL_API missing or VITE_FILECOIN_SEAL_SAME_ORIGIN not enabled",
+    "VITE_FILECOIN_SEAL_TOKEN missing"
+  ],
+  "verifyEnv": "KICKOFF_VERIFY_USER_ID=kickoff-production-seed\nKICKOFF_VERIFY_PROFILE_ID=kickoff-production-seed\nKICKOFF_VERIFY_PROOF_ID=cap-prod-73dc2618d1f9\nKICKOFF_VERIFY_MODE_ID=mode-prod-bracket-f90d6276\nKICKOFF_VERIFY_MODE_IDS=\"mode-prod-bracket-f90d6276,mode-prod-parlay-77bf4ef2,mode-prod-agent-vs-human-f8b27b3a,mode-prod-upset-9f6dd619,mode-prod-group-path-b533c118\"\nKICKOFF_VERIFY_FILECOIN_RECORD_CID=\nKICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH=fa511a1f7b3df93ee8587be22154a65bb15928aa2d3d00791defb2c0d9ce0813\nKICKOFF_VERIFY_FILECOIN_MODE_CID=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASH=25c8e017e0edeff4844e2499f0b103cdf7c7c1d273a8e39cef400d1fc6dee9e6\nKICKOFF_VERIFY_FILECOIN_MODE_CIDS=\nKICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES=\"25c8e017e0edeff4844e2499f0b103cdf7c7c1d273a8e39cef400d1fc6dee9e6,194f7c221129518eb0f7f9a2f3784173234dd70d563ccd9caf8f3de36043fcad,a525977282041e432d119e86082776748b645242c6dcac3bcc9596fb2d2971f6,6cd3b0f87363b96a7ada654b16485b90f12088e1a720151d6a963255b1504afa,0dd305b53205d688d404597a20646bc97334e1130f2a6ce62168d7df699fa827\"\nKICKOFF_VERIFY_FRIEND_CODE=chengdu\nKICKOFF_VERIFY_SEASON_KEY=world-cup-run\nKICKOFF_VERIFY_FIXTURE_ID=\nKICKOFF_VERIFY_FIXTURE_IDS=\nKICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX=\nKICKOFF_VERIFY_SHARE_IMAGE_URL=https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png\nKICKOFF_VERIFY_MODE_SHARE_IMAGE_URL=https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png\nKICKOFF_VERIFY_ALLOW_FAILURES=1\n",
+  "generatedAt": "2026-07-06T13:55:59.912Z",
+  "envFiles": [
+    ".env.production.local"
+  ],
+  "artifactVersion": 1,
+  "acceptance": {
+    "recordSealed": false,
+    "modeSealedCount": 0,
+    "requiredModeSealCount": 5,
+    "uploadStatusComplete": false,
+    "uploadStatusProgressionComplete": false,
+    "verifyPollingComplete": false,
+    "verifyPollingProgressionComplete": false,
+    "cidQueryComplete": false,
+    "proofReadbackComplete": false,
+    "targets": [
+      {
+        "kind": "record",
+        "id": "cap-prod-73dc2618d1f9",
+        "sealed": false,
+        "uploadStatus": false,
+        "uploadStatusProgression": false,
+        "verifyPolling": false,
+        "verifyPollingProgression": false,
+        "cidQuery": false,
+        "proofReadback": false,
+        "blockers": [
+          "backend job id missing",
+          "upload status URL missing",
+          "CID missing",
+          "upload status did not progress from queued/running to verified",
+          "verification polling did not progress from pending/retrievable to retrievable/verified",
+          "CID query read-back missing",
+          "proof registry read-back missing or metadata mismatch",
+          "record cap-prod-73dc2618d1f9 proof missing"
+        ]
+      },
+      {
+        "kind": "mode",
+        "id": "mode-prod-bracket-f90d6276",
+        "sealed": false,
+        "uploadStatus": false,
+        "uploadStatusProgression": false,
+        "verifyPolling": false,
+        "verifyPollingProgression": false,
+        "cidQuery": false,
+        "proofReadback": false,
+        "blockers": [
+          "backend job id missing",
+          "upload status URL missing",
+          "CID missing",
+          "upload status did not progress from queued/running to verified",
+          "verification polling did not progress from pending/retrievable to retrievable/verified",
+          "CID query read-back missing",
+          "proof registry read-back missing or metadata mismatch",
+          "mode mode-prod-bracket-f90d6276 proof missing"
+        ]
+      },
+      {
+        "kind": "mode",
+        "id": "mode-prod-parlay-77bf4ef2",
+        "sealed": false,
+        "uploadStatus": false,
+        "uploadStatusProgression": false,
+        "verifyPolling": false,
+        "verifyPollingProgression": false,
+        "cidQuery": false,
+        "proofReadback": false,
+        "blockers": [
+          "backend job id missing",
+          "upload status URL missing",
+          "CID missing",
+          "upload status did not progress from queued/running to verified",
+          "verification polling did not progress from pending/retrievable to retrievable/verified",
+          "CID query read-back missing",
+          "proof registry read-back missing or metadata mismatch",
+          "mode mode-prod-parlay-77bf4ef2 proof missing"
+        ]
+      },
+      {
+        "kind": "mode",
+        "id": "mode-prod-agent-vs-human-f8b27b3a",
+        "sealed": false,
+        "uploadStatus": false,
+        "uploadStatusProgression": false,
+        "verifyPolling": false,
+        "verifyPollingProgression": false,
+        "cidQuery": false,
+        "proofReadback": false,
+        "blockers": [
+          "backend job id missing",
+          "upload status URL missing",
+          "CID missing",
+          "upload status did not progress from queued/running to verified",
+          "verification polling did not progress from pending/retrievable to retrievable/verified",
+          "CID query read-back missing",
+          "proof registry read-back missing or metadata mismatch",
+          "mode mode-prod-agent-vs-human-f8b27b3a proof missing"
+        ]
+      },
+      {
+        "kind": "mode",
+        "id": "mode-prod-upset-9f6dd619",
+        "sealed": false,
+        "uploadStatus": false,
+        "uploadStatusProgression": false,
+        "verifyPolling": false,
+        "verifyPollingProgression": false,
+        "cidQuery": false,
+        "proofReadback": false,
+        "blockers": [
+          "backend job id missing",
+          "upload status URL missing",
+          "CID missing",
+          "upload status did not progress from queued/running to verified",
+          "verification polling did not progress from pending/retrievable to retrievable/verified",
+          "CID query read-back missing",
+          "proof registry read-back missing or metadata mismatch",
+          "mode mode-prod-upset-9f6dd619 proof missing"
+        ]
+      },
+      {
+        "kind": "mode",
+        "id": "mode-prod-group-path-b533c118",
+        "sealed": false,
+        "uploadStatus": false,
+        "uploadStatusProgression": false,
+        "verifyPolling": false,
+        "verifyPollingProgression": false,
+        "cidQuery": false,
+        "proofReadback": false,
+        "blockers": [
+          "backend job id missing",
+          "upload status URL missing",
+          "CID missing",
+          "upload status did not progress from queued/running to verified",
+          "verification polling did not progress from pending/retrievable to retrievable/verified",
+          "CID query read-back missing",
+          "proof registry read-back missing or metadata mismatch",
+          "mode mode-prod-group-path-b533c118 proof missing"
+        ]
+      }
+    ],
+    "outputEnvKeys": [
+      "KICKOFF_VERIFY_FILECOIN_RECORD_CID",
+      "KICKOFF_VERIFY_FILECOIN_RECORD_PAYLOAD_HASH",
+      "KICKOFF_VERIFY_FILECOIN_MODE_CIDS",
+      "KICKOFF_VERIFY_FILECOIN_MODE_PAYLOAD_HASHES"
+    ]
+  }
+}

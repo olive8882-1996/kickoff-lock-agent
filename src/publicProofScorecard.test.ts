@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildModeProofMeta, buildRecordProofMeta } from "./publicProofMeta";
 import { buildModePublicProofScorecard, buildRecordPublicProofScorecard } from "./publicProofScorecard";
 import type { GameModeRun, MemoryRecord, ShareArtifactEvidence } from "./types";
 
@@ -84,15 +85,20 @@ const modeRun: GameModeRun = {
 
 describe("public proof scorecard", () => {
   it("marks a deployed prediction proof package production-ready", () => {
+    const publicUrl = "https://example.com/kickoff-lock-agent/?proof=cap-1";
+    const meta = buildRecordProofMeta(record, publicUrl, "https://example.com/kickoff-lock-agent/kickoff-lock-icon.png", artifact);
     const scorecard = buildRecordPublicProofScorecard(
       record,
-      "https://example.com/kickoff-lock-agent/?proof=cap-1",
+      publicUrl,
       artifact,
+      meta,
     );
 
     expect(scorecard.productionReady).toBe(true);
     expect(scorecard.passed).toBe(scorecard.total);
     expect(scorecard.summary).toContain("production-ready");
+    expect(scorecard.items.find((item) => item.key === "social-meta")).toMatchObject({ status: "passed" });
+    expect(scorecard.items.find((item) => item.key === "json-ld")).toMatchObject({ status: "passed" });
   });
 
   it("keeps local demo proof pages out of production-ready status", () => {
@@ -114,18 +120,72 @@ describe("public proof scorecard", () => {
     expect(scorecard.items.find((item) => item.key === "lock")?.status).toBe("failed");
     expect(scorecard.items.find((item) => item.key === "filecoin")?.status).toBe("pending");
     expect(scorecard.items.find((item) => item.key === "url")?.status).toBe("pending");
+    expect(scorecard.items.find((item) => item.key === "social-meta")?.status).toBe("pending");
     expect(scorecard.nextAction).toContain("Prediction was locked after kickoff");
   });
 
   it("builds a mode proof scorecard with linked lock evidence", () => {
+    const publicUrl = "https://example.com/kickoff-lock-agent/?mode=mode-1";
+    const modeArtifact = { ...artifact, id: "mode-1", kind: "mode" as const, proofUrl: publicUrl };
+    const meta = buildModeProofMeta(modeRun, publicUrl, "https://example.com/kickoff-lock-agent/kickoff-lock-icon.png", modeArtifact);
     const scorecard = buildModePublicProofScorecard(
       modeRun,
-      "https://example.com/kickoff-lock-agent/?mode=mode-1",
-      { ...artifact, id: "mode-1", kind: "mode", proofUrl: "https://example.com/kickoff-lock-agent/?mode=mode-1" },
+      publicUrl,
+      modeArtifact,
+      meta,
     );
 
     expect(scorecard.kind).toBe("mode");
     expect(scorecard.productionReady).toBe(true);
     expect(scorecard.items.find((item) => item.key === "linked-locks")?.detail).toContain("2 capsules");
+    expect(scorecard.items.find((item) => item.key === "json-ld")).toMatchObject({ status: "passed" });
+  });
+
+  it("does not pass when social metadata points at another proof URL", () => {
+    const publicUrl = "https://example.com/kickoff-lock-agent/?proof=cap-1";
+    const mismatchedMeta = buildRecordProofMeta(
+      record,
+      "https://example.com/kickoff-lock-agent/?proof=cap-other",
+      "https://example.com/kickoff-lock-agent/kickoff-lock-icon.png",
+      artifact,
+    );
+    const scorecard = buildRecordPublicProofScorecard(record, publicUrl, artifact, mismatchedMeta);
+
+    expect(scorecard.productionReady).toBe(false);
+    expect(scorecard.items.find((item) => item.key === "social-meta")).toMatchObject({
+      status: "pending",
+    });
+    expect(scorecard.items.find((item) => item.key === "json-ld")).toMatchObject({
+      status: "pending",
+    });
+  });
+
+  it("does not mark share evidence ready when the artifact belongs to another target identity", () => {
+    const publicUrl = "https://example.com/kickoff-lock-agent/?proof=cap-1";
+    const wrongTargetArtifact: ShareArtifactEvidence = {
+      ...artifact,
+      id: "mode-1",
+      kind: "mode",
+      proofUrl: publicUrl,
+    };
+    const meta = buildRecordProofMeta(
+      record,
+      publicUrl,
+      "https://example.com/kickoff-lock-agent/kickoff-lock-icon.png",
+      wrongTargetArtifact,
+    );
+    const scorecard = buildRecordPublicProofScorecard(record, publicUrl, wrongTargetArtifact, meta);
+
+    expect(scorecard.productionReady).toBe(false);
+    expect(scorecard.items.find((item) => item.key === "share")).toMatchObject({
+      status: "pending",
+      detail: "Generated PNG belongs to another public proof target.",
+    });
+    expect(scorecard.items.find((item) => item.key === "social-meta")).toMatchObject({
+      status: "pending",
+    });
+    expect(scorecard.items.find((item) => item.key === "json-ld")).toMatchObject({
+      status: "pending",
+    });
   });
 });

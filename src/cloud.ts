@@ -2,6 +2,7 @@ import type {
   CloudBackendHealth,
   CloudSyncState,
   CloudSyncAuditItem,
+  CloudSyncOutboxItem,
   CloudSyncVerification,
   LeaderboardEntry,
   LeaderboardReadinessItem,
@@ -13,18 +14,32 @@ import type {
   ShareArtifactEvidence,
   UserProfile,
 } from "./types";
+import { stableJson } from "./proof";
+import { runtimeConfigValue } from "./runtimeConfig";
+import { validatePublicShareImageResponse } from "./shareImageValidation";
 
 const PROFILE_KEY = "kickoff-lock-agent-profile-v1";
 const SESSION_KEY = "kickoff-lock-agent-supabase-session-v1";
+const PKCE_KEY = "kickoff-lock-agent-supabase-pkce-v1";
+const PKCE_REQUEST_MAX_AGE_MS = 15 * 60 * 1000;
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-const supabaseShareBucket = (import.meta.env.VITE_SUPABASE_SHARE_BUCKET as string | undefined) ?? "kickoff-share-cards";
+const runtimeEnv = import.meta.env as Record<string, string | boolean | undefined>;
+const supabaseUrl = () => runtimeConfigValue(runtimeEnv, "VITE_SUPABASE_URL");
+const supabaseAnonKey = () => runtimeConfigValue(runtimeEnv, "VITE_SUPABASE_ANON_KEY");
+const supabaseShareBucket = () => runtimeConfigValue(runtimeEnv, "VITE_SUPABASE_SHARE_BUCKET") || "kickoff-share-cards";
+const supabaseConfigured = () => Boolean(supabaseUrl() && supabaseAnonKey());
 
 type SupabaseSession = {
   access_token: string;
   refresh_token?: string;
   expires_at?: number;
+};
+
+type SupabasePkceRequest = {
+  codeVerifier: string;
+  state: string;
+  redirectTo: string;
+  createdAt: number;
 };
 
 type SupabaseUser = {
@@ -37,7 +52,6 @@ type SupabaseUser = {
   };
 };
 
-const configured = Boolean(supabaseUrl && supabaseAnonKey);
 const REQUIRED_BACKEND_TABLES = [
   "kickoff_profiles",
   "kickoff_records",
@@ -49,19 +63,19 @@ const REQUIRED_RLS_TABLES = REQUIRED_BACKEND_TABLES;
 const REQUIRED_POLICY_COUNT = 8;
 
 const headers = (session?: SupabaseSession) => ({
-  apikey: supabaseAnonKey ?? "",
-  Authorization: `Bearer ${session?.access_token ?? supabaseAnonKey ?? ""}`,
+  apikey: supabaseAnonKey(),
+  Authorization: `Bearer ${session?.access_token ?? supabaseAnonKey()}`,
   "Content-Type": "application/json",
 });
 
-const restUrl = (path: string) => `${supabaseUrl}/rest/v1/${path}`;
+const restUrl = (path: string) => `${supabaseUrl()}/rest/v1/${path}`;
 const storageObjectUrl = (bucket: string, path: string) =>
-  `${supabaseUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${path
+  `${supabaseUrl()}/storage/v1/object/${encodeURIComponent(bucket)}/${path
     .split("/")
     .map((part) => encodeURIComponent(part))
     .join("/")}`;
 const publicStorageObjectUrl = (bucket: string, path: string) =>
-  `${supabaseUrl}/storage/v1/object/public/${encodeURIComponent(bucket)}/${path
+  `${supabaseUrl()}/storage/v1/object/public/${encodeURIComponent(bucket)}/${path
     .split("/")
     .map((part) => encodeURIComponent(part))
     .join("/")}`;
@@ -90,8 +104,8 @@ export const shareImageStoragePath = (
     storagePathPart(artifact.fileName ?? `${artifact.id}-share-card.png`),
   ].join("/");
 
-export const publicShareImageUrl = (path: string, bucket = supabaseShareBucket) =>
-  configured ? publicStorageObjectUrl(bucket, path) : "";
+export const publicShareImageUrl = (path: string, bucket = supabaseShareBucket()) =>
+  supabaseConfigured() ? publicStorageObjectUrl(bucket, path) : "";
 
 const emptyBackendHealth = (detail: string): CloudBackendHealth => ({
   checkedAt: new Date().toISOString(),
@@ -102,8 +116,14 @@ const emptyBackendHealth = (detail: string): CloudBackendHealth => ({
   missingViews: REQUIRED_BACKEND_VIEWS,
   rlsTables: REQUIRED_RLS_TABLES,
   missingRlsTables: REQUIRED_RLS_TABLES,
+  missingColumns: [],
+  missingViewColumns: [],
   policyCount: 0,
   requiredPolicyCount: REQUIRED_POLICY_COUNT,
+  unsafeWritePolicies: [],
+  storageBucketPublic: false,
+  storagePolicyCount: 0,
+  requiredStoragePolicyCount: 3,
   detail,
 });
 
@@ -111,9 +131,30 @@ const mapBackendHealthRow = (row: any): CloudBackendHealth => {
   const missingTables = Array.isArray(row.missing_tables) ? row.missing_tables.map(String) : REQUIRED_BACKEND_TABLES;
   const missingViews = Array.isArray(row.missing_views) ? row.missing_views.map(String) : REQUIRED_BACKEND_VIEWS;
   const missingRlsTables = Array.isArray(row.missing_rls_tables) ? row.missing_rls_tables.map(String) : REQUIRED_RLS_TABLES;
+  const missingColumns = Array.isArray(row.missing_columns)
+    ? row.missing_columns.map(String)
+    : ["kickoff_backend_health.missing_columns"];
+  const missingViewColumns = Array.isArray(row.missing_view_columns)
+    ? row.missing_view_columns.map(String)
+    : ["kickoff_backend_health.missing_view_columns"];
   const policyCount = Number(row.policy_count ?? 0);
   const requiredPolicyCount = Number(row.required_policy_count ?? REQUIRED_POLICY_COUNT);
-  const ready = Boolean(row.ready) && missingTables.length === 0 && missingViews.length === 0 && missingRlsTables.length === 0 && policyCount >= requiredPolicyCount;
+  const unsafeWritePolicies = Array.isArray(row.unsafe_write_policies)
+    ? row.unsafe_write_policies.map(String)
+    : ["kickoff_backend_health.unsafe_write_policies"];
+  const storageBucketPublic = row.storage_bucket_public === true;
+  const storagePolicyCount = Number(row.storage_policy_count ?? 0);
+  const requiredStoragePolicyCount = Number(row.required_storage_policy_count ?? 3);
+  const ready = Boolean(row.ready) &&
+    missingTables.length === 0 &&
+    missingViews.length === 0 &&
+    missingRlsTables.length === 0 &&
+    missingColumns.length === 0 &&
+    missingViewColumns.length === 0 &&
+    policyCount >= requiredPolicyCount &&
+    unsafeWritePolicies.length === 0 &&
+    storageBucketPublic &&
+    storagePolicyCount >= requiredStoragePolicyCount;
   return {
     checkedAt: row.checked_at ?? new Date().toISOString(),
     schemaVersion: row.schema_version ?? undefined,
@@ -124,18 +165,28 @@ const mapBackendHealthRow = (row: any): CloudBackendHealth => {
     missingViews,
     rlsTables: Array.isArray(row.rls_tables) ? row.rls_tables.map(String) : REQUIRED_RLS_TABLES,
     missingRlsTables,
+    missingColumns,
+    missingViewColumns,
     policyCount,
     requiredPolicyCount,
+    unsafeWritePolicies,
+    storageBucketPublic,
+    storagePolicyCount,
+    requiredStoragePolicyCount,
     detail:
       row.detail ??
       (ready
         ? `Schema ${row.schema_version ?? "unknown"} ready`
-        : `Missing tables ${missingTables.join(", ") || "none"}, views ${missingViews.join(", ") || "none"}, RLS ${missingRlsTables.join(", ") || "none"}`),
+        : `Missing tables ${missingTables.join(", ") || "none"}, views ${missingViews.join(", ") || "none"}, RLS ${
+            missingRlsTables.join(", ") || "none"
+          }, columns ${missingColumns.join(", ") || "none"}, view columns ${
+            missingViewColumns.join(", ") || "none"
+          }, unsafe write policies ${unsafeWritePolicies.join(", ") || "none"}, storage public ${storageBucketPublic}, storage policies ${storagePolicyCount}/${requiredStoragePolicyCount}`),
   };
 };
 
 export const loadCloudBackendHealth = async (anonymous = true): Promise<CloudBackendHealth> => {
-  if (!configured) return emptyBackendHealth("Supabase env missing.");
+  if (!supabaseConfigured()) return emptyBackendHealth("Supabase env missing.");
   const params = new URLSearchParams({ select: "*", limit: "1" });
   try {
     const res = await fetch(restUrl(`kickoff_backend_health?${params.toString()}`), {
@@ -152,17 +203,31 @@ export const loadCloudBackendHealth = async (anonymous = true): Promise<CloudBac
 };
 
 const authRedirectTo = () =>
-  import.meta.env.VITE_SUPABASE_REDIRECT_URL ?? window.location.origin + import.meta.env.BASE_URL;
+  runtimeConfigValue(runtimeEnv, "VITE_SUPABASE_REDIRECT_URL") || window.location.origin + import.meta.env.BASE_URL;
+
+const normalizeAuthEmail = (email: string) => {
+  const normalized = email.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+    throw new Error("Enter a valid email address before sending a magic link.");
+  }
+  return normalized;
+};
 
 export const buildSupabaseOAuthUrl = (
   provider: "google",
   redirectTo: string,
-  baseUrl = supabaseUrl,
+  baseUrl = supabaseUrl(),
+  options: { codeChallenge?: string; state?: string } = {},
 ) => {
   if (!baseUrl) throw new Error("Supabase is not configured.");
   const url = new URL(`${baseUrl}/auth/v1/authorize`);
   url.searchParams.set("provider", provider);
   url.searchParams.set("redirect_to", redirectTo);
+  if (options.codeChallenge) {
+    url.searchParams.set("code_challenge", options.codeChallenge);
+    url.searchParams.set("code_challenge_method", "s256");
+  }
+  if (options.state) url.searchParams.set("state", options.state);
   return url.toString();
 };
 
@@ -176,6 +241,42 @@ const saveSupabaseSession = (session: SupabaseSession) => {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 };
 
+const clearSupabaseSession = () => {
+  localStorage.removeItem(SESSION_KEY);
+};
+
+let refreshSessionInFlight: Promise<SupabaseSession | undefined> | undefined;
+
+const saveSupabasePkceRequest = (request: SupabasePkceRequest) => {
+  localStorage.setItem(PKCE_KEY, JSON.stringify(request));
+};
+
+const loadSupabasePkceRequest = (): SupabasePkceRequest | undefined => {
+  const saved = localStorage.getItem(PKCE_KEY);
+  if (!saved) return undefined;
+  try {
+    const request = JSON.parse(saved) as SupabasePkceRequest;
+    const ageMs = Date.now() - Number(request.createdAt);
+    if (
+      request.codeVerifier &&
+      request.state &&
+      Number.isFinite(ageMs) &&
+      ageMs >= 0 &&
+      ageMs <= PKCE_REQUEST_MAX_AGE_MS
+    ) {
+      return request;
+    }
+  } catch {
+    // A broken verifier should not keep future Google sign-ins stuck.
+  }
+  localStorage.removeItem(PKCE_KEY);
+  return undefined;
+};
+
+const clearSupabasePkceRequest = () => {
+  localStorage.removeItem(PKCE_KEY);
+};
+
 const normalizeSupabaseSession = (payload: any, fallbackRefreshToken?: string): SupabaseSession => ({
   access_token: payload.access_token,
   refresh_token: payload.refresh_token ?? fallbackRefreshToken,
@@ -186,12 +287,102 @@ const normalizeSupabaseSession = (payload: any, fallbackRefreshToken?: string): 
       : undefined,
 });
 
-const friendCodeFor = (profile: UserProfile) =>
-  (profile.location || profile.email.split("@")[1] || "global")
+const base64Url = (bytes: Uint8Array) => {
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+};
+
+const randomBase64Url = (byteLength: number) => {
+  const bytes = new Uint8Array(byteLength);
+  crypto.getRandomValues(bytes);
+  return base64Url(bytes);
+};
+
+const sha256Base64Url = async (value: string) => {
+  if (!crypto.subtle) throw new Error("Web Crypto is required for Supabase PKCE sign-in.");
+  const bytes = new TextEncoder().encode(value);
+  return base64Url(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)));
+};
+
+export const buildSupabasePkceOAuthUrl = async (
+  provider: "google",
+  redirectTo = authRedirectTo(),
+  baseUrl = supabaseUrl(),
+) => {
+  const codeVerifier = randomBase64Url(32);
+  const state = randomBase64Url(18);
+  const codeChallenge = await sha256Base64Url(codeVerifier);
+  const url = buildSupabaseOAuthUrl(provider, redirectTo, baseUrl, { codeChallenge, state });
+  saveSupabasePkceRequest({ codeVerifier, state, redirectTo, createdAt: Date.now() });
+  return { url, codeVerifier, codeChallenge, state, redirectTo };
+};
+
+export const normalizeFriendCode = (value: string) =>
+  value
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "") || "global";
+    .replace(/^-|-$/g, "");
+
+export const friendCodeFor = (profile: UserProfile) =>
+  normalizeFriendCode(profile.friendCode ?? "") ||
+  normalizeFriendCode(profile.location || profile.email.split("@")[1] || "global") ||
+  "global";
+
+const profileIdentityFor = (profile: UserProfile): NonNullable<CloudSyncVerification["profileIdentity"]> => ({
+  id: profile.id,
+  email: profile.email,
+  displayName: profile.displayName,
+  location: profile.location,
+  friendCode: friendCodeFor(profile),
+});
+
+const profileIdentityProblems = (localProfile: UserProfile, remoteProfile?: UserProfile) => {
+  if (!remoteProfile) return ["kickoff_profiles row missing"];
+  const remoteIdentity = profileIdentityFor(remoteProfile);
+  const expectedFriendCode = friendCodeFor(localProfile);
+  const problems = [
+    remoteProfile.id === localProfile.id ? "" : "id mismatch",
+    remoteProfile.cloudMode === "supabase" ? "" : "profile was not read from Supabase",
+    remoteIdentity.email ? "" : "email missing",
+    localProfile.email && remoteIdentity.email !== localProfile.email ? "email mismatch" : "",
+    remoteIdentity.displayName ? "" : "display name missing",
+    remoteIdentity.displayName !== localProfile.displayName ? "display name mismatch" : "",
+    remoteIdentity.location ? "" : "location missing",
+    remoteIdentity.location !== localProfile.location ? "location mismatch" : "",
+    remoteIdentity.friendCode ? "" : "friend code missing",
+    remoteIdentity.friendCode !== expectedFriendCode ? "friend code mismatch" : "",
+  ].filter(Boolean);
+  return Array.from(new Set(problems));
+};
+
+const authUserIdentityFor = (user: SupabaseUser | undefined): CloudSyncVerification["authUserIdentity"] | undefined => {
+  if (!user?.id) return undefined;
+  return {
+    id: user.id,
+    email: user.email ?? "",
+    provider: undefined,
+    displayName: user.user_metadata?.full_name ?? user.user_metadata?.name,
+  };
+};
+
+const authUserProblems = (
+  user: SupabaseUser | undefined,
+  profile: UserProfile,
+  remoteProfile?: UserProfile,
+) => {
+  if (!user?.id) return ["Supabase Auth user was not read back"];
+  const profileId = remoteProfile?.id ?? profile.id;
+  const profileEmail = remoteProfile?.email ?? profile.email;
+  return [
+    user.id === profileId ? "" : `auth id ${user.id} != profile ${profileId}`,
+    user.email ? "" : "auth email missing",
+    profileEmail && user.email && user.email !== profileEmail ? "auth email mismatch" : "",
+  ].filter(Boolean);
+};
 
 const currentSeasonKey = "world-cup-run";
 
@@ -246,7 +437,7 @@ export const getCloudState = (): CloudSyncState => {
   const session = loadSupabaseSession();
   const sessionExpired = isSupabaseSessionExpired(session, 0);
   const refreshable = Boolean(session?.refresh_token);
-  if (!configured) {
+  if (!supabaseConfigured()) {
     return {
       configured: false,
       authenticated: false,
@@ -273,6 +464,9 @@ export const getCloudState = (): CloudSyncState => {
   };
 };
 
+export const shouldAutoRecoverCloudSession = (state: CloudSyncState) =>
+  state.configured && (state.authenticated || Boolean(state.refreshable));
+
 export const loadProfile = (): UserProfile => {
   const saved = localStorage.getItem(PROFILE_KEY);
   if (saved) return JSON.parse(saved) as UserProfile;
@@ -282,7 +476,7 @@ export const loadProfile = (): UserProfile => {
     displayName: "Kickoff Analyst",
     location: "Chengdu",
     createdAt: new Date().toISOString(),
-    cloudMode: configured ? "supabase" : "local",
+    cloudMode: supabaseConfigured() ? "supabase" : "local",
   };
   saveProfile(profile);
   return profile;
@@ -294,29 +488,45 @@ export const saveProfile = (profile: UserProfile) => {
 
 export const loadSupabaseSession = (): SupabaseSession | undefined => {
   const saved = localStorage.getItem(SESSION_KEY);
-  if (saved) return JSON.parse(saved) as SupabaseSession;
+  if (!saved) return undefined;
+  try {
+    const session = JSON.parse(saved) as SupabaseSession;
+    if (session?.access_token || session?.refresh_token) return session;
+  } catch {
+    // Bad local session state should not trap the account flow in a broken signed-in state.
+  }
+  clearSupabaseSession();
   return undefined;
 };
 
 export const refreshSupabaseSession = async (): Promise<SupabaseSession | undefined> => {
   const session = loadSupabaseSession();
-  if (!configured || !session) return session;
+  if (!supabaseConfigured() || !session) return session;
   if (!isSupabaseSessionExpired(session) && session.access_token) return session;
   if (!session.refresh_token) return session;
-  const res = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
-    method: "POST",
-    headers: headers(),
-    body: JSON.stringify({ refresh_token: session.refresh_token }),
+  if (refreshSessionInFlight) return refreshSessionInFlight;
+  refreshSessionInFlight = (async () => {
+    const res = await fetch(`${supabaseUrl()}/auth/v1/token?grant_type=refresh_token`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ refresh_token: session.refresh_token }),
+    });
+    if (!res.ok) {
+      if ([400, 401, 403].includes(res.status)) clearSupabaseSession();
+      throw new Error(`Session refresh failed: ${res.status}`);
+    }
+    const nextSession = normalizeSupabaseSession(await res.json(), session.refresh_token);
+    saveSupabaseSession(nextSession);
+    return nextSession;
+  })().finally(() => {
+    refreshSessionInFlight = undefined;
   });
-  if (!res.ok) throw new Error(`Session refresh failed: ${res.status}`);
-  const nextSession = normalizeSupabaseSession(await res.json(), session.refresh_token);
-  saveSupabaseSession(nextSession);
-  return nextSession;
+  return refreshSessionInFlight;
 };
 
 const requireFreshSession = async () => {
   const session = await refreshSupabaseSession();
-  if (!configured || !session?.access_token || isSupabaseSessionExpired(session, 0)) {
+  if (!supabaseConfigured() || !session?.access_token || isSupabaseSessionExpired(session, 0)) {
     throw new Error("Sign in with Supabase before using cloud sync.");
   }
   return session;
@@ -337,10 +547,61 @@ export const consumeSupabaseHash = (): SupabaseSession | undefined => {
   return session;
 };
 
+export const hasSupabaseAuthCallback = () => {
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const search = new URLSearchParams(window.location.search);
+  return hash.has("access_token") || search.has("code");
+};
+
+const clearSupabaseCodeFromUrl = () => {
+  const params = new URLSearchParams(window.location.search);
+  params.delete("code");
+  params.delete("state");
+  const nextSearch = params.toString();
+  window.history.replaceState(
+    {},
+    "",
+    `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ""}${window.location.hash}`,
+  );
+};
+
+export const exchangeSupabaseAuthCode = async (code: string, state?: string): Promise<SupabaseSession> => {
+  if (!supabaseConfigured()) throw new Error("Supabase is not configured.");
+  const request = loadSupabasePkceRequest();
+  if (!request?.codeVerifier) throw new Error("Supabase PKCE verifier missing. Start Google sign-in again.");
+  if (request.state !== state) {
+    clearSupabasePkceRequest();
+    throw new Error("Supabase OAuth state mismatch. Start Google sign-in again.");
+  }
+  const res = await fetch(`${supabaseUrl()}/auth/v1/token?grant_type=pkce`, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({
+      auth_code: code,
+      code_verifier: request.codeVerifier,
+    }),
+  });
+  if (!res.ok) throw new Error(`Supabase code exchange failed: ${res.status}`);
+  const session = normalizeSupabaseSession(await res.json());
+  saveSupabaseSession(session);
+  clearSupabasePkceRequest();
+  clearSupabaseCodeFromUrl();
+  return session;
+};
+
+export const consumeSupabaseAuthCallback = async (): Promise<SupabaseSession | undefined> => {
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  if (hash.has("access_token")) return consumeSupabaseHash();
+  const search = new URLSearchParams(window.location.search);
+  const code = search.get("code");
+  if (!code) return loadSupabaseSession();
+  return exchangeSupabaseAuthCode(code, search.get("state") ?? undefined);
+};
+
 export const loadCurrentUser = async (): Promise<SupabaseUser | undefined> => {
-  if (!configured || !loadSupabaseSession()) return undefined;
+  if (!supabaseConfigured() || !loadSupabaseSession()) return undefined;
   const session = await requireFreshSession();
-  const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+  const res = await fetch(`${supabaseUrl()}/auth/v1/user`, {
     headers: headers(session),
   });
   if (!res.ok) throw new Error(`Profile load failed: ${res.status}`);
@@ -362,17 +623,74 @@ export const hydrateProfileFromAuth = async (profile: UserProfile): Promise<User
   return next;
 };
 
-export const syncProfileToCloud = async (profile: UserProfile) => {
-  if (!configured || !loadSupabaseSession()) return;
-  const session = await requireFreshSession();
+export const resolveCloudProfileForSync = async (profile: UserProfile): Promise<UserProfile> => {
+  if (!supabaseConfigured() || !loadSupabaseSession()) return profile;
   const user = await loadCurrentUser();
+  if (!user?.id) return profile;
+  const next: UserProfile = {
+    ...profile,
+    id: user.id,
+    email: user.email ?? profile.email,
+    avatarUrl: user.user_metadata?.avatar_url ?? profile.avatarUrl,
+    cloudMode: "supabase",
+  };
+  saveProfile(next);
+  return next;
+};
+
+const cloudProfileValue = (incoming: string | undefined, fallback: string) => {
+  const next = incoming?.trim();
+  return next ? next : fallback;
+};
+
+export const mergeCloudProfile = (
+  localProfile: UserProfile,
+  cloudProfile?: UserProfile,
+): UserProfile => {
+  if (!cloudProfile) return localProfile;
+  const next: UserProfile = {
+    ...localProfile,
+    id: cloudProfileValue(cloudProfile.id, localProfile.id),
+    email: cloudProfileValue(cloudProfile.email, localProfile.email),
+    displayName: cloudProfileValue(cloudProfile.displayName, localProfile.displayName),
+    location: cloudProfileValue(cloudProfile.location, localProfile.location),
+    friendCode: normalizeFriendCode(cloudProfile.friendCode ?? localProfile.friendCode ?? ""),
+    avatarUrl: cloudProfile.avatarUrl ?? localProfile.avatarUrl,
+    createdAt: localProfile.createdAt || cloudProfile.createdAt,
+    cloudMode: "supabase",
+  };
+  saveProfile(next);
+  return next;
+};
+
+const uniqueTruthy = (items: Array<string | undefined>) => [
+  ...new Set(items.map((item) => item?.trim()).filter((item): item is string => Boolean(item))),
+];
+
+const loadCurrentUserSoft = async () => loadCurrentUser().catch(() => undefined);
+
+const cloudIdentityOrFilter = (
+  profile: UserProfile,
+  user: SupabaseUser | undefined,
+  idColumn: "id" | "user_id",
+) => {
+  if (user?.id) return `(${idColumn}.eq.${user.id})`;
+  const ids = uniqueTruthy([user?.id, profile.id]);
+  const clauses = ids.map((id) => `${idColumn}.eq.${id}`);
+  return `(${clauses.join(",")})`;
+};
+
+export const syncProfileToCloud = async (profile: UserProfile) => {
+  if (!supabaseConfigured() || !loadSupabaseSession()) return;
+  const session = await requireFreshSession();
+  const cloudProfile = await resolveCloudProfileForSync(profile);
   const row = {
-    id: user?.id ?? profile.id,
-    email: user?.email ?? profile.email,
-    display_name: profile.displayName,
-    location: profile.location,
-    avatar_url: profile.avatarUrl ?? null,
-    friend_code: friendCodeFor(profile),
+    id: cloudProfile.id,
+    email: cloudProfile.email,
+    display_name: cloudProfile.displayName,
+    location: cloudProfile.location,
+    avatar_url: cloudProfile.avatarUrl ?? null,
+    friend_code: friendCodeFor(cloudProfile),
     updated_at: new Date().toISOString(),
   };
   const res = await fetch(restUrl("kickoff_profiles?on_conflict=id"), {
@@ -381,56 +699,68 @@ export const syncProfileToCloud = async (profile: UserProfile) => {
     body: JSON.stringify(row),
   });
   if (!res.ok) throw new Error(`Profile sync failed: ${res.status}`);
+  return cloudProfile;
 };
 
 export const signOutCloud = async () => {
   const session = await refreshSupabaseSession().catch(() => loadSupabaseSession());
-  if (configured && session) {
-    await fetch(`${supabaseUrl}/auth/v1/logout`, {
+  if (supabaseConfigured() && session) {
+    await fetch(`${supabaseUrl()}/auth/v1/logout`, {
       method: "POST",
       headers: headers(session),
     }).catch(() => undefined);
   }
   localStorage.removeItem(SESSION_KEY);
+  clearSupabasePkceRequest();
 };
 
 export const sendMagicLink = async (email: string) => {
-  if (!configured) throw new Error("Supabase is not configured.");
+  if (!supabaseConfigured()) throw new Error("Supabase is not configured.");
+  const normalizedEmail = normalizeAuthEmail(email);
   const redirectTo = authRedirectTo();
-  const res = await fetch(`${supabaseUrl}/auth/v1/otp`, {
+  const res = await fetch(`${supabaseUrl()}/auth/v1/otp`, {
     method: "POST",
     headers: headers(),
     body: JSON.stringify({
-      email,
+      email: normalizedEmail,
       create_user: true,
       options: { email_redirect_to: redirectTo },
     }),
   });
   if (!res.ok) throw new Error(`Magic link failed: ${res.status}`);
+  return { email: normalizedEmail, redirectTo };
 };
 
-export const startGoogleSignIn = () => {
-  if (!configured) throw new Error("Supabase is not configured.");
-  window.location.assign(buildSupabaseOAuthUrl("google", authRedirectTo()));
+export const startGoogleSignIn = async () => {
+  if (!supabaseConfigured()) throw new Error("Supabase is not configured.");
+  const request = await buildSupabasePkceOAuthUrl("google", authRedirectTo());
+  window.location.assign(request.url);
 };
 
-export const syncRecordsToCloud = async (profile: UserProfile, records: MemoryRecord[]) => {
-  if (!configured || !loadSupabaseSession()) {
+type CloudSyncWriteOptions = {
+  profileAlreadySynced?: boolean;
+};
+
+export const syncRecordsToCloud = async (
+  profile: UserProfile,
+  records: MemoryRecord[],
+  options: CloudSyncWriteOptions = {},
+) => {
+  if (!supabaseConfigured() || !loadSupabaseSession()) {
     return {
       status: "offline" as const,
       message: "Cloud sync skipped. Sign in with Supabase to sync records.",
     };
   }
   const session = await requireFreshSession();
-  const user = await loadCurrentUser();
-  await syncProfileToCloud(profile);
+  const cloudProfile = options.profileAlreadySynced ? profile : (await syncProfileToCloud(profile)) ?? profile;
   const rows = records.map((record) => ({
     id: record.capsule.id,
-    user_id: user?.id ?? profile.id,
-    email: user?.email ?? profile.email,
-    display_name: profile.displayName,
-    location: profile.location,
-    friend_code: friendCodeFor(profile),
+    user_id: cloudProfile.id,
+    email: cloudProfile.email,
+    display_name: cloudProfile.displayName,
+    location: cloudProfile.location,
+    friend_code: friendCodeFor(cloudProfile),
     season_key: currentSeasonKey,
     capsule: record.capsule,
     result: record.result ?? null,
@@ -450,23 +780,26 @@ export const syncRecordsToCloud = async (profile: UserProfile, records: MemoryRe
   return { status: "synced" as const, message: `Synced ${rows.length} records to Supabase.` };
 };
 
-export const syncModeRunsToCloud = async (profile: UserProfile, modeRuns: GameModeRun[]) => {
-  if (!configured || !loadSupabaseSession()) {
+export const syncModeRunsToCloud = async (
+  profile: UserProfile,
+  modeRuns: GameModeRun[],
+  options: CloudSyncWriteOptions = {},
+) => {
+  if (!supabaseConfigured() || !loadSupabaseSession()) {
     return {
       status: "offline" as const,
       message: "Mode proof sync skipped. Sign in with Supabase to sync mode runs.",
     };
   }
   const session = await requireFreshSession();
-  const user = await loadCurrentUser();
-  await syncProfileToCloud(profile);
+  const cloudProfile = options.profileAlreadySynced ? profile : (await syncProfileToCloud(profile)) ?? profile;
   const rows = modeRuns.map((run) => ({
     id: run.id,
-    user_id: user?.id ?? profile.id,
-    email: user?.email ?? profile.email,
-    display_name: profile.displayName,
-    location: profile.location,
-    friend_code: friendCodeFor(profile),
+    user_id: cloudProfile.id,
+    email: cloudProfile.email,
+    display_name: cloudProfile.displayName,
+    location: cloudProfile.location,
+    friend_code: friendCodeFor(cloudProfile),
     season_key: currentSeasonKey,
     mode_id: run.modeId,
     status: run.status,
@@ -493,12 +826,11 @@ export const shareArtifactCloudId = (artifact: Pick<ShareArtifactEvidence, "kind
 const shareArtifactRow = (
   profile: UserProfile,
   artifact: ShareArtifactEvidence,
-  user?: SupabaseUser,
 ) => ({
   id: artifact.id,
   kind: artifact.kind,
-  user_id: user?.id ?? profile.id,
-  email: user?.email ?? profile.email,
+  user_id: profile.id,
+  email: profile.email,
   display_name: profile.displayName,
   location: profile.location,
   friend_code: friendCodeFor(profile),
@@ -537,31 +869,29 @@ const mapShareArtifactRow = (row: any): ShareArtifactEvidence => ({
 
 const canReadPublicShareImage = async (imageUrl?: string) => {
   if (!imageUrl || !imageUrl.startsWith("https://")) return false;
-  for (const method of ["HEAD", "GET"] as const) {
-    try {
-      const res = await fetch(imageUrl, { method, cache: "no-store" });
-      if (res.ok) return true;
-    } catch {
-      // Some public storage/CDN endpoints reject HEAD; retry with GET before failing.
-    }
+  try {
+    const res = await fetch(imageUrl, { method: "GET", cache: "no-store" });
+    const validation = await validatePublicShareImageResponse(res);
+    return validation.passed;
+  } catch {
+    return false;
   }
-  return false;
 };
 
 export const syncShareArtifactsToCloud = async (
   profile: UserProfile,
   artifacts: ShareArtifactEvidence[],
+  options: CloudSyncWriteOptions = {},
 ) => {
-  if (!configured || !loadSupabaseSession()) {
+  if (!supabaseConfigured() || !loadSupabaseSession()) {
     return {
       status: "offline" as const,
       message: "Share artifact sync skipped. Sign in with Supabase to sync proof cards.",
     };
   }
   const session = await requireFreshSession();
-  const user = await loadCurrentUser();
-  await syncProfileToCloud(profile);
-  const rows = artifacts.map((artifact) => shareArtifactRow(profile, artifact, user));
+  const cloudProfile = options.profileAlreadySynced ? profile : (await syncProfileToCloud(profile)) ?? profile;
+  const rows = artifacts.map((artifact) => shareArtifactRow(cloudProfile, artifact));
   if (rows.length === 0) {
     return { status: "synced" as const, message: "No share artifacts to sync." };
   }
@@ -574,12 +904,47 @@ export const syncShareArtifactsToCloud = async (
   return { status: "synced" as const, message: `Synced ${rows.length} share artifacts to Supabase.` };
 };
 
+export const syncCloudOutboxToCloud = async (
+  profile: UserProfile,
+  records: MemoryRecord[],
+  modeRuns: GameModeRun[],
+  shareArtifacts: ShareArtifactEvidence[] = [],
+) => {
+  if (!supabaseConfigured() || !loadSupabaseSession()) {
+    return {
+      status: "offline" as const,
+      profile,
+      message: "Cloud outbox sync skipped. Sign in with Supabase to sync profile and history.",
+    };
+  }
+  const cloudProfile = (await syncProfileToCloud(profile)) ?? profile;
+  const [recordsResult, modeRunsResult, shareArtifactsResult] = await Promise.all([
+    records.length > 0
+      ? syncRecordsToCloud(cloudProfile, records, { profileAlreadySynced: true })
+      : Promise.resolve({ status: "synced" as const, message: "No records to sync." }),
+    modeRuns.length > 0
+      ? syncModeRunsToCloud(cloudProfile, modeRuns, { profileAlreadySynced: true })
+      : Promise.resolve({ status: "synced" as const, message: "No mode proof runs to sync." }),
+    shareArtifacts.length > 0
+      ? syncShareArtifactsToCloud(cloudProfile, shareArtifacts, { profileAlreadySynced: true })
+      : Promise.resolve({ status: "synced" as const, message: "No share artifacts to sync." }),
+  ]);
+  return {
+    status: "synced" as const,
+    profile: cloudProfile,
+    records: recordsResult,
+    modeRuns: modeRunsResult,
+    shareArtifacts: shareArtifactsResult,
+    message: "Cloud outbox synced with profile read-back prerequisites.",
+  };
+};
+
 export const uploadShareImageToCloud = async (
   profile: UserProfile,
   artifact: Pick<ShareArtifactEvidence, "id" | "kind" | "fileName" | "imageMime">,
   dataUrl: string,
 ) => {
-  if (!configured || !loadSupabaseSession()) {
+  if (!supabaseConfigured() || !loadSupabaseSession()) {
     return {
       status: "skipped" as const,
       message: "Share image upload skipped. Sign in with Supabase to publish public image URLs.",
@@ -588,10 +953,10 @@ export const uploadShareImageToCloud = async (
   const session = await requireFreshSession();
   const path = shareImageStoragePath(profile, artifact);
   const blob = await dataUrlToBlob(dataUrl);
-  const res = await fetch(storageObjectUrl(supabaseShareBucket, path), {
+  const res = await fetch(storageObjectUrl(supabaseShareBucket(), path), {
     method: "POST",
     headers: {
-      apikey: supabaseAnonKey ?? "",
+      apikey: supabaseAnonKey(),
       Authorization: `Bearer ${session.access_token}`,
       "Content-Type": artifact.imageMime || blob.type || "image/png",
       "x-upsert": "true",
@@ -675,40 +1040,87 @@ const shareArtifactCompleteness = (artifact: ShareArtifactEvidence) => {
   );
 };
 
-const recordContentFingerprint = (record: MemoryRecord) =>
-  [
-    record.capsule.id,
-    record.capsule.payloadHash,
-    record.capsule.filecoinProof.mode,
-    record.capsule.filecoinProof.cid,
-    record.result?.id ?? "pending",
-    record.result?.totalScore ?? "pending",
-    record.sealJob?.status ?? "no-seal-job",
-    record.sealJob?.proof?.cid ?? record.sealJob?.proofUrl ?? "no-proof-url",
-  ].join("|");
+export const recordContentFingerprint = (record: MemoryRecord) =>
+  stableJson({
+    capsule: {
+      id: record.capsule.id,
+      matchId: record.capsule.matchId,
+      matchLabel: record.capsule.matchLabel,
+      kickoffAt: record.capsule.kickoffAt,
+      createdAt: record.capsule.createdAt,
+      sealedAt: record.capsule.sealedAt,
+      locked: record.capsule.locked,
+      lateLock: record.capsule.lateLock,
+      prediction: record.capsule.prediction,
+      payloadHash: record.capsule.payloadHash,
+      filecoinProof: record.capsule.filecoinProof,
+    },
+    result: record.result ?? null,
+    sealJob: record.sealJob
+      ? {
+          id: record.sealJob.id,
+          capsuleId: record.sealJob.capsuleId,
+          status: record.sealJob.status,
+          proofUrl: record.sealJob.proofUrl,
+          verifyUrl: record.sealJob.verifyUrl,
+          uploadPayloadHash: record.sealJob.uploadPayloadHash,
+          uploadByteLength: record.sealJob.uploadByteLength,
+          proofRegistryStatus: record.sealJob.proofRegistryStatus,
+          proofRegistryHash: record.sealJob.proofRegistryHash,
+          proofRegistryByteLength: record.sealJob.proofRegistryByteLength,
+          proof: record.sealJob.proof,
+        }
+      : null,
+  });
 
-const modeRunContentFingerprint = (run: GameModeRun) =>
-  [
-    run.id,
-    run.payloadHash,
-    run.filecoinProof.mode,
-    run.filecoinProof.cid,
-    run.status,
-    run.score ?? "pending",
-    run.artifact?.kind ?? "no-artifact",
-  ].join("|");
+export const modeRunContentFingerprint = (run: GameModeRun) =>
+  stableJson({
+    id: run.id,
+    modeId: run.modeId,
+    title: run.title,
+    createdAt: run.createdAt,
+    capsuleIds: run.capsuleIds,
+    payloadHash: run.payloadHash,
+    filecoinProof: run.filecoinProof,
+    status: run.status,
+    score: run.score ?? null,
+    summary: run.summary,
+    requirements: run.requirements,
+    artifact: run.artifact ?? null,
+    sealJob: run.sealJob
+      ? {
+          id: run.sealJob.id,
+          capsuleId: run.sealJob.capsuleId,
+          status: run.sealJob.status,
+          proofUrl: run.sealJob.proofUrl,
+          verifyUrl: run.sealJob.verifyUrl,
+          uploadPayloadHash: run.sealJob.uploadPayloadHash,
+          uploadByteLength: run.sealJob.uploadByteLength,
+          proofRegistryStatus: run.sealJob.proofRegistryStatus,
+          proofRegistryHash: run.sealJob.proofRegistryHash,
+          proofRegistryByteLength: run.sealJob.proofRegistryByteLength,
+          proof: run.sealJob.proof,
+        }
+      : null,
+  });
 
-const shareArtifactContentFingerprint = (artifact: ShareArtifactEvidence) =>
-  [
-    shareArtifactCloudId(artifact),
-    artifact.proofUrl,
-    artifact.imageHash ?? "no-hash",
-    artifact.imageUrl ?? "no-image-url",
-    artifact.imageByteLength ?? "no-bytes",
-    artifact.fileName ?? "no-file",
-    artifact.xIntentOpenedAt ? "x-opened" : "x-pending",
-    artifact.nativeShareOpenedAt ? "native-opened" : "native-pending",
-  ].join("|");
+export const shareArtifactContentFingerprint = (artifact: ShareArtifactEvidence) =>
+  stableJson({
+    cloudId: shareArtifactCloudId(artifact),
+    id: artifact.id,
+    kind: artifact.kind,
+    proofUrl: artifact.proofUrl,
+    imageGenerated: artifact.imageGenerated,
+    generatedAt: artifact.generatedAt ?? null,
+    fileName: artifact.fileName ?? null,
+    imageUrl: artifact.imageUrl ?? null,
+    imageMime: artifact.imageMime ?? null,
+    imageByteLength: artifact.imageByteLength ?? null,
+    imageHash: artifact.imageHash ?? null,
+    xIntentUrl: artifact.xIntentUrl ?? null,
+    xIntentOpenedAt: artifact.xIntentOpenedAt ?? null,
+    nativeShareOpenedAt: artifact.nativeShareOpenedAt ?? null,
+  });
 
 const mergeShareArtifactVersion = (
   current: ShareArtifactEvidence,
@@ -752,11 +1164,62 @@ export const mergeShareArtifacts = (
   );
 };
 
+export type CloudRecoverySnapshot = {
+  profile: UserProfile;
+  records: MemoryRecord[];
+  modeRuns: GameModeRun[];
+  shareArtifacts: ShareArtifactEvidence[];
+  remoteRecordCount: number;
+  remoteModeRunCount: number;
+  remoteShareArtifactCount: number;
+  hasRemoteHistory: boolean;
+};
+
+export const buildCloudRecoverySnapshot = ({
+  localProfile,
+  remoteProfile,
+  localRecords,
+  remoteRecords,
+  localModeRuns,
+  remoteModeRuns,
+  localShareArtifacts,
+  remoteShareArtifacts,
+}: {
+  localProfile: UserProfile;
+  remoteProfile?: UserProfile;
+  localRecords: MemoryRecord[];
+  remoteRecords: MemoryRecord[];
+  localModeRuns: GameModeRun[];
+  remoteModeRuns: GameModeRun[];
+  localShareArtifacts: ShareArtifactEvidence[];
+  remoteShareArtifacts: ShareArtifactEvidence[];
+}): CloudRecoverySnapshot => {
+  const records = mergeMemoryRecords(localRecords, remoteRecords);
+  const modeRuns = mergeModeRuns(localModeRuns, remoteModeRuns);
+  const shareArtifacts = mergeShareArtifacts(localShareArtifacts, remoteShareArtifacts);
+  return {
+    profile: mergeCloudProfile(localProfile, remoteProfile),
+    records,
+    modeRuns,
+    shareArtifacts,
+    remoteRecordCount: remoteRecords.length,
+    remoteModeRunCount: remoteModeRuns.length,
+    remoteShareArtifactCount: remoteShareArtifacts.length,
+    hasRemoteHistory: remoteRecords.length > 0 || remoteModeRuns.length > 0 || remoteShareArtifacts.length > 0,
+  };
+};
+
+export const cloudRecoveryMessage = (reason: string, snapshot: CloudRecoverySnapshot) =>
+  snapshot.hasRemoteHistory
+    ? `${reason} merged ${snapshot.remoteRecordCount} cloud records, ${snapshot.remoteModeRunCount} mode proof runs and ${snapshot.remoteShareArtifactCount} share manifests.`
+    : `${reason} no cloud history found; local records, mode runs and share manifests are ready to sync.`;
+
 export const loadRecordsFromCloud = async (profile: UserProfile): Promise<MemoryRecord[]> => {
   const session = await requireFreshSession();
+  const user = await loadCurrentUserSoft();
   const params = new URLSearchParams({
     select: "capsule,result,seal_job,updated_at",
-    or: `(user_id.eq.${profile.id},email.eq.${profile.email})`,
+    or: cloudIdentityOrFilter(profile, user, "user_id"),
     order: "updated_at.desc",
   });
   const res = await fetch(restUrl(`kickoff_records?${params.toString()}`), {
@@ -773,9 +1236,10 @@ export const loadRecordsFromCloud = async (profile: UserProfile): Promise<Memory
 
 export const loadModeRunsFromCloud = async (profile: UserProfile): Promise<GameModeRun[]> => {
   const session = await requireFreshSession();
+  const user = await loadCurrentUserSoft();
   const params = new URLSearchParams({
     select: "mode_run,updated_at",
-    or: `(user_id.eq.${profile.id},email.eq.${profile.email})`,
+    or: cloudIdentityOrFilter(profile, user, "user_id"),
     order: "updated_at.desc",
   });
   const res = await fetch(restUrl(`kickoff_mode_runs?${params.toString()}`), {
@@ -790,9 +1254,10 @@ export const loadShareArtifactsFromCloud = async (
   profile: UserProfile,
 ): Promise<ShareArtifactEvidence[]> => {
   const session = await requireFreshSession();
+  const user = await loadCurrentUserSoft();
   const params = new URLSearchParams({
     select: "artifact,id,kind,proof_url,image_generated,generated_at,file_name,image_url,image_mime,image_byte_length,image_hash,x_intent_url,x_intent_opened_at,native_share_opened_at,updated_at",
-    or: `(user_id.eq.${profile.id},email.eq.${profile.email})`,
+    or: cloudIdentityOrFilter(profile, user, "user_id"),
     order: "updated_at.desc",
   });
   const res = await fetch(restUrl(`kickoff_share_artifacts?${params.toString()}`), {
@@ -803,13 +1268,70 @@ export const loadShareArtifactsFromCloud = async (
   return rows.map(mapShareArtifactRow).filter((artifact) => artifact.id && artifact.kind);
 };
 
+const ownerMapFromRows = (rows: any[], keyFor: (row: any) => string) =>
+  Object.fromEntries(
+    rows
+      .map((row) => [keyFor(row), String(row?.user_id ?? "")] as const)
+      .filter(([id, owner]) => id && owner),
+  );
+
+const loadRecordOwnerRows = async (profile: UserProfile) => {
+  const session = await requireFreshSession();
+  const user = await loadCurrentUserSoft();
+  const params = new URLSearchParams({
+    select: "id,user_id",
+    or: cloudIdentityOrFilter(profile, user, "user_id"),
+  });
+  const res = await fetch(restUrl(`kickoff_records?${params.toString()}`), {
+    headers: headers(session),
+  });
+  if (!res.ok) throw new Error(`Cloud record owner read-back failed: ${res.status}`);
+  return (await res.json()) as any[];
+};
+
+const loadModeRunOwnerRows = async (profile: UserProfile) => {
+  const session = await requireFreshSession();
+  const user = await loadCurrentUserSoft();
+  const params = new URLSearchParams({
+    select: "id,user_id",
+    or: cloudIdentityOrFilter(profile, user, "user_id"),
+  });
+  const res = await fetch(restUrl(`kickoff_mode_runs?${params.toString()}`), {
+    headers: headers(session),
+  });
+  if (!res.ok) throw new Error(`Cloud mode owner read-back failed: ${res.status}`);
+  return (await res.json()) as any[];
+};
+
+const loadShareArtifactOwnerRows = async (profile: UserProfile) => {
+  const session = await requireFreshSession();
+  const user = await loadCurrentUserSoft();
+  const params = new URLSearchParams({
+    select: "id,kind,user_id",
+    or: cloudIdentityOrFilter(profile, user, "user_id"),
+  });
+  const res = await fetch(restUrl(`kickoff_share_artifacts?${params.toString()}`), {
+    headers: headers(session),
+  });
+  if (!res.ok) throw new Error(`Cloud share artifact owner read-back failed: ${res.status}`);
+  return (await res.json()) as any[];
+};
+
 export const loadProfileFromCloud = async (profile: UserProfile): Promise<UserProfile | undefined> => {
   const session = await requireFreshSession();
-  const params = new URLSearchParams({
-    select: "*",
-    id: `eq.${profile.id}`,
-    limit: "1",
-  });
+  const user = await loadCurrentUserSoft();
+  const params = user?.id
+    ? new URLSearchParams({
+        select: "*",
+        id: `eq.${user.id}`,
+        limit: "1",
+      })
+    : new URLSearchParams({
+        select: "*",
+        or: cloudIdentityOrFilter(profile, user, "id"),
+        order: "updated_at.desc",
+        limit: "1",
+      });
   const res = await fetch(restUrl(`kickoff_profiles?${params.toString()}`), {
     headers: headers(session),
   });
@@ -821,14 +1343,15 @@ export const loadProfileFromCloud = async (profile: UserProfile): Promise<UserPr
     email: row.email ?? profile.email,
     displayName: row.display_name ?? profile.displayName,
     location: row.location ?? profile.location,
+    friendCode: row.friend_code ?? profile.friendCode,
     avatarUrl: row.avatar_url ?? undefined,
     createdAt: row.updated_at ?? profile.createdAt,
     cloudMode: "supabase",
   };
 };
 
-export const loadPublicRecord = async (capsuleId: string, anonymous = false): Promise<MemoryRecord | undefined> => {
-  if (!configured || !capsuleId) return undefined;
+export const loadPublicRecord = async (capsuleId: string, anonymous = true): Promise<MemoryRecord | undefined> => {
+  if (!supabaseConfigured() || !capsuleId) return undefined;
   const params = new URLSearchParams({
     select: "capsule,result,seal_job",
     id: `eq.${capsuleId}`,
@@ -847,8 +1370,8 @@ export const loadPublicRecord = async (capsuleId: string, anonymous = false): Pr
   };
 };
 
-export const loadPublicModeRun = async (runId: string, anonymous = false): Promise<GameModeRun | undefined> => {
-  if (!configured || !runId) return undefined;
+export const loadPublicModeRun = async (runId: string, anonymous = true): Promise<GameModeRun | undefined> => {
+  if (!supabaseConfigured() || !runId) return undefined;
   const params = new URLSearchParams({
     select: "mode_run",
     id: `eq.${runId}`,
@@ -865,9 +1388,9 @@ export const loadPublicModeRun = async (runId: string, anonymous = false): Promi
 export const loadPublicShareArtifact = async (
   id: string,
   kind: ShareArtifactEvidence["kind"],
-  anonymous = false,
+  anonymous = true,
 ): Promise<ShareArtifactEvidence | undefined> => {
-  if (!configured || !id) return undefined;
+  if (!supabaseConfigured() || !id) return undefined;
   const params = new URLSearchParams({
     select: "artifact,id,kind,proof_url,image_generated,generated_at,file_name,image_url,image_mime,image_byte_length,image_hash,x_intent_url,x_intent_opened_at,native_share_opened_at,updated_at",
     id: `eq.${id}`,
@@ -928,7 +1451,17 @@ const buildPublicProfileFromRows = (
     sealJob: row.seal_job ?? undefined,
   })) as MemoryRecord[];
   const modeRuns = modeRunRows.map((row) => row.mode_run as GameModeRun).filter(Boolean);
-  const shareArtifacts = shareArtifactRows.map(mapShareArtifactRow).filter((artifact) => artifact.id && artifact.kind);
+  const recordIds = new Set(records.map((record) => record.capsule.id));
+  const modeRunIds = new Set(modeRuns.map((run) => run.id));
+  const shareArtifacts = shareArtifactRows
+    .map(mapShareArtifactRow)
+    .filter((artifact) =>
+      artifact.kind === "record"
+        ? recordIds.has(artifact.id)
+        : artifact.kind === "mode"
+          ? modeRunIds.has(artifact.id)
+          : false,
+    );
   const publicProfile = buildPublicProfile(
     {
       id: profileRow.id,
@@ -949,8 +1482,8 @@ const buildPublicProfileFromRows = (
   };
 };
 
-export const loadPublicProfile = async (profileId: string, anonymous = false): Promise<PublicProfile | undefined> => {
-  if (!configured || !profileId) return undefined;
+export const loadPublicProfile = async (profileId: string, anonymous = true): Promise<PublicProfile | undefined> => {
+  if (!supabaseConfigured() || !profileId) return undefined;
   const profileParams = new URLSearchParams({
     select: "*",
     id: `eq.${profileId}`,
@@ -1007,11 +1540,13 @@ export const verifyCloudSyncReadback = async (
   modeRuns: GameModeRun[],
   shareArtifacts: ShareArtifactEvidence[] = [],
 ): Promise<CloudSyncVerification> => {
-  if (!configured || !loadSupabaseSession()) {
+  if (!supabaseConfigured() || !loadSupabaseSession()) {
     return {
       checkedAt: new Date().toISOString(),
       backendHealth: await loadCloudBackendHealth(true),
       profile: false,
+      authUserProblems: ["Supabase session is not available"],
+      profileIdentityProblems: ["Supabase session is not available"],
       records: 0,
       modeRuns: 0,
       publicProofs: 0,
@@ -1024,11 +1559,18 @@ export const verifyCloudSyncReadback = async (
       recordIds: [],
       modeRunIds: [],
       publicProofIds: [],
+      publicProofContentIds: [],
       shareArtifactIds: [],
+      recordOwnerIds: {},
+      modeRunOwnerIds: {},
+      shareArtifactOwnerIds: {},
       publicShareImageIds: [],
       publicProfileRecordIds: [],
       publicProfileModeRunIds: [],
       publicProfileShareArtifactIds: [],
+      publicProfileRecordContentIds: [],
+      publicProfileModeRunContentIds: [],
+      publicProfileShareArtifactContentIds: [],
       recordContentIds: [],
       modeRunContentIds: [],
       shareArtifactContentIds: [],
@@ -1038,11 +1580,18 @@ export const verifyCloudSyncReadback = async (
         ...records.map((record) => `record:${record.capsule.id}`),
         ...modeRuns.map((run) => `mode:${run.id}`),
       ],
+      missingPublicProofContentIds: [
+        ...records.map((record) => `record:${record.capsule.id}`),
+        ...modeRuns.map((run) => `mode:${run.id}`),
+      ],
       missingShareArtifactIds: shareArtifacts.map(shareArtifactCloudId),
       missingPublicShareImageIds: shareArtifacts.map(shareArtifactCloudId),
       missingPublicProfileRecordIds: records.map((record) => record.capsule.id),
       missingPublicProfileModeRunIds: modeRuns.map((run) => run.id),
       missingPublicProfileShareArtifactIds: shareArtifacts.map(shareArtifactCloudId),
+      missingPublicProfileRecordContentIds: records.map((record) => record.capsule.id),
+      missingPublicProfileModeRunContentIds: modeRuns.map((run) => run.id),
+      missingPublicProfileShareArtifactContentIds: shareArtifacts.map(shareArtifactCloudId),
       missingRecordContentIds: records.map((record) => record.capsule.id),
       missingModeRunContentIds: modeRuns.map((run) => run.id),
       missingShareArtifactContentIds: shareArtifacts.map(shareArtifactCloudId),
@@ -1050,12 +1599,29 @@ export const verifyCloudSyncReadback = async (
     };
   }
 
-  const [backendHealth, remoteProfile, remoteRecords, remoteModeRuns, remoteShareArtifacts, publicProfile, publicRecords, publicModeRuns] = await Promise.all([
+  const [
+    backendHealth,
+    currentUser,
+    remoteProfile,
+    remoteRecords,
+    remoteModeRuns,
+    remoteShareArtifacts,
+    recordOwnerRows,
+    modeRunOwnerRows,
+    shareArtifactOwnerRows,
+    publicProfile,
+    publicRecords,
+    publicModeRuns,
+  ] = await Promise.all([
     loadCloudBackendHealth(true),
+    loadCurrentUserSoft(),
     loadProfileFromCloud(profile),
     loadRecordsFromCloud(profile),
     loadModeRunsFromCloud(profile),
     loadShareArtifactsFromCloud(profile).catch(() => []),
+    loadRecordOwnerRows(profile),
+    loadModeRunOwnerRows(profile),
+    loadShareArtifactOwnerRows(profile).catch(() => []),
     loadPublicProfile(profile.id, true).catch(() => undefined),
     Promise.all(records.map((record) => loadPublicRecord(record.capsule.id, true).catch(() => undefined))),
     Promise.all(modeRuns.map((run) => loadPublicModeRun(run.id, true).catch(() => undefined))),
@@ -1112,6 +1678,19 @@ export const verifyCloudSyncReadback = async (
     run && expectedModeRunIds.has(run.id) ? [`mode:${run.id}`] : [],
   );
   const publicProofIds = [...publicRecordIds, ...publicModeRunIds];
+  const publicRecordContentIds = records
+    .filter((record, index) => {
+      const publicRecord = publicRecords[index];
+      return publicRecord ? recordContentFingerprint(publicRecord) === recordContentFingerprint(record) : false;
+    })
+    .map((record) => `record:${record.capsule.id}`);
+  const publicModeRunContentIds = modeRuns
+    .filter((run, index) => {
+      const publicModeRun = publicModeRuns[index];
+      return publicModeRun ? modeRunContentFingerprint(publicModeRun) === modeRunContentFingerprint(run) : false;
+    })
+    .map((run) => `mode:${run.id}`);
+  const publicProofContentIds = [...publicRecordContentIds, ...publicModeRunContentIds];
   const publicProfileRecordIds = publicProfile
     ? publicProfile.records
         .filter((record) => expectedRecordIds.has(record.capsule.id))
@@ -1127,6 +1706,29 @@ export const verifyCloudSyncReadback = async (
         .filter((artifact) => expectedShareArtifactIds.has(shareArtifactCloudId(artifact)))
         .map(shareArtifactCloudId)
     : [];
+  const publicProfileRecordById = new Map((publicProfile?.records ?? []).map((record) => [record.capsule.id, record]));
+  const publicProfileModeRunById = new Map((publicProfile?.modeRuns ?? []).map((run) => [run.id, run]));
+  const publicProfileShareArtifactById = new Map(
+    (publicProfile?.shareArtifacts ?? []).map((artifact) => [shareArtifactCloudId(artifact), artifact]),
+  );
+  const publicProfileRecordContentIds = records
+    .filter((record) => {
+      const archived = publicProfileRecordById.get(record.capsule.id);
+      return archived ? recordContentFingerprint(archived) === recordContentFingerprint(record) : false;
+    })
+    .map((record) => record.capsule.id);
+  const publicProfileModeRunContentIds = modeRuns
+    .filter((run) => {
+      const archived = publicProfileModeRunById.get(run.id);
+      return archived ? modeRunContentFingerprint(archived) === modeRunContentFingerprint(run) : false;
+    })
+    .map((run) => run.id);
+  const publicProfileShareArtifactContentIds = shareArtifacts
+    .filter((artifact) => {
+      const archived = publicProfileShareArtifactById.get(shareArtifactCloudId(artifact));
+      return archived ? shareArtifactContentFingerprint(archived) === shareArtifactContentFingerprint(artifact) : false;
+    })
+    .map(shareArtifactCloudId);
   const missingRecordIds = records
     .map((record) => record.capsule.id)
     .filter((id) => !recordIds.includes(id));
@@ -1157,22 +1759,51 @@ export const verifyCloudSyncReadback = async (
   const missingPublicProfileShareArtifactIds = shareArtifacts
     .map(shareArtifactCloudId)
     .filter((id) => !publicProfileShareArtifactIds.includes(id));
+  const missingPublicProfileRecordContentIds = records
+    .map((record) => record.capsule.id)
+    .filter((id) => !publicProfileRecordContentIds.includes(id));
+  const missingPublicProfileModeRunContentIds = modeRuns
+    .map((run) => run.id)
+    .filter((id) => !publicProfileModeRunContentIds.includes(id));
+  const missingPublicProfileShareArtifactContentIds = shareArtifacts
+    .map(shareArtifactCloudId)
+    .filter((id) => !publicProfileShareArtifactContentIds.includes(id));
   const expectedPublicProofIds = [
     ...records.map((record) => `record:${record.capsule.id}`),
     ...modeRuns.map((run) => `mode:${run.id}`),
   ];
   const missingPublicProofIds = expectedPublicProofIds.filter((id) => !publicProofIds.includes(id));
+  const missingPublicProofContentIds = expectedPublicProofIds.filter((id) => !publicProofContentIds.includes(id));
   const verifiedRecords = recordIds.length;
   const verifiedModeRuns = modeRunIds.length;
   const verifiedShareArtifacts = shareArtifactIds.length;
+  const recordOwnerIds = ownerMapFromRows(
+    recordOwnerRows.filter((row) => expectedRecordIds.has(String(row?.id ?? ""))),
+    (row) => String(row?.id ?? ""),
+  );
+  const modeRunOwnerIds = ownerMapFromRows(
+    modeRunOwnerRows.filter((row) => expectedModeRunIds.has(String(row?.id ?? ""))),
+    (row) => String(row?.id ?? ""),
+  );
+  const shareArtifactOwnerIds = ownerMapFromRows(
+    shareArtifactOwnerRows.filter((row) => expectedShareArtifactIds.has(`${row?.kind ?? ""}:${row?.id ?? ""}`)),
+    (row) => `${row?.kind ?? ""}:${row?.id ?? ""}`,
+  );
   const publicShareImages = publicShareImageIds.length;
   const publicProofs = publicProofIds.length;
-  const profileReady = Boolean(remoteProfile?.id === profile.id && remoteProfile.cloudMode === "supabase");
+  const profileIdentity = remoteProfile ? profileIdentityFor(remoteProfile) : undefined;
+  const authIdentity = authUserIdentityFor(currentUser);
+  const authProblems = authUserProblems(currentUser, profile, remoteProfile);
+  const profileProblems = [...profileIdentityProblems(profile, remoteProfile), ...authProblems];
+  const profileReady = profileProblems.length === 0;
   const publicProfileReady = Boolean(
     publicProfile?.id === profile.id &&
       publicProfileRecordIds.length >= records.length &&
       publicProfileModeRunIds.length >= modeRuns.length &&
-      publicProfileShareArtifactIds.length >= shareArtifacts.length,
+      publicProfileShareArtifactIds.length >= shareArtifacts.length &&
+      publicProfileRecordContentIds.length >= records.length &&
+      publicProfileModeRunContentIds.length >= modeRuns.length &&
+      publicProfileShareArtifactContentIds.length >= shareArtifacts.length,
   );
   const expectedLinks = records.length + modeRuns.length;
   const fullyVerified =
@@ -1183,6 +1814,7 @@ export const verifyCloudSyncReadback = async (
     recordContentIds.length >= records.length &&
     modeRunContentIds.length >= modeRuns.length &&
     publicProofs >= expectedLinks &&
+    publicProofContentIds.length >= expectedLinks &&
     verifiedShareArtifacts >= shareArtifacts.length &&
     shareArtifactContentIds.length >= shareArtifacts.length &&
     publicShareImages >= shareArtifacts.length &&
@@ -1192,6 +1824,10 @@ export const verifyCloudSyncReadback = async (
     checkedAt: new Date().toISOString(),
     backendHealth,
     profile: profileReady,
+    profileIdentity,
+    authUserIdentity: authIdentity,
+    profileIdentityProblems: profileProblems,
+    authUserProblems: authProblems,
     records: verifiedRecords,
     modeRuns: verifiedModeRuns,
     publicProofs,
@@ -1204,67 +1840,142 @@ export const verifyCloudSyncReadback = async (
     recordIds,
     modeRunIds,
     publicProofIds,
+    publicProofContentIds,
     shareArtifactIds,
+    recordOwnerIds,
+    modeRunOwnerIds,
+    shareArtifactOwnerIds,
     publicShareImageIds,
     publicProfileRecordIds,
     publicProfileModeRunIds,
     publicProfileShareArtifactIds,
+    publicProfileRecordContentIds,
+    publicProfileModeRunContentIds,
+    publicProfileShareArtifactContentIds,
     recordContentIds,
     modeRunContentIds,
     shareArtifactContentIds,
     missingRecordIds,
     missingModeRunIds,
     missingPublicProofIds,
+    missingPublicProofContentIds,
     missingShareArtifactIds,
     missingPublicShareImageIds,
     missingPublicProfileRecordIds,
     missingPublicProfileModeRunIds,
     missingPublicProfileShareArtifactIds,
+    missingPublicProfileRecordContentIds,
+    missingPublicProfileModeRunContentIds,
+    missingPublicProfileShareArtifactContentIds,
     missingRecordContentIds,
     missingModeRunContentIds,
     missingShareArtifactContentIds,
     message: fullyVerified
-      ? `Cloud read-back verified backend schema, profile, ${verifiedRecords} records, ${verifiedModeRuns} mode runs, ${verifiedShareArtifacts} share artifacts, ${publicShareImages} share images, ${publicProofs} public links, public profile archives and matching content fingerprints.`
-      : `Cloud read-back incomplete: backend ${backendHealth.ready ? "ready" : "not ready"}, profile ${profileReady ? "verified" : "missing"}, ${verifiedRecords}/${records.length} records, ${recordContentIds.length}/${records.length} record fingerprints, ${verifiedModeRuns}/${modeRuns.length} modes, ${modeRunContentIds.length}/${modeRuns.length} mode fingerprints, ${verifiedShareArtifacts}/${shareArtifacts.length} share artifacts, ${shareArtifactContentIds.length}/${shareArtifacts.length} share fingerprints, ${publicShareImages}/${shareArtifacts.length} share images, ${publicProofs}/${expectedLinks} public links, public profile ${publicProfileReady ? "verified" : "missing"} (${publicProfileRecordIds.length}/${records.length} records, ${publicProfileModeRunIds.length}/${modeRuns.length} modes, ${publicProfileShareArtifactIds.length}/${shareArtifacts.length} shares).`,
+      ? `Cloud read-back verified backend schema, profile, ${verifiedRecords} records, ${verifiedModeRuns} mode runs, ${verifiedShareArtifacts} share artifacts, ${publicShareImages} share images, ${publicProofs} public links, ${publicProofContentIds.length} public proof fingerprints, public profile archive fingerprints and matching content fingerprints.`
+      : `Cloud read-back incomplete: backend ${backendHealth.ready ? "ready" : "not ready"}, profile ${profileReady ? "verified" : "missing"}, ${verifiedRecords}/${records.length} records, ${recordContentIds.length}/${records.length} record fingerprints, ${verifiedModeRuns}/${modeRuns.length} modes, ${modeRunContentIds.length}/${modeRuns.length} mode fingerprints, ${verifiedShareArtifacts}/${shareArtifacts.length} share artifacts, ${shareArtifactContentIds.length}/${shareArtifacts.length} share fingerprints, ${publicShareImages}/${shareArtifacts.length} share images, ${publicProofs}/${expectedLinks} public links, ${publicProofContentIds.length}/${expectedLinks} public proof fingerprints, public profile ${publicProfileReady ? "verified" : "missing"} (${publicProfileRecordContentIds.length}/${records.length} record archive fingerprints, ${publicProfileModeRunContentIds.length}/${modeRuns.length} mode archive fingerprints, ${publicProfileShareArtifactContentIds.length}/${shareArtifacts.length} share archive fingerprints).`,
   };
 };
+
+export const LEADERBOARD_SELECT_FIELDS = [
+  "id",
+  "display_name",
+  "location",
+  "friend_code",
+  "season_key",
+  "locks",
+  "revealed",
+  "average_score",
+  "best_score",
+  "xp",
+  "streak",
+  "exact_hits",
+  "verified_proofs",
+  "mode_proofs",
+  "global_rank",
+  "friend_rank",
+  "season_rank",
+  "rank",
+  "updated_at",
+].join(",");
 
 export const loadLeaderboard = async (
   scope: LeaderboardScope,
   profile: UserProfile,
 ): Promise<LeaderboardEntry[]> => {
-  if (!configured) return [];
-  const params = new URLSearchParams({
-    select: "*",
-    order: "xp.desc",
-    limit: "20",
-  });
-  if (scope === "friend") params.set("friend_code", `eq.${friendCodeFor(profile)}`);
-  if (scope === "season") params.set("season_key", `eq.${currentSeasonKey}`);
-  const res = await fetch(restUrl(`kickoff_leaderboard?${params.toString()}`), {
-    headers: headers(await refreshSupabaseSession()),
+  if (!supabaseConfigured()) return [];
+  const positiveRank = (value: unknown) => {
+    const rank = Number(value);
+    return Number.isInteger(rank) && rank > 0 ? rank : undefined;
+  };
+  const paramsForScope = (limit: string) => {
+    const params = new URLSearchParams({
+      select: LEADERBOARD_SELECT_FIELDS,
+      order: "xp.desc",
+      limit,
+    });
+    if (scope === "friend") params.set("friend_code", `eq.${friendCodeFor(profile)}`);
+    if (scope === "season") params.set("season_key", `eq.${currentSeasonKey}`);
+    return params;
+  };
+  const mapRows = (rows: any[], source: LeaderboardScope) =>
+    rows.map((row) => {
+      const globalRank = positiveRank(row.global_rank ?? row.rank);
+      const friendRank = positiveRank(row.friend_rank ?? row.rank);
+      const seasonRank = positiveRank(row.season_rank ?? row.rank);
+      const scopedRank = source === "friend" ? friendRank : source === "season" ? seasonRank : globalRank;
+      return {
+        id: row.id,
+        displayName: row.display_name ?? "Unknown analyst",
+        location: row.location ?? "Global",
+        rank: scopedRank,
+        globalRank,
+        friendRank,
+        seasonRank,
+        locks: Number(row.locks ?? 0),
+        revealed: Number(row.revealed ?? 0),
+        averageScore: Number(row.average_score ?? 0),
+        bestScore: Number(row.best_score ?? 0),
+        xp: Number(row.xp ?? 0),
+        streak: Number(row.streak ?? 0),
+        exactHits: Number(row.exact_hits ?? 0),
+        verifiedProofs: Number(row.verified_proofs ?? 0),
+        modeProofs: Number(row.mode_proofs ?? 0),
+        seasonKey: row.season_key ?? undefined,
+        friendCode: row.friend_code ?? undefined,
+        updatedAt: row.updated_at ?? undefined,
+        source,
+      };
+    });
+  const res = await fetch(restUrl(`kickoff_leaderboard?${paramsForScope("20").toString()}`), {
+    headers: headers(),
   });
   if (!res.ok) throw new Error(`Leaderboard load failed: ${res.status}`);
   const rows = (await res.json()) as any[];
-  return rows.map((row, index) => ({
-    id: row.id,
-    displayName: row.display_name ?? "Unknown analyst",
-    location: row.location ?? "Global",
-    rank: Number(row.rank ?? index + 1),
-    locks: Number(row.locks ?? 0),
-    revealed: Number(row.revealed ?? 0),
-    averageScore: Number(row.average_score ?? 0),
-    bestScore: Number(row.best_score ?? 0),
-    xp: Number(row.xp ?? 0),
-    streak: Number(row.streak ?? 0),
-    exactHits: Number(row.exact_hits ?? 0),
-    verifiedProofs: Number(row.verified_proofs ?? 0),
-    modeProofs: Number(row.mode_proofs ?? 0),
-    seasonKey: row.season_key ?? undefined,
-    friendCode: row.friend_code ?? undefined,
-    updatedAt: row.updated_at ?? undefined,
-    source: scope,
-  }));
+  const entries = mapRows(rows, scope);
+  if (entries.some((entry) => entry.id === profile.id)) return entries;
+
+  const currentUserParams = paramsForScope("1");
+  currentUserParams.set("id", `eq.${profile.id}`);
+  const currentUserRes = await fetch(restUrl(`kickoff_leaderboard?${currentUserParams.toString()}`), {
+    headers: headers(),
+  });
+  if (!currentUserRes.ok) throw new Error(`Leaderboard current user load failed: ${currentUserRes.status}`);
+  const currentUserRows = (await currentUserRes.json()) as any[];
+  return [...entries, ...mapRows(currentUserRows, scope)].filter(
+    (entry, index, all) => all.findIndex((candidate) => candidate.id === entry.id) === index,
+  );
+};
+
+export const leaderboardTargetQuery = (scope: LeaderboardScope, profile: UserProfile) => {
+  const params = new URLSearchParams({
+    select: LEADERBOARD_SELECT_FIELDS,
+    order: "xp.desc",
+    limit: "1",
+    id: `eq.${profile.id}`,
+  });
+  if (scope === "friend") params.set("friend_code", `eq.${friendCodeFor(profile)}`);
+  if (scope === "season") params.set("season_key", `eq.${currentSeasonKey}`);
+  return `kickoff_leaderboard?${params.toString()}`;
 };
 
 export const buildLeaderboardScopeEvidence = (
@@ -1274,13 +1985,25 @@ export const buildLeaderboardScopeEvidence = (
   patch: Partial<LeaderboardScopeEvidence> = {},
 ): LeaderboardScopeEvidence => {
   const currentUser = rows.find((entry) => entry.id === profile.id);
+  const currentUserRank = Number.isInteger(currentUser?.rank) && Number(currentUser?.rank) > 0 ? currentUser?.rank : undefined;
   return {
     scope,
     status: rows.length > 0 ? "loaded" : "empty",
     rows: rows.length,
     filter: leaderboardScopeFilter(scope, profile),
+    targetQuery: leaderboardTargetQuery(scope, profile),
     currentUserPresent: Boolean(currentUser),
-    currentUserRank: currentUser?.rank,
+    currentUserRank,
+    currentUserXp: currentUser?.xp,
+    currentUserLocks: currentUser?.locks,
+    currentUserRevealed: currentUser?.revealed,
+    currentUserVerifiedProofs: currentUser?.verifiedProofs,
+    currentUserModeProofs: currentUser?.modeProofs,
+    currentUserExactHits: currentUser?.exactHits,
+    currentUserFriendCode: currentUser?.friendCode,
+    currentUserSeasonKey: currentUser?.seasonKey,
+    expectedFriendCode: friendCodeFor(profile),
+    expectedSeasonKey: currentSeasonKey,
     checkedAt: new Date().toISOString(),
     sampleIds: rows.slice(0, 3).map((entry) => entry.id),
     ...patch,
@@ -1315,6 +2038,11 @@ export const isCloudReadbackComplete = (
   expectedRecords: number,
   expectedModeRuns: number,
   expectedShareArtifacts = 0,
+  expectedTargetIds: {
+    recordIds?: string[];
+    modeRunIds?: string[];
+    shareArtifactIds?: string[];
+  } = {},
 ) => {
   const verifiedRecordContent = verification?.recordContentIds?.length ?? verification?.records ?? 0;
   const verifiedModeRunContent = verification?.modeRunContentIds?.length ?? verification?.modeRuns ?? 0;
@@ -1324,10 +2052,53 @@ export const isCloudReadbackComplete = (
   const verifiedPublicProfileModeRuns = verification?.publicProfileModeRunIds?.length ?? (verification?.publicProfile ? expectedModeRuns : 0);
   const verifiedPublicProfileShareArtifacts =
     verification?.publicProfileShareArtifactIds?.length ?? (verification?.publicProfile ? expectedShareArtifacts : 0);
+  const verifiedPublicProfileRecordContent =
+    verification?.publicProfileRecordContentIds?.length ?? verifiedPublicProfileRecords;
+  const verifiedPublicProfileModeRunContent =
+    verification?.publicProfileModeRunContentIds?.length ?? verifiedPublicProfileModeRuns;
+  const verifiedPublicProfileShareArtifactContent =
+    verification?.publicProfileShareArtifactContentIds?.length ?? verifiedPublicProfileShareArtifacts;
+  const profileIdentityPassed = Boolean(verification?.profileIdentity) && (verification?.profileIdentityProblems?.length ?? 0) === 0;
+  const containsAll = (actual: string[] | undefined, expected: string[] | undefined) =>
+    !expected?.length || expected.every((id) => actual?.includes(id));
+  const targetIdsMatch =
+    containsAll(verification?.recordIds, expectedTargetIds.recordIds) &&
+    containsAll(verification?.recordContentIds, expectedTargetIds.recordIds) &&
+    containsAll(verification?.publicProfileRecordIds, expectedTargetIds.recordIds) &&
+    containsAll(verification?.publicProfileRecordContentIds ?? verification?.publicProfileRecordIds, expectedTargetIds.recordIds) &&
+    containsAll(
+      verification?.publicProofIds,
+      expectedTargetIds.recordIds?.map((id) => `record:${id}`),
+    ) &&
+    containsAll(
+      verification?.publicProofContentIds,
+      expectedTargetIds.recordIds?.map((id) => `record:${id}`),
+    ) &&
+    containsAll(verification?.modeRunIds, expectedTargetIds.modeRunIds) &&
+    containsAll(verification?.modeRunContentIds, expectedTargetIds.modeRunIds) &&
+    containsAll(verification?.publicProfileModeRunIds, expectedTargetIds.modeRunIds) &&
+    containsAll(verification?.publicProfileModeRunContentIds ?? verification?.publicProfileModeRunIds, expectedTargetIds.modeRunIds) &&
+    containsAll(
+      verification?.publicProofIds,
+      expectedTargetIds.modeRunIds?.map((id) => `mode:${id}`),
+    ) &&
+    containsAll(
+      verification?.publicProofContentIds,
+      expectedTargetIds.modeRunIds?.map((id) => `mode:${id}`),
+    ) &&
+    containsAll(verification?.shareArtifactIds, expectedTargetIds.shareArtifactIds) &&
+    containsAll(verification?.shareArtifactContentIds, expectedTargetIds.shareArtifactIds) &&
+    containsAll(verification?.publicProfileShareArtifactIds, expectedTargetIds.shareArtifactIds) &&
+    containsAll(
+      verification?.publicProfileShareArtifactContentIds ?? verification?.publicProfileShareArtifactIds,
+      expectedTargetIds.shareArtifactIds,
+    ) &&
+    containsAll(verification?.publicShareImageIds, expectedTargetIds.shareArtifactIds);
   return Boolean(
-    verification &&
+      verification &&
       verification.backendHealth?.ready &&
       verification.profile &&
+      profileIdentityPassed &&
       verification.records >= expectedRecords &&
       verification.modeRuns >= expectedModeRuns &&
       (verification.shareArtifacts ?? 0) >= expectedShareArtifacts &&
@@ -1339,7 +2110,11 @@ export const isCloudReadbackComplete = (
       verification.publicProfile &&
       verifiedPublicProfileRecords >= expectedRecords &&
       verifiedPublicProfileModeRuns >= expectedModeRuns &&
-      verifiedPublicProfileShareArtifacts >= expectedShareArtifacts,
+      verifiedPublicProfileShareArtifacts >= expectedShareArtifacts &&
+      verifiedPublicProfileRecordContent >= expectedRecords &&
+      verifiedPublicProfileModeRunContent >= expectedModeRuns &&
+      verifiedPublicProfileShareArtifactContent >= expectedShareArtifacts &&
+      targetIdsMatch,
   );
 };
 
@@ -1351,7 +2126,14 @@ export const buildCloudSyncCoverage = (
 ) => {
   const localItems = records.length + modeRuns.length + shareArtifacts.length;
   const verification = cloudState.verification;
-  const readbackPassed = isCloudReadbackComplete(verification, records.length, modeRuns.length, shareArtifacts.length);
+  const recordIds = records.map((record) => record.capsule.id);
+  const modeRunIds = modeRuns.map((run) => run.id);
+  const shareArtifactIds = shareArtifacts.map(shareArtifactCloudId);
+  const readbackPassed = isCloudReadbackComplete(verification, records.length, modeRuns.length, shareArtifacts.length, {
+    recordIds,
+    modeRunIds,
+    shareArtifactIds,
+  });
   if (localItems === 0) {
     return {
       passed: false,
@@ -1387,16 +2169,134 @@ export const buildCloudSyncCoverage = (
       detail: `${localItems} local item${localItems === 1 ? "" : "s"} syncing now`,
     };
   }
+  const presentCount = (actual: string[] | undefined, expected: string[]) =>
+    expected.filter((id) => actual?.includes(id)).length;
+  const acknowledgedItems =
+    presentCount(verification?.recordContentIds, recordIds) +
+    presentCount(verification?.modeRunContentIds, modeRunIds) +
+    presentCount(verification?.shareArtifactContentIds, shareArtifactIds);
   return {
     passed: false,
-    pendingItems: verification
-      ? Math.max(0, localItems - verification.records - verification.modeRuns)
-      : localItems,
+    pendingItems: verification ? Math.max(0, localItems - acknowledgedItems) : localItems,
     detail:
       cloudState.status === "error"
         ? `${localItems} local item${localItems === 1 ? "" : "s"} need sync retry`
         : `${localItems} local item${localItems === 1 ? "" : "s"} pending cloud acknowledgement`,
   };
+};
+
+const outboxStatus = (
+  cloudState: CloudSyncState,
+  total: number,
+  verified: number,
+  missing: string[],
+): CloudSyncOutboxItem["status"] => {
+  if (total === 0 || (verified >= total && missing.length === 0)) return "verified";
+  if (!cloudState.configured) return "blocked";
+  if (cloudState.status === "syncing") return "syncing";
+  return "queued";
+};
+
+const outboxDetail = (prefix: string, verified: number, total: number, missing: string[]) =>
+  `${verified}/${total} ${prefix}${formatMissingIds(missing)}`;
+
+export const buildCloudSyncOutbox = (
+  cloudState: CloudSyncState,
+  profile: UserProfile,
+  records: MemoryRecord[],
+  modeRuns: GameModeRun[],
+  shareArtifacts: ShareArtifactEvidence[] = [],
+): CloudSyncOutboxItem[] => {
+  const verification = cloudState.verification;
+  const profileVerified =
+    Boolean(verification?.profile) &&
+    Boolean(verification?.profileIdentity) &&
+    (verification?.profileIdentityProblems?.length ?? 0) === 0;
+  const recordIds = records.map((record) => record.capsule.id);
+  const modeRunIds = modeRuns.map((run) => run.id);
+  const shareArtifactIds = shareArtifacts.map(shareArtifactCloudId);
+  const verifiedRecords = recordIds.filter((id) => verification?.recordContentIds?.includes(id)).length;
+  const verifiedModeRuns = modeRunIds.filter((id) => verification?.modeRunContentIds?.includes(id)).length;
+  const verifiedShareArtifacts = shareArtifactIds.filter((id) => verification?.shareArtifactContentIds?.includes(id)).length;
+  const publicProofIds = [
+    ...recordIds.map((id) => `record:${id}`),
+    ...modeRunIds.map((id) => `mode:${id}`),
+  ];
+  const verifiedPublicProofs = publicProofIds.filter((id) => verification?.publicProofIds?.includes(id)).length;
+  const verifiedPublicProofContent = publicProofIds.filter((id) => verification?.publicProofContentIds?.includes(id)).length;
+  const blockAction = cloudState.configured ? "Sign in to flush this outbox to Supabase." : "Set Supabase env vars before this outbox can sync.";
+  const syncAction =
+    cloudState.status === "syncing"
+      ? "Sync is running; the row must still be read back before it counts as verified."
+      : "Run Sync after sign-in; completion requires a Supabase read-back match.";
+  const profileMissing = profileVerified ? [] : [profile.id || "profile"];
+  const recordMissing = recordIds.filter((id) => !verification?.recordContentIds?.includes(id));
+  const modeMissing = modeRunIds.filter((id) => !verification?.modeRunContentIds?.includes(id));
+  const shareMissing = shareArtifactIds.filter((id) => !verification?.shareArtifactContentIds?.includes(id));
+  const proofMissing = publicProofIds.filter((id) => !verification?.publicProofIds?.includes(id));
+  const proofContentMissing = publicProofIds.filter((id) => !verification?.publicProofContentIds?.includes(id));
+
+  return [
+    {
+      key: "profile",
+      label: "Profile row",
+      status: outboxStatus(cloudState, 1, profileVerified ? 1 : 0, profileMissing),
+      queued: profileVerified ? 0 : 1,
+      verified: profileVerified ? 1 : 0,
+      total: 1,
+      detail: profileVerified
+        ? `1/1 profile identity read back for ${profile.email || profile.id}`
+        : `profile identity waiting for read-back${formatMissingIds(profileMissing)}`,
+      action: profileVerified ? "Profile can be restored on another device." : blockAction,
+    },
+    {
+      key: "records",
+      label: "Prediction history",
+      status: outboxStatus(cloudState, records.length, verifiedRecords, recordMissing),
+      queued: Math.max(0, records.length - verifiedRecords),
+      verified: verifiedRecords,
+      total: records.length,
+      detail: outboxDetail("prediction capsule fingerprints read back", verifiedRecords, records.length, recordMissing),
+      action: verifiedRecords >= records.length ? "Prediction history is cloud-acknowledged." : syncAction,
+    },
+    {
+      key: "modeRuns",
+      label: "Mode proofs",
+      status: outboxStatus(cloudState, modeRuns.length, verifiedModeRuns, modeMissing),
+      queued: Math.max(0, modeRuns.length - verifiedModeRuns),
+      verified: verifiedModeRuns,
+      total: modeRuns.length,
+      detail: outboxDetail("mode proof fingerprints read back", verifiedModeRuns, modeRuns.length, modeMissing),
+      action: verifiedModeRuns >= modeRuns.length ? "Mode proof history is cloud-acknowledged." : syncAction,
+    },
+    {
+      key: "shareArtifacts",
+      label: "Share manifests",
+      status: outboxStatus(cloudState, shareArtifacts.length, verifiedShareArtifacts, shareMissing),
+      queued: Math.max(0, shareArtifacts.length - verifiedShareArtifacts),
+      verified: verifiedShareArtifacts,
+      total: shareArtifacts.length,
+      detail: outboxDetail("share card manifest fingerprints read back", verifiedShareArtifacts, shareArtifacts.length, shareMissing),
+      action: verifiedShareArtifacts >= shareArtifacts.length ? "Share manifests are cloud-acknowledged." : syncAction,
+    },
+    {
+      key: "publicProofs",
+      label: "Public proof links",
+      status: outboxStatus(cloudState, publicProofIds.length, verifiedPublicProofContent, [...proofMissing, ...proofContentMissing]),
+      queued: Math.max(0, publicProofIds.length - verifiedPublicProofContent),
+      verified: verifiedPublicProofContent,
+      total: publicProofIds.length,
+      detail: outboxDetail(
+        "anonymous proof link fingerprints read back",
+        verifiedPublicProofContent,
+        publicProofIds.length,
+        [...proofMissing, ...proofContentMissing],
+      ),
+      action: verifiedPublicProofContent >= publicProofIds.length
+        ? "Proof URLs work without this local session and match the synced payloads."
+        : syncAction,
+    },
+  ];
 };
 
 const auditStatus = (blocked: boolean, passed: boolean): CloudSyncAuditItem["status"] =>
@@ -1428,6 +2328,7 @@ export const buildCloudSyncAudit = (
   const verifiedRecords = verification?.records ?? 0;
   const verifiedModeRuns = verification?.modeRuns ?? 0;
   const verifiedPublicProofs = verification?.publicProofs ?? 0;
+  const verifiedPublicProofContent = verification?.publicProofContentIds?.length ?? 0;
   const verifiedShareArtifacts = verification?.shareArtifacts ?? 0;
   const verifiedShareImages = verification?.publicShareImages ?? 0;
   const verifiedPublicProfile = Boolean(verification?.publicProfile);
@@ -1435,6 +2336,10 @@ export const buildCloudSyncAudit = (
     (verification?.publicProfileRecordIds?.length ?? 0) +
     (verification?.publicProfileModeRunIds?.length ?? 0) +
     (verification?.publicProfileShareArtifactIds?.length ?? 0);
+  const verifiedPublicProfileArchiveFingerprints =
+    (verification?.publicProfileRecordContentIds?.length ?? verification?.publicProfileRecordIds?.length ?? 0) +
+    (verification?.publicProfileModeRunContentIds?.length ?? verification?.publicProfileModeRunIds?.length ?? 0) +
+    (verification?.publicProfileShareArtifactContentIds?.length ?? verification?.publicProfileShareArtifactIds?.length ?? 0);
   const totalPublicProfileArchives = records.length + modeRuns.length + shareArtifacts.length;
   const backendReady = Boolean(verification?.backendHealth?.ready);
   const totalContentFingerprints = records.length + modeRuns.length + shareArtifacts.length;
@@ -1467,7 +2372,15 @@ export const buildCloudSyncAudit = (
       synced: signedIn && cloudProfile && verifiedProfile ? 1 : 0,
       total: 1,
       detail: verifiedProfile ? `read-back profile id ${profile.id}` : cloudProfile ? `profile id ${profile.id}` : blockingDetail,
-      action: verifiedProfile ? "Profile was read back from Supabase." : cloudProfile ? "Run Sync to verify the cloud profile." : "Sign in and save profile.",
+      action: verifiedProfile
+        ? verification?.authUserIdentity
+          ? `Profile was read back from Supabase for Auth user ${verification.authUserIdentity.email || verification.authUserIdentity.id}.`
+          : "Profile was read back from Supabase."
+        : verification?.authUserProblems?.length
+          ? verification.authUserProblems.join("; ")
+          : cloudProfile
+            ? "Run Sync to verify the cloud profile."
+            : "Sign in and save profile.",
     },
     {
       key: "records",
@@ -1494,13 +2407,19 @@ export const buildCloudSyncAudit = (
     {
       key: "publicProofs",
       label: "Public proof links",
-      status: auditStatus(!configured || !signedIn, totalProofLinks > 0 && verifiedPublicProofs >= totalProofLinks),
-      synced: verifiedPublicProofs,
+      status: auditStatus(!configured || !signedIn, totalProofLinks > 0 && verifiedPublicProofContent >= totalProofLinks),
+      synced: verifiedPublicProofContent,
       total: totalProofLinks,
       detail: totalProofLinks > 0
-        ? `${verifiedPublicProofs}/${totalProofLinks} public links read anonymously${formatMissingIds(verification?.missingPublicProofIds)}`
+        ? `${verifiedPublicProofs}/${totalProofLinks} public links, ${verifiedPublicProofContent}/${totalProofLinks} public proof fingerprints${formatMissingIds([
+            ...(verification?.missingPublicProofIds ?? []),
+            ...(verification?.missingPublicProofContentIds ?? []),
+          ])}`
         : "no proof links",
-      action: verifiedPublicProofs >= totalProofLinks && totalProofLinks > 0 ? "Proof and mode URLs resolve without the local session." : "Sync history before sharing public links.",
+      action:
+        verifiedPublicProofContent >= totalProofLinks && totalProofLinks > 0
+          ? "Proof and mode URLs resolve without the local session and match synced payloads."
+          : "Sync history before sharing public links.",
     },
     {
       key: "shareArtifacts",
@@ -1549,21 +2468,24 @@ export const buildCloudSyncAudit = (
         !configured,
         cloudProfile &&
           verifiedPublicProfile &&
-          (totalPublicProfileArchives === 0 || verifiedPublicProfileArchives >= totalPublicProfileArchives),
+          (totalPublicProfileArchives === 0 || verifiedPublicProfileArchiveFingerprints >= totalPublicProfileArchives),
       ),
-      synced: cloudProfile && verifiedPublicProfile ? verifiedPublicProfileArchives : 0,
+      synced: cloudProfile && verifiedPublicProfile ? verifiedPublicProfileArchiveFingerprints : 0,
       total: Math.max(1, totalPublicProfileArchives),
       detail: verifiedPublicProfile
-        ? `anonymous ?profile=${profile.id} · archives ${verifiedPublicProfileArchives}/${totalPublicProfileArchives}${formatMissingIds([
+        ? `anonymous ?profile=${profile.id} · archives ${verifiedPublicProfileArchives}/${totalPublicProfileArchives}, fingerprints ${verifiedPublicProfileArchiveFingerprints}/${totalPublicProfileArchives}${formatMissingIds([
             ...(verification?.missingPublicProfileRecordIds ?? []),
             ...(verification?.missingPublicProfileModeRunIds ?? []),
             ...(verification?.missingPublicProfileShareArtifactIds ?? []),
+            ...(verification?.missingPublicProfileRecordContentIds ?? []),
+            ...(verification?.missingPublicProfileModeRunContentIds ?? []),
+            ...(verification?.missingPublicProfileShareArtifactContentIds ?? []),
           ])}`
         : cloudProfile
           ? `?profile=${profile.id}`
           : "local preview only",
       action:
-        verifiedPublicProfile && (totalPublicProfileArchives === 0 || verifiedPublicProfileArchives >= totalPublicProfileArchives)
+        verifiedPublicProfile && (totalPublicProfileArchives === 0 || verifiedPublicProfileArchiveFingerprints >= totalPublicProfileArchives)
           ? "Profile page can load synced archives anonymously."
           : "Sync cloud history and verify the public profile includes records, mode proofs and share cards.",
     },
@@ -1615,8 +2537,19 @@ export const buildLeaderboardReadiness = (
             : "global xp ranking ready";
       const rows = evidence?.rows ?? scopeCounts[scope];
       const queryPassed = evidence
-        ? evidence.status === "loaded" && evidence.rows > 0 && evidence.currentUserPresent
-        : rows > 0 && remoteRows.some((entry) => entry.source === scope && entry.id === profile.id);
+        ? evidence.status === "loaded" &&
+          evidence.rows > 0 &&
+          evidence.currentUserPresent &&
+          Number.isInteger(evidence.currentUserRank) &&
+          Number(evidence.currentUserRank) > 0
+        : rows > 0 &&
+          remoteRows.some(
+            (entry) =>
+              entry.source === scope &&
+              entry.id === profile.id &&
+              Number.isInteger(entry.rank) &&
+              Number(entry.rank) > 0,
+          );
       return {
         key: scope,
         label: `${scope} scope`,
@@ -1625,7 +2558,13 @@ export const buildLeaderboardReadiness = (
           ? evidence
             ? evidence.status === "error"
               ? `${scope} query failed · ${evidence.filter} · ${evidence.error ?? "unknown error"}`
-              : `${rows} remote ${scope} row${rows === 1 ? "" : "s"} · ${evidence.status} · ${evidence.filter} · current user ${evidence.currentUserPresent ? `rank ${evidence.currentUserRank ?? "listed"}` : "missing"} · ${scopeDetail}`
+              : `${rows} remote ${scope} row${rows === 1 ? "" : "s"} · ${evidence.status} · ${evidence.filter} · current user ${
+                  evidence.currentUserPresent
+                    ? Number.isInteger(evidence.currentUserRank) && Number(evidence.currentUserRank) > 0
+                      ? `rank ${evidence.currentUserRank}`
+                      : "missing scoped rank"
+                    : "missing"
+                } · ${scopeDetail}`
             : rows > 0
               ? `${rows} remote ${scope} row${rows === 1 ? "" : "s"} · ${scopeDetail}`
               : `no remote ${scope} rows yet · ${scopeDetail}`

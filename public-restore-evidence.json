@@ -37,14 +37,15 @@
       "id": "mode-target-id",
       "label": "Public mode proof target",
       "required": true,
-      "detail": "mode-prod-bracket-f90d6276, mode-prod-parlay-77bf4ef2, mode-prod-agent-vs-human-f8b27b3a, mode-prod-upset-9f6dd619, mode-prod-group-path-b533c118",
+      "detail": "mode-prod-bracket-f90d6276, mode-prod-parlay-77bf4ef2, mode-prod-agent-vs-human-f8b27b3a, mode-prod-upset-9f6dd619, mode-prod-group-path-b533c118, mode-prod-penalty-pressure-f7632967",
       "action": "Set KICKOFF_VERIFY_MODE_IDS to synced mode proof run ids with share manifests.",
       "sampleIds": [
         "mode-prod-bracket-f90d6276",
         "mode-prod-parlay-77bf4ef2",
         "mode-prod-agent-vs-human-f8b27b3a",
         "mode-prod-upset-9f6dd619",
-        "mode-prod-group-path-b533c118"
+        "mode-prod-group-path-b533c118",
+        "mode-prod-penalty-pressure-f7632967"
       ],
       "status": "passed"
     },
@@ -76,7 +77,7 @@
       "id": "mode-render",
       "label": "Public mode proof render",
       "required": true,
-      "detail": "rendered 5/5 mode pages with canonical URL, social metadata and JSON-LD",
+      "detail": "rendered 6/6 mode pages with canonical URL, social metadata and JSON-LD",
       "action": "Set KICKOFF_VERIFY_MODE_IDS to synced mode proof run ids with share manifests.",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-bracket-f90d6276",
       "sampleIds": [
@@ -84,7 +85,8 @@
         "mode-prod-parlay-77bf4ef2",
         "mode-prod-agent-vs-human-f8b27b3a",
         "mode-prod-upset-9f6dd619",
-        "mode-prod-group-path-b533c118"
+        "mode-prod-group-path-b533c118",
+        "mode-prod-penalty-pressure-f7632967"
       ],
       "status": "passed"
     },
@@ -100,18 +102,10 @@
         "mode-prod-parlay-77bf4ef2",
         "mode-prod-agent-vs-human-f8b27b3a",
         "mode-prod-upset-9f6dd619",
-        "mode-prod-group-path-b533c118"
+        "mode-prod-group-path-b533c118",
+        "mode-prod-penalty-pressure-f7632967"
       ],
       "status": "failed"
-    },
-    {
-      "id": "share-image-public-read",
-      "label": "Public share image read",
-      "required": true,
-      "detail": "image/png · 231266 bytes · 1200x675",
-      "action": "Generate a record share card PNG, publish it as a public HTTPS image and set KICKOFF_VERIFY_SHARE_IMAGE_URL.",
-      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
-      "status": "passed"
     },
     {
       "id": "mode-share-image-public-read",
@@ -120,6 +114,15 @@
       "detail": "image/png · 238857 bytes · 1200x675",
       "action": "Generate a mode proof share card PNG, publish it as a public HTTPS image and set KICKOFF_VERIFY_MODE_SHARE_IMAGE_URL.",
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png",
+      "status": "passed"
+    },
+    {
+      "id": "share-image-public-read",
+      "label": "Public share image read",
+      "required": true,
+      "detail": "image/png · 231266 bytes · 1200x675",
+      "action": "Generate a record share card PNG, publish it as a public HTTPS image and set KICKOFF_VERIFY_SHARE_IMAGE_URL.",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
       "status": "passed"
     }
   ],
@@ -136,12 +139,13 @@
         "mode-prod-parlay-77bf4ef2",
         "mode-prod-agent-vs-human-f8b27b3a",
         "mode-prod-upset-9f6dd619",
-        "mode-prod-group-path-b533c118"
+        "mode-prod-group-path-b533c118",
+        "mode-prod-penalty-pressure-f7632967"
       ],
       "status": "failed"
     }
   ],
-  "generatedAt": "2026-07-06T22:31:42.822Z",
+  "generatedAt": "2026-07-07T01:58:56.915Z",
   "envFiles": [
     ".env.production.local"
   ],
@@ -163,14 +167,24 @@
         "targetKind": "profile",
         "targetId": "kickoff-production-seed",
         "expectedSource": "cloud",
+        "requiresCleanSession": true,
+        "pageKind": "profile",
+        "queryParam": "profile",
+        "targetIds": [
+          "kickoff-production-seed"
+        ],
         "requiredFields": [
           "canonical-url",
           "og:title",
+          "og:image",
           "twitter:card",
           "json-ld",
           "public-kind",
           "public-target",
-          "public-source-cloud"
+          "public-source-cloud",
+          "social-metadata",
+          "share-image",
+          "cloud-record"
         ]
       }
     },
@@ -190,14 +204,24 @@
         "targetKind": "proof",
         "targetId": "cap-prod-73dc2618d1f9",
         "expectedSource": "cloud",
+        "requiresCleanSession": true,
+        "pageKind": "proof",
+        "queryParam": "proof",
+        "targetIds": [
+          "cap-prod-73dc2618d1f9"
+        ],
         "requiredFields": [
           "canonical-url",
           "og:title",
+          "og:image",
           "twitter:card",
           "json-ld",
           "public-kind",
           "public-target",
-          "public-source-cloud"
+          "public-source-cloud",
+          "social-metadata",
+          "share-image",
+          "cloud-record"
         ]
       }
     },
@@ -217,14 +241,24 @@
         "targetKind": "mode",
         "targetId": "mode-prod-bracket-f90d6276",
         "expectedSource": "cloud",
+        "requiresCleanSession": true,
+        "pageKind": "mode",
+        "queryParam": "mode",
+        "targetIds": [
+          "mode-prod-bracket-f90d6276"
+        ],
         "requiredFields": [
           "canonical-url",
           "og:title",
+          "og:image",
           "twitter:card",
           "json-ld",
           "public-kind",
           "public-target",
-          "public-source-cloud"
+          "public-source-cloud",
+          "social-metadata",
+          "share-image",
+          "cloud-record"
         ]
       }
     },
@@ -244,14 +278,24 @@
         "targetKind": "mode",
         "targetId": "mode-prod-parlay-77bf4ef2",
         "expectedSource": "cloud",
+        "requiresCleanSession": true,
+        "pageKind": "mode",
+        "queryParam": "mode",
+        "targetIds": [
+          "mode-prod-parlay-77bf4ef2"
+        ],
         "requiredFields": [
           "canonical-url",
           "og:title",
+          "og:image",
           "twitter:card",
           "json-ld",
           "public-kind",
           "public-target",
-          "public-source-cloud"
+          "public-source-cloud",
+          "social-metadata",
+          "share-image",
+          "cloud-record"
         ]
       }
     },
@@ -271,14 +315,24 @@
         "targetKind": "mode",
         "targetId": "mode-prod-agent-vs-human-f8b27b3a",
         "expectedSource": "cloud",
+        "requiresCleanSession": true,
+        "pageKind": "mode",
+        "queryParam": "mode",
+        "targetIds": [
+          "mode-prod-agent-vs-human-f8b27b3a"
+        ],
         "requiredFields": [
           "canonical-url",
           "og:title",
+          "og:image",
           "twitter:card",
           "json-ld",
           "public-kind",
           "public-target",
-          "public-source-cloud"
+          "public-source-cloud",
+          "social-metadata",
+          "share-image",
+          "cloud-record"
         ]
       }
     },
@@ -298,14 +352,24 @@
         "targetKind": "mode",
         "targetId": "mode-prod-upset-9f6dd619",
         "expectedSource": "cloud",
+        "requiresCleanSession": true,
+        "pageKind": "mode",
+        "queryParam": "mode",
+        "targetIds": [
+          "mode-prod-upset-9f6dd619"
+        ],
         "requiredFields": [
           "canonical-url",
           "og:title",
+          "og:image",
           "twitter:card",
           "json-ld",
           "public-kind",
           "public-target",
-          "public-source-cloud"
+          "public-source-cloud",
+          "social-metadata",
+          "share-image",
+          "cloud-record"
         ]
       }
     },
@@ -325,14 +389,61 @@
         "targetKind": "mode",
         "targetId": "mode-prod-group-path-b533c118",
         "expectedSource": "cloud",
+        "requiresCleanSession": true,
+        "pageKind": "mode",
+        "queryParam": "mode",
+        "targetIds": [
+          "mode-prod-group-path-b533c118"
+        ],
         "requiredFields": [
           "canonical-url",
           "og:title",
+          "og:image",
           "twitter:card",
           "json-ld",
           "public-kind",
           "public-target",
-          "public-source-cloud"
+          "public-source-cloud",
+          "social-metadata",
+          "share-image",
+          "cloud-record"
+        ]
+      }
+    },
+    {
+      "id": "public-page:mode:mode-prod-penalty-pressure-f7632967",
+      "label": "mode mode-prod-penalty-pressure-f7632967 public page",
+      "kind": "public-page",
+      "targetKind": "mode",
+      "targetId": "mode-prod-penalty-pressure-f7632967",
+      "expectedSource": "cloud",
+      "authMode": "public-page",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-penalty-pressure-f7632967",
+      "ready": true,
+      "command": "curl -sS 'https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-penalty-pressure-f7632967'",
+      "responseExpectation": {
+        "responseType": "public-html",
+        "targetKind": "mode",
+        "targetId": "mode-prod-penalty-pressure-f7632967",
+        "expectedSource": "cloud",
+        "requiresCleanSession": true,
+        "pageKind": "mode",
+        "queryParam": "mode",
+        "targetIds": [
+          "mode-prod-penalty-pressure-f7632967"
+        ],
+        "requiredFields": [
+          "canonical-url",
+          "og:title",
+          "og:image",
+          "twitter:card",
+          "json-ld",
+          "public-kind",
+          "public-target",
+          "public-source-cloud",
+          "social-metadata",
+          "share-image",
+          "cloud-record"
         ]
       }
     },
@@ -551,6 +662,37 @@
         ],
         "table": "kickoff_mode_runs"
       }
+    },
+    {
+      "id": "supabase-row:mode:mode-prod-penalty-pressure-f7632967",
+      "label": "mode mode-prod-penalty-pressure-f7632967 Supabase row",
+      "kind": "supabase-row",
+      "targetKind": "mode",
+      "targetId": "mode-prod-penalty-pressure-f7632967",
+      "expectedSource": "cloud",
+      "queryPath": "kickoff_mode_runs?select=id%2Cuser_id%2Cmode_id%2Cstatus%2Cscore%2Cmode_run%2Cupdated_at&id=eq.mode-prod-penalty-pressure-f7632967&limit=1",
+      "authMode": "anon",
+      "table": "kickoff_mode_runs",
+      "url": "",
+      "ready": false,
+      "command": "Set VITE_SUPABASE_URL and KICKOFF_VERIFY_MODE_ID before Supabase row read-back.",
+      "responseExpectation": {
+        "responseType": "supabase-array",
+        "targetKind": "mode",
+        "targetId": "mode-prod-penalty-pressure-f7632967",
+        "expectedSource": "cloud",
+        "minRows": 1,
+        "requiredFields": [
+          "id",
+          "user_id",
+          "mode_id",
+          "status",
+          "score",
+          "mode_run",
+          "updated_at"
+        ],
+        "table": "kickoff_mode_runs"
+      }
     }
   ],
   "pageTargets": [
@@ -602,6 +744,13 @@
       "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-group-path-b533c118",
       "ready": true,
       "expectedSource": "cloud"
+    },
+    {
+      "kind": "mode",
+      "targetId": "mode-prod-penalty-pressure-f7632967",
+      "url": "https://olive8882-1996.github.io/kickoff-lock-agent/?mode=mode-prod-penalty-pressure-f7632967",
+      "ready": true,
+      "expectedSource": "cloud"
     }
   ],
   "targets": {
@@ -613,7 +762,8 @@
       "mode-prod-parlay-77bf4ef2",
       "mode-prod-agent-vs-human-f8b27b3a",
       "mode-prod-upset-9f6dd619",
-      "mode-prod-group-path-b533c118"
+      "mode-prod-group-path-b533c118",
+      "mode-prod-penalty-pressure-f7632967"
     ],
     "shareImageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-share.png",
     "modeShareImageUrl": "https://olive8882-1996.github.io/kickoff-lock-agent/generated/kickoff-production-mode-share.png"
@@ -623,11 +773,20 @@
     "cleanSessionRestore": false,
     "profileRender": true,
     "proofRender": true,
-    "modeRenderCount": 5,
-    "requiredModeRenderCount": 5,
+    "modeRenderCount": 6,
+    "requiredModeRenderCount": 6,
     "cleanSessionProfileIds": [],
-    "cleanSessionProofIds": [],
-    "cleanSessionModeIds": [],
+    "cleanSessionProofIds": [
+      "cap-prod-73dc2618d1f9"
+    ],
+    "cleanSessionModeIds": [
+      "mode-prod-bracket-f90d6276",
+      "mode-prod-parlay-77bf4ef2",
+      "mode-prod-agent-vs-human-f8b27b3a",
+      "mode-prod-upset-9f6dd619",
+      "mode-prod-group-path-b533c118",
+      "mode-prod-penalty-pressure-f7632967"
+    ],
     "shareImageReadBack": true,
     "modeShareImageReadBack": true,
     "outputEnvKeys": [

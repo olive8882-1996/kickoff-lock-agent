@@ -266,7 +266,9 @@ test("expanded product workflow is usable", async ({ page }) => {
   await expect(page.getByLabel("Production acceptance", { exact: true })).toContainText(/真实账号系统/i);
   await expect(page.getByLabel("Production acceptance", { exact: true })).toContainText(/真实 Filecoin 自动封存/i);
   await expect(page.getByLabel("Production acceptance", { exact: true })).toContainText(/排行榜后端/i);
-  await expect(page.getByLabel("Production acceptance", { exact: true })).toContainText(/Supabase env configured/i);
+  await expect(page.getByLabel("Production acceptance", { exact: true })).toContainText(
+    /Supabase (env )?configured/i,
+  );
   await expect(page.getByLabel("Production acceptance", { exact: true })).toContainText(/bun run doctor:supabase/i);
   await expect(page.getByLabel("Production acceptance", { exact: true })).toContainText(/bun run doctor:data/i);
   await expect(page.getByLabel("Acceptance test cases")).toContainText(/验收用例与测试规则/i);

@@ -1,20 +1,20 @@
 {
   "ready": false,
-  "passed": 3,
+  "passed": 5,
   "total": 8,
   "checks": [
     {
       "id": "api-football-key",
       "label": "API-Football key",
-      "passed": false,
-      "detail": "missing",
+      "passed": true,
+      "detail": "server-side key configured",
       "action": "Set VITE_APIFOOTBALL_KEY for direct browser calls, or deploy the data proxy with APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back without exposing the key."
     },
     {
       "id": "football-data-backup",
       "label": "Stable schedule and score backup",
       "passed": true,
-      "detail": "public feed read-back incomplete: 104 World Cup rows; HTTP 429; HTTP 429",
+      "detail": "openfootball 104 rows + TheSportsDB 15 events + 5 table rows",
       "action": "Keep openfootball/TheSportsDB public feeds reachable for no-key schedule and score continuity; add FOOTBALL_DATA_TOKEN when you want a second server-side matches/standings backup."
     },
     {
@@ -34,8 +34,8 @@
     {
       "id": "odds-provider",
       "label": "Odds provider",
-      "passed": false,
-      "detail": "missing",
+      "passed": true,
+      "detail": "The Odds API configured",
       "action": "Configure API-Football odds through VITE_APIFOOTBALL_KEY or the data proxy APIFOOTBALL_KEY, or set VITE_ODDS_API_SPORT_KEY with server-side ODDS_API_KEY on the data proxy."
     },
     {
@@ -62,13 +62,6 @@
   ],
   "blockers": [
     {
-      "id": "api-football-key",
-      "label": "API-Football key",
-      "passed": false,
-      "detail": "missing",
-      "action": "Set VITE_APIFOOTBALL_KEY for direct browser calls, or deploy the data proxy with APIFOOTBALL_KEY so lineups, injuries, standings and API-Football odds can be read back without exposing the key."
-    },
-    {
       "id": "fixture-targets",
       "label": "Production fixture targets",
       "passed": false,
@@ -83,13 +76,6 @@
       "action": "Run bun run scout:data-targets so KICKOFF_VERIFY_FIXTURE_SIGNAL_MATRIX covers every target fixture with positive lineups, injuries, odds and standings rows."
     },
     {
-      "id": "odds-provider",
-      "label": "Odds provider",
-      "passed": false,
-      "detail": "missing",
-      "action": "Configure API-Football odds through VITE_APIFOOTBALL_KEY or the data proxy APIFOOTBALL_KEY, or set VITE_ODDS_API_SPORT_KEY with server-side ODDS_API_KEY on the data proxy."
-    },
-    {
       "id": "data-proxy",
       "label": "Static hosting data proxy",
       "passed": false,
@@ -97,7 +83,7 @@
       "action": "Deploy server/data-proxy-worker.mjs as a Worker URL, or deploy the bundled Pages function and set VITE_DATA_PROXY_SAME_ORIGIN=1."
     }
   ],
-  "generatedAt": "2026-07-07T01:28:58.664Z",
+  "generatedAt": "2026-07-09T05:57:14.998Z",
   "envFiles": [
     ".env.production.local"
   ],
@@ -108,18 +94,18 @@
     "fixtureSignalMatrix": "",
     "dataProxyUrl": "",
     "dataProxyHealthUrl": "",
-    "apiFootballConfigured": false,
+    "apiFootballConfigured": true,
     "footballDataBackupConfigured": false,
-    "oddsProviderConfigured": false,
+    "oddsProviderConfigured": true,
     "dataProxyCredentials": {
-      "apiFootball": false,
+      "apiFootball": true,
       "footballData": false,
-      "odds": false
+      "odds": true
     },
     "footballDataCredentialConfigured": false,
     "freeFeedBackupConfigured": true,
     "publicFreeFeedReadBack": {
-      "checkedAt": "2026-07-07T01:28:58.663Z",
+      "checkedAt": "2026-07-09T05:57:14.995Z",
       "openfootball": {
         "url": "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json",
         "ok": true,
@@ -129,17 +115,17 @@
       },
       "theSportsDb": {
         "url": "https://www.thesportsdb.com/api/v1/json/123/eventsseason.php?id=4429&s=2026",
-        "ok": false,
-        "status": 429,
-        "rowCount": 0,
-        "detail": "HTTP 429"
+        "ok": true,
+        "status": 200,
+        "rowCount": 15,
+        "detail": "15 season events"
       },
       "theSportsDbTable": {
         "url": "https://www.thesportsdb.com/api/v1/json/123/lookuptable.php?l=4429&s=2026",
-        "ok": false,
-        "status": 429,
-        "rowCount": 0,
-        "detail": "HTTP 429"
+        "ok": true,
+        "status": 200,
+        "rowCount": 5,
+        "detail": "5 league table rows"
       }
     },
     "dataProxyHealthProof": {
@@ -156,12 +142,12 @@
     "scoutTargets": "3"
   },
   "acceptance": {
-    "apiFootballKey": false,
+    "apiFootballKey": true,
     "footballDataBackup": true,
-    "publicFreeFeedReadBack": false,
+    "publicFreeFeedReadBack": true,
     "fixtureTargets": false,
     "fixtureSignalMatrix": false,
-    "oddsProvider": false,
+    "oddsProvider": true,
     "dataProxyHttps": false,
     "enrichmentLimitReady": true,
     "scoutWindowReady": true,

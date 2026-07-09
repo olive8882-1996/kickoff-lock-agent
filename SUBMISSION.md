@@ -33,7 +33,7 @@ For the World Cup, this creates a useful primitive: predictions become durable a
 - Repository: https://github.com/olive8882-1996/kickoff-lock-agent
 - Demo video: https://olive8882-1996.github.io/kickoff-lock-agent/kickoff-lock-demo.webm
 - Screenshot: https://olive8882-1996.github.io/kickoff-lock-agent/kickoff-lock-screenshot.png
-- Public X post: TBD
+- Public X post: https://x.com/martin_moh53075/status/2075114399623491949
 
 ## 评委视角亮点
 
